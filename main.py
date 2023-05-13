@@ -1,24 +1,23 @@
 import sys
 import math
+import copy
 
 
 def main(instance_file, str_time_limit, sol_file, replenishment_policy):
-
-    # Read instance data
-    nb_customers, horizon_length, capacity, start_level_supplier, production_rate_supplier, \
-        holding_cost_supplier, start_level, max_level, demand_rate, holding_cost, \
-        dist_matrix_data, dist_supplier_data = read_input_irp(instance_file)
     
+    # Read instance data
     MAX_ITER = 200*nb_customers*horizon_length
     JUMP_ITER = MAX_ITER // 2
     
     # Algorithm 1 (HAIR—A hybrid heuristic)
     # Apply the Initialization procedure to generate an initial solution s.    
-    s = initialization(nb_customers, horizon_length, capacity, start_level_supplier, production_rate_supplier, \
-        holding_cost_supplier, start_level, max_level, demand_rate, holding_cost, \
-        dist_matrix_data, dist_supplier_data)
+    s = initialization()
+    print(s)
+    print(dist_matrix_data)
+    print(dist_supplier_data)
+    print(transportation_costs(s,0))
     # Set sbest ← s.
-    sbest = s
+    sbest = copy.deepcopy(s)
     iterations_without_improvement = 0
     
     # while the number of iterations without improvement of sbest ≤ MaxIter do
@@ -41,9 +40,7 @@ def main(instance_file, str_time_limit, sol_file, replenishment_policy):
             s = jump(s) 
 
     
-def initialization(nb_customers, horizon_length, capacity, start_level_supplier, production_rate_supplier, \
-        holding_cost_supplier, start_level, max_level, demand_rate, holding_cost, \
-        dist_matrix_data, dist_supplier_data):
+def initialization() -> list:
     #     In the Initialization procedure, each customer from 1
     # to n is considered sequentially, and the delivery times
     # are set as late as possible before a stockout situation
@@ -54,12 +51,8 @@ def initialization(nb_customers, horizon_length, capacity, start_level_supplier,
     
     vehicle_stock = min(capacity, start_level_supplier)
     current_level_supplier = start_level_supplier - vehicle_stock
-    current_level = start_level
-    print('lo que consumen los clientes')
-    print(demand_rate)
-    
-    print('stock clientes incial')
-    print(start_level)
+    current_level = list(start_level)
+
     for t in range(horizon_length):
         route_aux = []
         quantities_delivered_aux = []
@@ -76,10 +69,7 @@ def initialization(nb_customers, horizon_length, capacity, start_level_supplier,
         routes[t] = [ route_aux, quantities_delivered_aux]
         current_level_supplier += production_rate_supplier + vehicle_stock # al final del dia añado los nuevos productos y si sobro del camion.
         vehicle_stock = min(capacity, current_level_supplier)
-
-    print('SOLUCION:')
-    print(routes)
-             
+          
     return routes   
 
 
@@ -96,9 +86,104 @@ def jump(solution):
     return None
 
 
-def obj_function(solution):
+def neighborhood(solution):
+# Build N0(s) by using the four simple types of changes on s and set N(s) ← ∅; 
+# for all solutions s0 ∈ N0(s) do 
+    # Determine the set A of customers i with Ti(s) 6= Ti(s0). 
+    # while A is not empty do 
+        # Choose a customer i ∈ A and remove it from A. 
+        # for all visit times t ∈ Ti(s0) do 
+            # for all customers j served at time t in s0 and such that t ∈ Tj (s0) do 
+                # if hj > h0, Qt(s0) > C or Bt(s0) < 0 then 
+                    # OU policy: 
+                        # Let s00 be the solution obtained from s0 by removing the visit to j at time t. 
+                        # if s00 is admissible and f(s00) < f(s0) then 
+                            # Set s0 ← s00 and add j to A. 
+                        # end if 
+                    # ML policy: 
+                        # Let y ← min{xjt, mint0>t Ijt0}. 
+                        # Let s00 be the solution obtained from s0 by removing y units of delivery to j at time t (the visit to j at time t is removed if y = xjt). 
+                    # if f(s00) < f(s0) then 
+                        # Set s0 ← s00 and add j to A 
+                        # if j is not visited at time t in s0. 
+                        # end if 
+                # end if 
+            # end for 
+            # ML policy: 
+            # for all customers j served at time t in s0 do 
+                # if hj < h0 then 
+                    # Let y ← maxt0≥t(Ijt0 + xjt0). 
+                    # Let s00 be the solution obtained from s0 by adding Uj − y units of delivery to j at time t. 
+                    # if f(s00) < f(s0) then 
+                        # Set s0 ← s00. 
+                    # end if 
+                # end if 
+            # end for 
+        # end for 
+    # end while 
+    # Add s0to N(s). 
+# end for 
+
     return None
 
+
+def obj_function(solution):
+    # funcion
+    return None
+
+def total_quantity_delivered(solution, t):
+    total_delivered = 0
+    for i in range(t):
+        total_delivered += sum(solution[i][1])
+    
+    return total_delivered
+
+def transportation_costs(solution, t):
+
+    transportation_cost = 0
+    nb_visted = len(solution[t][0])
+    for i in range(nb_visted):
+        if i == 0:
+            transportation_cost += dist_supplier_data[solution[t][0][i]]
+        else:
+            transportation_cost += dist_matrix_data[solution[t][0][i]][solution[t][0][i-1]]
+            
+    transportation_cost += dist_supplier_data[solution[t][0][nb_visted-1]]
+    
+    return transportation_cost
+
+def supplier_inventory_level(solution, t = 0):
+    
+    inventory_level = start_level_supplier
+    for i in range(t):
+        inventory_level += production_rate_supplier - ( sum(solution[i][1]) )
+    
+    return inventory_level
+
+def customer_inventory_level(customer, solution, t = 0):
+    inventory_level = start_level[customer]
+    for i in range(t):
+        quantity_delivered = 0 
+        if customer in solution[i][0]:
+            quantity_delivered = solution[i][1][solution[i][0].index(customer)]
+        
+        inventory_level += (- demand_rate[customer]) + quantity_delivered
+    return inventory_level
+
+def archetti_obj(x, c, d):
+    """
+    Función objetivo de Archetti.
+
+    Parámetros:
+    x -- Lista de variables de decisión.
+    c -- Lista de costos unitarios de producción.
+    d -- Lista de demandas de los productos.
+
+    Retorna:
+    El valor de la función objetivo.
+    """
+    n = len(x)
+    return sum(c[i]*x[i] for i in range(n)) + max(c[i]*x[i] for i in range(n)) + max(0, sum(x) - d)
 
 def read_elem(filename):
     with open(filename) as f:
@@ -184,6 +269,10 @@ if __name__ == '__main__':
     sol_file = sys.argv[2]
     replenishment_policy = sys.argv[3]
     str_time_limit = sys.argv[4] if len(sys.argv) > 4 else "20"
+    
+    nb_customers, horizon_length, capacity, start_level_supplier, production_rate_supplier, \
+    holding_cost_supplier, start_level, max_level, demand_rate, holding_cost, \
+    dist_matrix_data, dist_supplier_data = read_input_irp(instance_file)
     
     main(instance_file, str_time_limit, sol_file, replenishment_policy)
 
