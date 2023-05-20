@@ -1,6 +1,7 @@
 import sys
 import math
 import copy
+import random
 
 
 def main(instance_file, str_time_limit, sol_file, replenishment_policy):
@@ -75,57 +76,173 @@ def initialization() -> list:
 
 def move(solution):
     #neighborhood of s
-    return None   
+    neighborhood = neighborhood(solution)
+    best_solution = neighborhood[0]
+    min_cost_solution = obj_function(best_solution)
+    for solution_prima in neighborhood:
+        if obj_function(solution_prima) < min_cost_solution:
+            best_solution = solution_prima
+            min_cost_solution = obj_function(solution_prima)
+    return copy.deepcopy(best_solution)
 
 
 def improvement(replenishment_policy, solution):
-    return None
+    # Set continue ← true.
+    do_continue = True
+    # Set sbest ← LK(sbest)
+    solution = LK(solution)
+    # while continue do
+    while do_continue:
+        # Set continue ← false.
+        do_continue = False
+ 
+        # (* First type of improvement *)
+        # Let s' be an optimal solution of MIP1(, sbest). Set s0 ← LK(sbest, s0).
+        solution_prima = MIP1(replenishment_policy, solution)
+        solution_prima = LK(solution, solution_prima)
+        # if f(s') < f(sbest) then Set sbest ← s' and continue ← true.
+        if obj_function(solution_prima) < obj_function(solution):
+            solution = copy.deepcopy(solution_prima)
+            do_continue = true
 
+        # (* Second type of improvement *)
+        # Set smerge ← sbest.
+        solution_merge = copy.deepcopy(solution)
+        # Determine the set L of all pairs (r1, r2) of consecutive routes in sbest.
+        # for all pairs (r1, r2) ∈ L do                                                     #TO DO
+            # Let s1 be the solution obtained from sbest by merging r1 and r2 into a single route r
+            # assigned to the same time as r1.
+    
+            # if MIP2(, s1) is infeasible and r is not the last route in s1 then 
+                # Modify s1 by anticipating the first route after r by one time period.
+            # if MIP2(, s1) is feasible then
+                # Let s' be an optimal solution of MIP2(, s1). 
+                # Set s' ← LK(s1, s0).
+
+            # if f(s') < f(smerge) then 
+                # Set smerge ← s'
+
+            # Let s2 be the solution obtained from sbest by merging r1 and r2 into a single route r assigned to the same time as r2.
+            # if MIP2(, s2) is infeasible and r is not the first route in s2 then 
+                # Modify s2 by delaying the last route before r by one time period.
+            # if MIP2(, s2) is feasible then
+                # Let s' be an optimal solution of MIP2(, s2). 
+                # Set s'← LK(s2, s0).
+                # if f(s') < f(smerge) then 
+                #   Set smerge ← s'
+
+        # if f(smerge) < f(sbest) then 
+            #Set sbest ← s'
+            #continue ← true. 
+        
+        #(* Third type of improvement *)
+        #Let s' be an optimal solution of MIP2(, sbest). 
+        # Set s'← LK(sbest, s0).
+
+        # if f(s') < f(sbest) then 
+            #Set sbest ← s'
+            # continue ← true.
+
+    return solution
+
+def LK(solution):
+    return None
 
 def jump(solution):
     return None
 
 
 def neighborhood(solution):
-# Build N0(s) by using the four simple types of changes on s and set N(s) ← ∅; 
-# for all solutions s0 ∈ N0(s) do 
-    # Determine the set A of customers i with Ti(s) 6= Ti(s0). 
-    # while A is not empty do 
+    # Build N'(s) by using the four simple types of changes on s and set N(s) ← ∅; 
+    neighborhood_prima = make_neighborhood_prima()
+    neighborhood = []
+
+    # for all solutions s0 ∈ N0(s) do
+    for solution_prima in neighborhood_prima:
+    # Determine the set A of customers i with Ti(s) != Ti(s'). 
+        set_A = construct_A(solution,solution_prima)
+        # while A is not empty do 
+        while len(set_A) > 0:
         # Choose a customer i ∈ A and remove it from A. 
-        # for all visit times t ∈ Ti(s0) do 
-            # for all customers j served at time t in s0 and such that t ∈ Tj (s0) do 
-                # if hj > h0, Qt(s0) > C or Bt(s0) < 0 then 
-                    # OU policy: 
-                        # Let s00 be the solution obtained from s0 by removing the visit to j at time t. 
-                        # if s00 is admissible and f(s00) < f(s0) then 
-                            # Set s0 ← s00 and add j to A. 
-                        # end if 
-                    # ML policy: 
-                        # Let y ← min{xjt, mint0>t Ijt0}. 
-                        # Let s00 be the solution obtained from s0 by removing y units of delivery to j at time t (the visit to j at time t is removed if y = xjt). 
-                    # if f(s00) < f(s0) then 
-                        # Set s0 ← s00 and add j to A 
-                        # if j is not visited at time t in s0. 
-                        # end if 
-                # end if 
-            # end for 
-            # ML policy: 
-            # for all customers j served at time t in s0 do 
-                # if hj < h0 then 
-                    # Let y ← maxt0≥t(Ijt0 + xjt0). 
-                    # Let s00 be the solution obtained from s0 by adding Uj − y units of delivery to j at time t. 
-                    # if f(s00) < f(s0) then 
-                        # Set s0 ← s00. 
-                    # end if 
-                # end if 
-            # end for 
-        # end for 
-    # end while 
-    # Add s0to N(s). 
-# end for 
+            removed = set_A.pop(int(random.random() * len(set_A)))
+            
+            # for all visit times t ∈ Ti(s') do 
+            for time in T(removed, solution_prima):
+                # for all customers j served at time t in s' and such that t ∈ Tj (s') do
+                for j in solution_prima[time][0]:
+                    # if hj > h0, Qt(s0) > C or Bt(s0) < 0 then 
+                    if (holding_cost[j] > holding_cost_supplier) or (total_quantity_delivered(solution_prima, time) > capacity) or (supplier_inventory_level(solution_prima, time) < 0):
+                        # OU policy: 
+                        if replenishment_policy == "OU":
+                            # Let s00 be the solution obtained from s0 by removing the visit to j at time t. 
+                            solution_dosprima = remove_visit(j, time, solution_prima)
+                            # if s00 is admissible and f(s00) < f(s0) then 
+                            if is_admissible(solution_dosprima) and obj_function(solution_dosprima) < obj_function(solution_prima):
+                                # Set s0 ← s00 and add j to A. 
+                                solution_prima = solution_dosprima
+                                set_A.append(j)        
+                            # end if 
 
+                        # ML policy: 
+                        if replenishment_policy == "ML":
+                            # Let y ← min{xjt, mint0>t Ijt0}.
+                            xjt = solution_prima[time][1][solution_prima[time][0].index(j)]
+                            y = min(xjt, customer_inventory_level(j, solution_prima, time))     #TO DO, time or time +1??                            
+                            # Let s'' be the solution obtained from s' by removing y units of delivery to j at time t (the visit to j at time t is removed if y = xjt). 
+                            if y == xjt:
+                                solution_dosprima = remove_visit(j, time, solution_prima)
+                            else:
+                                solution_dosprima = copy.deepcopy(solution_prima)
+                                solution_dosprima[time][1][solution_dosprima[time][0].index(j)] -= y
+                        
+                            # if f(s00) < f(s0) then 
+                            if obj_function(solution_dosprima) < obj_function(solution_prima):
+                                # Set s0 ← s00
+                                solution_prima = copy.deepcopy(solution_dosprima)
+                                #add j to A if j is not visited at time t in s'. 
+                                if not (j in solution_prima[time][0]):
+                                    set_A.append(j)
+                           
+                # ML policy: 
+                if replenishment_policy == "ML":
+                    # for all customers j served at time t in s0 do 
+                    for j in solution_prima[time][0]:
+                        # if hj < h0 then 
+                        if holding_cost[j] < holding_cost_supplier:
+                            # Let y ← maxt0≥t(Ijt0 + xjt0). 
+                            xjt = solution_prima[time][1][solution_prima[time][0].index(j)]
+                            y = customer_inventory_level(j, solution_prima, time) + xjt                #TO DO Ver que es ese t'
+                            # Let s00 be the solution obtained from s0 by adding Uj − y units of delivery to j at time t. 
+                            solution_dosprima = copy.deepcopy(solution_prima)
+                            solution_dosprima[time][1][solution_dosprima[time][0].index(j)] += (max_level[j] - y)
+                            # if f(s00) < f(s0) then 
+                            if obj_function(solution_dosprima) < obj_function(solution_prima)
+                                # Set s0 ← s00. 
+                                solution_prima = copy.deepcopy(solution_dosprima)
+                            # end if 
+                        # end if 
+                    # end for 
+         
+        # Add s0to N(s).
+        neighborhood.append(copy.deepcopy(solution_prima)) 
+    return neighborhood
+
+def construct_A(solution, solution_prima):
+    A = []
+    for customer in range(nb_customers):
+        if not (T(customer, solution) == T(customer, solution_prima)):
+            A.append(customer)
+    return A
+
+def T(customer, solution):
+    times = []
+    for i in range(horizon_length):
+        if customer in solution[i][0]:
+            times.append(i)
+    return times
+
+def make_neighborhood_prima(solution):
     return None
-
 
 def obj_function(solution):
     # funcion
@@ -169,6 +286,21 @@ def customer_inventory_level(customer, solution, t = 0):
         
         inventory_level += (- demand_rate[customer]) + quantity_delivered
     return inventory_level
+
+def remove_visit(customer, t, solution):
+    new_solution = copy.deepcopy(solution)
+    remove_index = new_solution[t][0].index(customer)
+    new_solution[t][0].pop(remove_index)
+    new_solution[t][1].pop(remove_index)
+    return new_solution
+
+def insert_visit(customer, t, solution):
+    new_solution = copy.deepcopy(solution)
+    if not (customer in new_solution[t][0]):
+        new_solution[t][0].append(customer)
+        #No es 0, VER!!!
+        new_solution[t][0].append(0)    #TO DO
+        
 
 def archetti_obj(x, c, d):
     """
