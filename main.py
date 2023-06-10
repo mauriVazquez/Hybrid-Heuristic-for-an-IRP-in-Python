@@ -4,7 +4,7 @@ import copy
 import random
 
 
-def main(instance_file, str_time_limit, sol_file, replenishment_policy):
+def main(instance_file, str_time_limit, sol_file, REPLENISHMENT_POLICY):
     
     # Read instance data
     MAX_ITER = 200*NB_CUSTOMERS*HORIZON_LENGTH
@@ -29,7 +29,7 @@ def main(instance_file, str_time_limit, sol_file, replenishment_policy):
     #   if s´ is better than sbest then
         if obj_function(sprima) < obj_function(sbest):
     #       Apply the Improvement procedure to possibly improve s´ and set sbest ← s´
-            sbest = improvement(replenishment_policy, sprima)
+            sbest = improvement(REPLENISHMENT_POLICY, sprima)
             iterations_without_improvement = 0
     
     #   Set s ← s´
@@ -85,7 +85,7 @@ def move(solution):
             min_cost_solution = obj_function(solution_prima)
     return copy.deepcopy(best_solution)
 
-def improvement(replenishment_policy, solution):
+def improvement(REPLENISHMENT_POLICY, solution):
     # Set continue ← true.
     do_continue = True
     # Set sbest ← LK(sbest)
@@ -97,7 +97,7 @@ def improvement(replenishment_policy, solution):
  
         # (* First type of improvement *)
         # Let s' be an optimal solution of MIP1(, sbest). Set s0 ← LK(sbest, s0).
-        solution_prima = MIP1(replenishment_policy, solution)
+        solution_prima = MIP1(REPLENISHMENT_POLICY, solution)
         solution_prima = LK(solution, solution_prima)
         # if f(s') < f(sbest) then Set sbest ← s' and continue ← true.
         if obj_function(solution_prima) < obj_function(solution):
@@ -145,7 +145,7 @@ def improvement(replenishment_policy, solution):
     return solution
 
 #TO DO
-def MIP1(replenishment_policy, solution):
+def MIP1(REPLENISHMENT_POLICY, solution):
     return solution
 
 #TO DO
@@ -163,16 +163,27 @@ def variants_type1(solution):
         for t in range (HORIZON_LENGTH):
             solution_copy = copy.deepcopy(solution)
             if i in solution_copy[t][0]:
-                remove_index = solution_copy[t][0].index(i)
-                solution_copy[t][0].pop(remove_index)
-                solution_copy[t][1].pop(remove_index)
-                neighborhood_prima.append(copy.deepcopy(solution_copy))
-                print(str(solution_copy)+ str(obj_function(solution_copy)))
+                solution_copy = remove_visit(i,t,solution_copy)
+                if is_admissible(solution_copy):
+                    print(str(solution_copy)+ str(obj_function(solution_copy)))
+                    neighborhood_prima.append(solution_copy)
+                    # print("ADMISSIBLE")
     print("FIN TIPO 1")
     return neighborhood_prima
 
 def variants_type2(solution):
+    print("Inicio tipo 2")
     neighborhood_prima = []
+    for i in range (NB_CUSTOMERS):
+        for t in range (HORIZON_LENGTH):
+            solution_copy = copy.deepcopy(solution)
+            if not (i in solution_copy[t][0]):
+                solution_copy = insert_visit(i, t, solution_copy)
+                if is_admissible(solution_copy):
+                    print(str(solution_copy)+ str(obj_function(solution_copy)))
+                    neighborhood_prima.append(solution_copy)
+                    # print("ADMISSIBLE")
+    print("FIN TIPO 2")
     return neighborhood_prima
 
 def neighborhood(solution):
@@ -196,7 +207,7 @@ def neighborhood(solution):
                     # if hj > h0, Qt(s0) > C or Bt(s0) < 0 then 
                     if (HOLDING_COST[j] > HOLDING_COST_SUPPLIER) or (total_quantity_delivered(solution_prima, time) > VEHICLE_CAPACITY) or (supplier_inventory_level(solution_prima, time) < 0):
                         # OU policy: 
-                        if replenishment_policy == "OU":
+                        if REPLENISHMENT_POLICY == "OU":
                             # Let s00 be the solution obtained from s0 by removing the visit to j at time t. 
                             solution_dosprima = remove_visit(j, time, solution_prima)
                             # if s00 is admissible and f(s00) < f(s0) then 
@@ -207,7 +218,7 @@ def neighborhood(solution):
                             # end if 
 
                         # ML policy: 
-                        if replenishment_policy == "ML":
+                        if REPLENISHMENT_POLICY == "ML":
                             # Let y ← min{xjt, mint0>t Ijt0}.
                             xjt = solution_prima[time][1][solution_prima[time][0].index(j)]
                             y = min(xjt, customer_inventory_level(j, solution_prima, time))     #TO DO, time or time +1??                            
@@ -227,7 +238,7 @@ def neighborhood(solution):
                                     set_A.append(j)
                            
                 # ML policy: 
-                if replenishment_policy == "ML":
+                if REPLENISHMENT_POLICY == "ML":
                     # for all customers j served at time t in s0 do 
                     for j in solution_prima[time][0]:
                         # if hj < h0 then 
@@ -289,8 +300,11 @@ def obj_function(solution):
         holding_cost += holding_cost_T
 
         #Second term (transportation_cost)
-        transportation_cost += transportation_costs(solution, t)
-
+        try:
+            transportation_cost += transportation_costs(solution, t)
+        except:
+            print(solution)
+            exit()
         #Third term (penalty 1)
         penalty1 += max(0, total_quantity_delivered(solution, t) - VEHICLE_CAPACITY)
 
@@ -311,8 +325,9 @@ def transportation_costs(solution, t):
     #Transportation cost is sum of dis(supplier,i=0), dist(i,i-1) for 0 < supplier <nb_visited
     for i in range(nb_visited):
         transportation_cost += DIST_SUPPLIER_DATA[solution[t][0][i]] if (i == 0) else DIST_MATRIX_DATA[solution[t][0][i]][solution[t][0][i-1]]
-        #Add the cost between last customer and supplier
-        transportation_cost += DIST_SUPPLIER_DATA[solution[t][0][nb_visited-1]]
+    
+    #Add the cost between last customer and supplier
+    transportation_cost += DIST_SUPPLIER_DATA[solution[t][0][nb_visited-1]]
     return transportation_cost
 
 def supplier_inventory_level(solution, t = 0):
@@ -336,21 +351,54 @@ def remove_visit(customer, t, solution):
 
 def insert_visit(customer, t, solution):
     new_solution = copy.deepcopy(solution)
-    if not (customer in new_solution[t][0]):
-        new_solution[t][0].append(customer)
-        #No es 0, VER!!!
-        new_solution[t][0].append(0)    #TO DO
+    min_cost = float("inf")
+
+    for i in range(len(solution[t][0])+1):
+        solution_aux = []
+        solution_aux.append(copy.deepcopy(solution[t]))
+        solution_aux[0][0].insert(i, customer)
+        cost_solution = transportation_costs(solution_aux, 0)
+        if cost_solution < min_cost:
+            min_cost_index = i
+            min_cost = cost_solution
+
+    new_solution[t][0].insert(min_cost_index, customer)
+    if REPLENISHMENT_POLICY == "ML":
+        new_solution[t][1].insert(min_cost_index, (MAX_LEVEL[customer] - (customer_inventory_level(customer,new_solution, t) - DEMAND_RATE[customer])))   
+    else:
+        new_solution[t][1].insert(min_cost_index, (MAX_LEVEL[customer] - (customer_inventory_level(customer,new_solution, t)- DEMAND_RATE[customer]))) 
+
+    return new_solution
+
+    # if not (customer in new_solution[t][0]):
+    #     new_solution[t][0].append(customer)
+    #     new_solution[t][0].append(0)    #TO DO
         
 #TO DO
 def is_admissible(solution):
-    return True
+    client_has_stockout = client_stockout_situation(solution)
+    client_has_overstock = client_overstock_situation(solution)
+    return not (client_has_stockout or client_has_overstock)
 
+def client_overstock_situation(solution):
+    for i in range(NB_CUSTOMERS):
+        for t in range(HORIZON_LENGTH):
+           if customer_inventory_level(i, solution, t+1) > MAX_LEVEL[i]:
+                return True
+    return False
+
+def client_stockout_situation(solution):
+    for i in range(NB_CUSTOMERS):
+        for t in range(HORIZON_LENGTH):
+           if customer_inventory_level(i, solution, t+1) < 0:
+                return True
+    return False
 
 def read_elem(filename):
     with open(filename) as f:
         return [str(elem) for elem in f.read().split()]
 
-
+#TO DO -> Quitar mayusculas a las constantes dentro de esta funcion
 # The input files follow the "Archetti" format
 def read_input_irp(filename):
     file_it = iter(read_elem(filename))
@@ -425,18 +473,18 @@ def isMultiple(num,  check_with):
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print("Usage: python irp.py input_file output_file replenishment_policy [time_limit]")
+        print("Usage: python irp.py input_file output_file REPLENISHMENT_POLICY [time_limit]")
         sys.exit(1)
 
     instance_file = sys.argv[1]
     sol_file = sys.argv[2]
-    replenishment_policy = sys.argv[3]
+    REPLENISHMENT_POLICY = sys.argv[3]
     str_time_limit = sys.argv[4] if len(sys.argv) > 4 else "20"
     
     NB_CUSTOMERS, HORIZON_LENGTH, VEHICLE_CAPACITY, START_LEVEL_SUPPLIER, PRODUCTION_RATE_SUPPLIER, \
     HOLDING_COST_SUPPLIER, START_LEVEL, MAX_LEVEL, DEMAND_RATE, HOLDING_COST, \
     DIST_MATRIX_DATA, DIST_SUPPLIER_DATA = read_input_irp(instance_file)
     
-    main(instance_file, str_time_limit, sol_file, replenishment_policy)
+    main(instance_file, str_time_limit, sol_file, REPLENISHMENT_POLICY)
 
 
