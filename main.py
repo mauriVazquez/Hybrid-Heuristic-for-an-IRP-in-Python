@@ -60,7 +60,7 @@ def initialization() -> list:
         for i in range(NB_CUSTOMERS):
             current_level[i] = current_level[i] - DEMAND_RATE[i] # lo que el cliente tiene - lo que gasta por unidad de tiempo
             #client stockout situation
-            if current_level[i] <= 0 and vehicle_stock > 0:
+            if current_level[i] <= MIN_LEVEL[i] and vehicle_stock > 0:
                 route_aux.append(i)
                 customer_needs = MAX_LEVEL[i] - current_level[i] # lo que el cliente necesita para llenarse
                 delivered_products = min(vehicle_stock, customer_needs) # productos entregados
@@ -160,14 +160,16 @@ def variants_type1(solution):
     print("COMIENZA TIPO 1")
     neighborhood_prima = []
     for i in range (NB_CUSTOMERS):
-        for t in range (HORIZON_LENGTH):
-            solution_copy = copy.deepcopy(solution)
-            if i in solution_copy[t][0]:
-                solution_copy = remove_visit(i,t,solution_copy)
-                if is_admissible(solution_copy):
-                    print(str(solution_copy)+ str(obj_function(solution_copy)))
-                    neighborhood_prima.append(solution_copy)
-                    # print("ADMISSIBLE")
+        #La eliminación del cliente parece ser interesante cuando hi>h0
+        if HOLDING_COST[i] > HOLDING_COST_SUPPLIER:
+            for t in range (HORIZON_LENGTH):
+                solution_copy = copy.deepcopy(solution)
+                if i in solution_copy[t][0]:
+                    solution_copy = remove_visit(i,t,solution_copy)
+                    if is_admissible(solution_copy):
+                        print(str(solution_copy)+ str(obj_function(solution_copy)))
+                        neighborhood_prima.append(solution_copy)
+                        # print("ADMISSIBLE")
     print("FIN TIPO 1")
     return neighborhood_prima
 
@@ -185,6 +187,13 @@ def variants_type2(solution):
                     # print("ADMISSIBLE")
     print("FIN TIPO 2")
     return neighborhood_prima
+
+def variants_type3(solution):
+    for i in range (NB_CUSTOMERS):
+        for t in range (HORIZON_LENGTH):
+            if i in solution[t][0]:
+                return solution
+                
 
 def neighborhood(solution):
     # Build N'(s) by using the four simple types of changes on s and set N(s) ← ∅; 
@@ -363,16 +372,18 @@ def insert_visit(customer, t, solution):
             min_cost = cost_solution
 
     new_solution[t][0].insert(min_cost_index, customer)
+    #TO DO: Revisar que estén implementadas las dos políticas
     if REPLENISHMENT_POLICY == "ML":
-        new_solution[t][1].insert(min_cost_index, (MAX_LEVEL[customer] - (customer_inventory_level(customer,new_solution, t) - DEMAND_RATE[customer])))   
+        delivered = min(MAX_LEVEL[i] - customer_inventory_level(customer, new_solution, t),  VEHICLE_CAPACITY - sum(new_solution[t][1]), supplier_inventory_level(new_solution, t))
+        delivered = delivered if delivered > 0 else DEMAND_RATE[i]
+        new_solution[t][1].insert(min_cost_index, delivered)   
     else:
-        new_solution[t][1].insert(min_cost_index, (MAX_LEVEL[customer] - (customer_inventory_level(customer,new_solution, t)- DEMAND_RATE[customer]))) 
-
+        delivered = (MAX_LEVEL[customer] - (customer_inventory_level(customer,new_solution, t)))
+        new_solution[t][1].insert(min_cost_index, delivered) 
+        for t2 in range(t, HORIZON_LENGTH):
+            if i in new_solution[t2][0]:
+                new_solution[t2][1][new_solution[t2][0].index(i)] -= delivered 
     return new_solution
-
-    # if not (customer in new_solution[t][0]):
-    #     new_solution[t][0].append(customer)
-    #     new_solution[t][0].append(0)    #TO DO
         
 #TO DO
 def is_admissible(solution):
@@ -390,7 +401,7 @@ def client_overstock_situation(solution):
 def client_stockout_situation(solution):
     for i in range(NB_CUSTOMERS):
         for t in range(HORIZON_LENGTH):
-           if customer_inventory_level(i, solution, t+1) < 0:
+           if customer_inventory_level(i, solution, t+1) < MIN_LEVEL[i]:
                 return True
     return False
 
@@ -437,7 +448,7 @@ def read_input_irp(filename):
 
     return NB_CUSTOMERS, HORIZON_LENGTH, VEHICLE_CAPACITY, START_LEVEL_SUPPLIER, \
         PRODUCTION_RATE_SUPPLIER, HOLDING_COST_SUPPLIER, START_LEVEL, MAX_LEVEL, \
-        DEMAND_RATE, HOLDING_COST, distance_matrix, distance_supplier
+        min_level, DEMAND_RATE, HOLDING_COST, distance_matrix, distance_supplier
 
 
 # Compute the distance matrix
@@ -482,7 +493,7 @@ if __name__ == '__main__':
     str_time_limit = sys.argv[4] if len(sys.argv) > 4 else "20"
     
     NB_CUSTOMERS, HORIZON_LENGTH, VEHICLE_CAPACITY, START_LEVEL_SUPPLIER, PRODUCTION_RATE_SUPPLIER, \
-    HOLDING_COST_SUPPLIER, START_LEVEL, MAX_LEVEL, DEMAND_RATE, HOLDING_COST, \
+    HOLDING_COST_SUPPLIER, START_LEVEL, MAX_LEVEL, MIN_LEVEL, DEMAND_RATE, HOLDING_COST, \
     DIST_MATRIX_DATA, DIST_SUPPLIER_DATA = read_input_irp(instance_file)
     
     main(instance_file, str_time_limit, sol_file, REPLENISHMENT_POLICY)
