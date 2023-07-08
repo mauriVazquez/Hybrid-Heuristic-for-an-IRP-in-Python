@@ -4,38 +4,74 @@ import copy
 import random
 
 # Algorithm 1 (HAIR—A hybrid heuristic)
-def main(REPLENISHMENT_POLICY):
+def main(replenishment_policy):
     iterations_without_improvement = 1
+    
+
+    alpha_feasibles = 0
+    alpha_unfeasibles = 0
+    beta_feasibles = 0
+    beta_unfeasibles = 0
 
     # Apply the Initialization procedure to generate an initial solution sbest.    
     s = initialization()
     sbest = copy.deepcopy(s)
 
     # while the number of iterations without improvement of sbest ≤ MaxIter do
-    while iterations_without_improvement <= MAX_ITER:      
+    while iterations_without_improvement <= MAX_ITER:
         #Apply the Move procedure to find the best solution s´ in the neighborhood N(s) of s.
         sprima = move(s)
-        
+
         if obj_function(sprima) < obj_function(sbest):
             #Apply the Improvement procedure to possibly improve s´ and set sbest ← s´
-            sbest = improvement(REPLENISHMENT_POLICY, sprima)
+            sbest = improvement(replenishment_policy, sprima)
             iterations_without_improvement = 1
-    
+
         s = copy.deepcopy(sprima)  
         if isMultiple(iterations_without_improvement, JUMP_ITER):
             #Apply the Jump procedure to modify the current solution s.
             s = jump(s) 
 
         iterations_without_improvement += 1
-    
+        if is_admissible(s):
+            if not exceed_capacity_situation(s):
+                alpha_feasibles += 1
+                alpha_unfeasibles = 0
+            else:
+                alpha_unfeasibles += 1
+                alpha_feasibles = 0
+
+            if alpha_feasibles > 0 and isMultiple(alpha_feasibles, 10):
+                alpha = alpha/2
+                print('alpha feasible: ' + alpha)
+                
+            if alpha_unfeasibles > 0 and isMultiple(alpha_unfeasibles, 10):
+                alpha = alpha * 2
+                print('alpha unfeasible: ' + alpha)
+                
+            if not supplier_stockout_situation(s):
+                beta_feasibles += 1
+                beta_unfeasibles = 0
+            else:
+                beta_unfeasibles += 1
+                beta_feasibles = 0
+
+            if beta_feasibles > 0 and isMultiple(beta_feasibles, 10):
+                beta = beta/2
+                print('beta feasible: ' + beta)
+                
+            if beta_unfeasibles > 0 and isMultiple(beta_unfeasibles, 10):
+                beta = beta * 2
+                print('beta unfeasible: ' + beta)
+
 def initialization():
     #Each customer is considered sequentially, and the delivery times are set as late as possible before a stockout situation occurs.         
     solution = [[] for _ in range(HORIZON_LENGTH)]
-    
+
     vehicle_stock = min(VEHICLE_CAPACITY, START_LEVEL_SUPPLIER)
     current_level_supplier = START_LEVEL_SUPPLIER - vehicle_stock
     current_level = list(START_LEVEL)
-    
+
     for t in range(HORIZON_LENGTH):
         clients_list = []
         quantities_list = []
@@ -50,10 +86,9 @@ def initialization():
                 delivered_products = min(vehicle_stock, customer_needs) # productos entregados
                 vehicle_stock -= delivered_products # se lo resto al camion
                 current_level[i] += delivered_products # guardo los productos en el cliente
-                
                 clients_list.append(i)
                 quantities_list.append(delivered_products)
-        
+
         solution[t] = [ clients_list, quantities_list]
 
         #Al final del día, agrego los productos necesarios (agrego lo que reste para llegar al mínimo de la capacidad del vehículo y el current_level_supplier)
@@ -61,7 +96,7 @@ def initialization():
         vehicle_stock += quantities_to_add_to_vehicle
         current_level_supplier -= quantities_to_add_to_vehicle
     print('Solución inicial: ' + str(solution)+' (Costo:'+str(obj_function(solution))+')')
-    return solution   
+    return solution
 
 def move(solution):
     neighborhood_set = neighborhood(solution)
@@ -76,7 +111,7 @@ def move(solution):
         best_solution = copy.deepcopy(solution)
     return best_solution
 
-def improvement(REPLENISHMENT_POLICY, solution):
+def improvement(replenishment_policy, solution):
     # Set continue ← true.
     do_continue = True
     # Set sbest ← LK(sbest)
@@ -85,10 +120,10 @@ def improvement(REPLENISHMENT_POLICY, solution):
     while do_continue:
         # Set continue ← false.
         do_continue = False
- 
+
         # (* First type of improvement *)
         # Let s' be an optimal solution of MIP1(, sbest). Set s0 ← LK(sbest, s0).
-        solution_prima = MIP1(REPLENISHMENT_POLICY, solution)
+        solution_prima = MIP1(replenishment_policy, solution)
         solution_prima = LK(solution, solution_prima)
         # if f(s') < f(sbest) then Set sbest ← s' and continue ← true.
         if obj_function(solution_prima) < obj_function(solution):
@@ -99,10 +134,10 @@ def improvement(REPLENISHMENT_POLICY, solution):
         # Set smerge ← sbest.
         solution_merge = copy.deepcopy(solution)
         # Determine the set L of all pairs (r1, r2) of consecutive routes in sbest.
-        # for all pairs (r1, r2) ∈ L do                                                     #TO DO
+        # for all pairs (r1, r2) ∈ L do                                                     #TODO
             # Let s1 be the solution obtained from sbest by merging r1 and r2 into a single route r
             # assigned to the same time as r1.
-    
+
             # if MIP2(, s1) is infeasible and r is not the last route in s1 then 
                 # Modify s1 by anticipating the first route after r by one time period.
             # if MIP2(, s1) is feasible then
@@ -135,15 +170,55 @@ def improvement(REPLENISHMENT_POLICY, solution):
 
     return solution
 
-#TO DO
-def MIP1(REPLENISHMENT_POLICY, solution):
-    return solution
+#TODO
+def MIP1(replenishment_policy, solution):
+    savings = []
+    for i in range (NB_CUSTOMERS):
+        if(passConstraints(solution, i , t)): 
+            aux_copy = copy.deepcopy(solution)
 
-#TO DO
+            # busco el t donde es visitado i
+            for time in range(HORIZON_LENGTH):
+                t = aux_copy[time][0].index(i)
+
+            remove_visit(i,t,aux_copy)
+            saving = MIP1objFunction(aux_copy, i)
+            savings.append(saving)
+    minimum = min()
+
+    return minimum
+
+def MIP1objFunction(solution, removed_customer):
+    # cual sería t prima
+    term_1, term_2, term_3 = 0,0,0
+    #TODO: calcular bt
+    bt = 1
+    for t in range(HORIZON_LENGTH):
+        term_1 += HOLDING_COST_SUPPLIER * bt
+
+    for i in range(NB_CUSTOMERS):
+        for t in range(HORIZON_LENGTH):
+            term_2 += HOLDING_COST[i] * customer_inventory_level(i,solution,t)
+
+    #TODO: calcular savings (This savings is calculated by simply joining the predecessor with the successor of i)
+    savings = 1
+    # wir binary variable equal to 1 if customer i is removed from route r
+    for i in range(NB_CUSTOMERS):
+        for r in len(solution):
+            wir = 1 if removed_customer == i else 0
+            term_3 += savings * wir
+
+    return term_1 + term_2 - term_3
+
+
+def passConstraints(solution, i, t):
+    return True
+
+#TODO
 def LK(solution, solution_prima = []):
     return solution
 
-#TO DO
+#TODO
 def jump(solution):
     return solution
 
@@ -169,7 +244,7 @@ def variants_type2(solution):
     for i in range (NB_CUSTOMERS):
         for t in range (HORIZON_LENGTH):
             solution_copy = copy.deepcopy(solution)
-            if not (i in solution_copy[t][0]):
+            if not i in solution_copy[t][0]:
                 solution_copy = insert_visit(i, t, solution_copy)
                 if is_admissible(solution_copy):
                     print(str(solution_copy)+ str(obj_function(solution_copy)))
@@ -188,7 +263,7 @@ def variants_type3(solution):
                 is_in_list.append(t)
             else:
                 not_in_list.append(t)
-            
+
             for is_in in is_in_list:
                 quantity = solution[is_in][1][solution[is_in][0].index(i)]
                 saux = remove_visit(i, is_in, solution)
@@ -205,7 +280,7 @@ def neighborhood(solution):
     # Build N'(s) by using the four simple types of changes on s and set N(s) ← ∅; 
     neighborhood_prima = make_neighborhood_prima(solution)
     neighborhood = []
-    
+
     # for all solutions s0 ∈ N0(s) do
     for solution_prima in neighborhood_prima:
     # Determine the set A of customers i with Ti(s) != Ti(s'). 
@@ -214,7 +289,6 @@ def neighborhood(solution):
         while len(set_A) > 0:
         # Choose a customer i ∈ A and remove it from A. 
             removed = set_A.pop(int(random.random() * len(set_A)))
-            
             # for all visit times t ∈ Ti(s') do 
             for time in T(removed, solution_prima):
                 # for all customers j served at time t in s' and such that t ∈ Tj (s') do
@@ -236,44 +310,44 @@ def neighborhood(solution):
                         if REPLENISHMENT_POLICY == "ML":
                             # Let y ← min{xjt, mint0>t Ijt0}.
                             xjt = solution_prima[time][1][solution_prima[time][0].index(j)]
-                            y = min(xjt, customer_inventory_level(j, solution_prima, time))     #TO DO, time or time +1??                            
+                            y = min(xjt, customer_inventory_level(j, solution_prima, time))     #TODO, time or time +1??                            
                             # Let s'' be the solution obtained from s' by removing y units of delivery to j at time t (the visit to j at time t is removed if y = xjt). 
                             if y == xjt:
                                 solution_dosprima = remove_visit(j, time, solution_prima)
                             else:
                                 solution_dosprima = copy.deepcopy(solution_prima)
                                 solution_dosprima[time][1][solution_dosprima[time][0].index(j)] -= y
-                        
+
                             # if f(s00) < f(s0) then 
                             if obj_function(solution_dosprima) < obj_function(solution_prima):
                                 # Set s0 ← s00
                                 solution_prima = copy.deepcopy(solution_dosprima)
                                 #add j to A if j is not visited at time t in s'. 
-                                if not (j in solution_prima[time][0]):
+                                if not j in solution_prima[time][0]:
                                     set_A.append(j)
-                           
+
                 # ML policy: 
                 if REPLENISHMENT_POLICY == "ML":
-                    for j in solution_prima[time][0]: 
+                    for j in solution_prima[time][0]:
                         if HOLDING_COST[j] < HOLDING_COST_SUPPLIER:
                             # Let y ← max t'≥t(Ijt' + xjt'). 
                             xjt = solution_prima[time][1][solution_prima[time][0].index(j)]
-                            y = customer_inventory_level(j, solution_prima, time) + xjt                #TO DO Ver que es ese t'
-                            
+                            y = customer_inventory_level(j, solution_prima, time) + xjt                #TODO Ver que es ese t'
+
                             # Let s" be the solution obtained from s' by adding Uj − y units of delivery to j at time t. 
                             solution_dosprima = copy.deepcopy(solution_prima)
                             solution_dosprima[time][1][solution_dosprima[time][0].index(j)] += (MAX_LEVEL[j] - y)
-                            
-                            if obj_function(solution_dosprima) < obj_function(solution_prima): 
-                                solution_prima = copy.deepcopy(solution_dosprima) 
-         
+
+                            if obj_function(solution_dosprima) < obj_function(solution_prima):
+                                solution_prima = copy.deepcopy(solution_dosprima)
+
         neighborhood.append(copy.deepcopy(solution_prima)) 
     return neighborhood
 
 def construct_A(solution, solution_prima):
     A = []
     for customer in range(NB_CUSTOMERS):
-        if not (T(customer, solution) == T(customer, solution_prima)):
+        if not T(customer, solution) == T(customer, solution_prima):
             A.append(customer)
     return A
 
@@ -289,37 +363,41 @@ def make_neighborhood_prima(solution):
     print("Nuevo vecindario")
     neighborhood_prima = variants_type1(solution_prima)
     neighborhood_prima.extend(variants_type2(solution_prima))
-    neighborhood_prima.extend(variants_type3(solution_prima))
+    # neighborhood_prima.extend(variants_type3(solution_prima))
     # neighborhood_prima.append(variants_type4(solution))
     print(neighborhood_prima)
     return neighborhood_prima
 
-#TO DO Refectorizar, hay dos for con T y dos con T'. El primero y el último término son T'.
-#Creo que estaría bueno dejar todo en un mismo for, y agregar los términos restantes para completar el T' luego del for
 def obj_function(solution):
-    alpha, beta = 1, 1
     holding_cost, transportation_cost, penalty1, penalty2 = 0, 0, 0, 0
 
     for t in range(HORIZON_LENGTH):
-        bt = supplier_inventory_level(solution, t)
 
         #First term (holding_cost)
+        bt = supplier_inventory_level(solution, t)
         holding_cost_T = HOLDING_COST_SUPPLIER * bt
         for i in range(NB_CUSTOMERS):
             holding_cost_T += HOLDING_COST[i] * customer_inventory_level(i, solution, t)
         holding_cost += holding_cost_T
 
         #Second term (transportation_cost)
-        try:
-            transportation_cost += transportation_costs(solution, t)
-        except:
-            print(solution)
-            exit()
+        transportation_cost += transportation_costs(solution, t)
+
         #Third term (penalty 1)
         penalty1 += max(0, total_quantity_delivered(solution, t) - VEHICLE_CAPACITY)
 
         #Fourth term
         penalty2 += max(0, - bt)
+
+    #t prima
+    holding_cost_T = HOLDING_COST_SUPPLIER * (supplier_inventory_level(solution, t) + PRODUCTION_RATE_SUPPLIER)
+    for i in range(NB_CUSTOMERS):
+        holding_cost_T += HOLDING_COST[i] * (customer_inventory_level(i, solution, t) - DEMAND_RATE[i])
+    holding_cost += holding_cost_T
+
+    #bt en t prima
+    bt += PRODUCTION_RATE_SUPPLIER
+    penalty2 += max(0, - bt)
 
     return holding_cost + transportation_cost + alpha * penalty1 + beta * penalty2
 
@@ -331,11 +409,15 @@ def total_quantity_delivered(solution, t):
 
 def transportation_costs(solution, t):
     transportation_cost = 0
+    
     nb_visited = len(solution[t][0])
+    if nb_visited == 0:
+        return 0
+    
     #Transportation cost is sum of dis(supplier,i=0), dist(i,i-1) for 0 < supplier <nb_visited
     for i in range(nb_visited):
         transportation_cost += DIST_SUPPLIER_DATA[solution[t][0][i]] if (i == 0) else DIST_MATRIX_DATA[solution[t][0][i]][solution[t][0][i-1]]
-    
+
     #Add the cost between last customer and supplier
     transportation_cost += DIST_SUPPLIER_DATA[solution[t][0][nb_visited-1]]
     return transportation_cost
@@ -373,7 +455,7 @@ def insert_visit(customer, t, solution):
             min_cost = cost_solution
 
     new_solution[t][0].insert(min_cost_index, customer)
-    #TO DO: Revisar que estén implementadas las dos políticas
+    #TODO: Revisar que estén implementadas las dos políticas
     if REPLENISHMENT_POLICY == "ML":
         delivered = min(MAX_LEVEL[i] - customer_inventory_level(customer, new_solution, t),  VEHICLE_CAPACITY - sum(new_solution[t][1]), supplier_inventory_level(new_solution, t))
         delivered = delivered if delivered > 0 else DEMAND_RATE[i]
@@ -385,12 +467,18 @@ def insert_visit(customer, t, solution):
             if i in new_solution[t2][0]:
                 new_solution[t2][1][new_solution[t2][0].index(i)] -= delivered 
     return new_solution
-        
-#TO DO
+
+#TODO
 def is_admissible(solution):
     client_has_stockout = client_stockout_situation(solution)
     client_has_overstock = client_overstock_situation(solution)
     return not (client_has_stockout or client_has_overstock)
+
+def is_feasible(solution):
+
+    supplier_has_stockout = supplier_stockout_situation(solution)
+    capacity_exceeded = exceed_capacity_situation(solution)
+    return is_admissible(solution) and not (supplier_has_stockout or capacity_exceeded)
 
 def client_overstock_situation(solution):
     for i in range(NB_CUSTOMERS):
@@ -406,11 +494,27 @@ def client_stockout_situation(solution):
                 return True
     return False
 
+def supplier_stockout_situation(solution):
+    initial = START_LEVEL_SUPPLIER
+
+    for t in range(HORIZON_LENGTH):
+        initial = initial + PRODUCTION_RATE_SUPPLIER - sum(solution[t][1])
+        if initial < 0:
+            return True
+
+    return False
+
+def exceed_capacity_situation(solution):
+    for t in range(HORIZON_LENGTH):
+        if sum(solution[t][1]) > VEHICLE_CAPACITY:
+            return True
+
+    return False
+
 def read_elem(filename):
     with open(filename) as f:
         return [str(elem) for elem in f.read().split()]
 
-#TO DO -> Quitar mayusculas a las constantes dentro de esta funcion
 # The input files follow the "Archetti" format
 def read_input_irp(filename):
     file_it = iter(read_elem(filename))
@@ -500,6 +604,10 @@ if __name__ == '__main__':
     MAX_ITER = 200*NB_CUSTOMERS*HORIZON_LENGTH
     JUMP_ITER = MAX_ITER // 2
 
+    #penalty variables
+    alpha = 1
+    beta = 1
+    
     main(REPLENISHMENT_POLICY)
 
 
