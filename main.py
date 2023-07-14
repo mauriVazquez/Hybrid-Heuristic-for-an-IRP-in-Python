@@ -6,8 +6,8 @@ import random
 # Algorithm 1 (HAIR—A hybrid heuristic)
 def main(replenishment_policy):
     iterations_without_improvement = 1
-    
-
+    global alpha
+    global beta
     alpha_feasibles = 0
     alpha_unfeasibles = 0
     beta_feasibles = 0
@@ -34,7 +34,7 @@ def main(replenishment_policy):
 
         iterations_without_improvement += 1
         if is_admissible(s):
-            if not exceed_capacity_situation(s):
+            if not vehicle_capacity_has_exceeded(s):
                 alpha_feasibles += 1
                 alpha_unfeasibles = 0
             else:
@@ -43,11 +43,11 @@ def main(replenishment_policy):
 
             if alpha_feasibles > 0 and isMultiple(alpha_feasibles, 10):
                 alpha = alpha/2
-                print('alpha feasible: ' + alpha)
+                print('alpha feasible: ' + str(alpha))
                 
             if alpha_unfeasibles > 0 and isMultiple(alpha_unfeasibles, 10):
                 alpha = alpha * 2
-                print('alpha unfeasible: ' + alpha)
+                print('alpha unfeasible: ' + str(alpha))
                 
             if not supplier_stockout_situation(s):
                 beta_feasibles += 1
@@ -58,44 +58,56 @@ def main(replenishment_policy):
 
             if beta_feasibles > 0 and isMultiple(beta_feasibles, 10):
                 beta = beta/2
-                print('beta feasible: ' + beta)
+                print('beta feasible: ' + str(beta))
                 
             if beta_unfeasibles > 0 and isMultiple(beta_unfeasibles, 10):
                 beta = beta * 2
-                print('beta unfeasible: ' + beta)
+                print('beta unfeasible: ' + str(beta))
+    print("MEJOR COSTO")
+    print(str(s) +"("+str(obj_function(s))+")")
+
+# def initialization():
+#     #Each customer is considered sequentially, and the delivery times are set as late as possible before a stockout situation occurs.         
+#     solution = [[] for _ in range(HORIZON_LENGTH)]
+
+#     vehicle_stock = min(VEHICLE_CAPACITY, START_LEVEL_SUPPLIER)
+#     current_level_supplier = START_LEVEL_SUPPLIER - vehicle_stock
+#     current_level = list(START_LEVEL)
+
+#     for t in range(HORIZON_LENGTH):
+#         clients_list = []
+#         quantities_list = []
+
+#         for i in range(NB_CUSTOMERS):
+#             #Defino el current level para el cliente
+#             current_level[i] -= DEMAND_RATE[i] 
+
+#             #Si necesita, lo reabastezco... Eso si tengo stock en el vehículo
+#             if current_level[i] <= MIN_LEVEL[i] and vehicle_stock > 0:
+#                 customer_needs = MAX_LEVEL[i] - current_level[i] # lo que el cliente necesita para llenarse
+#                 delivered_products = min(vehicle_stock, customer_needs) # productos entregados
+#                 vehicle_stock -= delivered_products # se lo resto al camion
+#                 current_level[i] += delivered_products # guardo los productos en el cliente
+#                 clients_list.append(i)
+#                 quantities_list.append(delivered_products)
+
+#         solution[t] = [ clients_list, quantities_list]
+
+#         #Al final del día, agrego los productos necesarios (agrego lo que reste para llegar al mínimo de la capacidad del vehículo y el current_level_supplier)
+#         quantities_to_add_to_vehicle = min(VEHICLE_CAPACITY, current_level_supplier + PRODUCTION_RATE_SUPPLIER + vehicle_stock) - vehicle_stock
+#         vehicle_stock += quantities_to_add_to_vehicle
+#         current_level_supplier -= quantities_to_add_to_vehicle
+#     print('Solución inicial: ' + str(solution)+' (Costo:'+str(obj_function(solution))+')')
+#     return solution
 
 def initialization():
     #Each customer is considered sequentially, and the delivery times are set as late as possible before a stockout situation occurs.         
-    solution = [[] for _ in range(HORIZON_LENGTH)]
-
-    vehicle_stock = min(VEHICLE_CAPACITY, START_LEVEL_SUPPLIER)
-    current_level_supplier = START_LEVEL_SUPPLIER - vehicle_stock
-    current_level = list(START_LEVEL)
-
-    for t in range(HORIZON_LENGTH):
-        clients_list = []
-        quantities_list = []
-
-        for i in range(NB_CUSTOMERS):
-            #Defino el current level para el cliente
-            current_level[i] -= DEMAND_RATE[i] 
-
-            #Si necesita, lo reabastezco... Eso si tengo stock en el vehículo
-            if current_level[i] <= MIN_LEVEL[i] and vehicle_stock > 0:
-                customer_needs = MAX_LEVEL[i] - current_level[i] # lo que el cliente necesita para llenarse
-                delivered_products = min(vehicle_stock, customer_needs) # productos entregados
-                vehicle_stock -= delivered_products # se lo resto al camion
-                current_level[i] += delivered_products # guardo los productos en el cliente
-                clients_list.append(i)
-                quantities_list.append(delivered_products)
-
-        solution[t] = [ clients_list, quantities_list]
-
-        #Al final del día, agrego los productos necesarios (agrego lo que reste para llegar al mínimo de la capacidad del vehículo y el current_level_supplier)
-        quantities_to_add_to_vehicle = min(VEHICLE_CAPACITY, current_level_supplier + PRODUCTION_RATE_SUPPLIER + vehicle_stock) - vehicle_stock
-        vehicle_stock += quantities_to_add_to_vehicle
-        current_level_supplier -= quantities_to_add_to_vehicle
-    print('Solución inicial: ' + str(solution)+' (Costo:'+str(obj_function(solution))+')')
+    solution = [[[],[]] for _ in range(HORIZON_LENGTH)]
+    for c in range(NB_CUSTOMERS):
+        time_stockout = math.floor( (START_LEVEL[c] - MIN_LEVEL[c]) / DEMAND_RATE[c]) - 1
+        solution[time_stockout][0].append(c)
+        solution[time_stockout][1].append( MAX_LEVEL[c] - (START_LEVEL[c] - DEMAND_RATE[c] * (time_stockout+1)))   
+    print('Solución inicial alt: ' + str(solution)+' (Costo:'+str(obj_function(solution))+')')
     return solution
 
 def move(solution):
@@ -170,22 +182,22 @@ def improvement(replenishment_policy, solution):
 
     return solution
 
-#TODO
+#TO DO: t puede no ser único
 def MIP1(replenishment_policy, solution):
     savings = []
-    for i in range (NB_CUSTOMERS):
-        if(passConstraints(solution, i , t)): 
+    for i in range(NB_CUSTOMERS):
+        if(passConstraints(solution, i)): 
             aux_copy = copy.deepcopy(solution)
-
+           
             # busco el t donde es visitado i
             for time in range(HORIZON_LENGTH):
-                t = aux_copy[time][0].index(i)
-
-            remove_visit(i,t,aux_copy)
-            saving = MIP1objFunction(aux_copy, i)
-            savings.append(saving)
+                if i in aux_copy[time][0]:
+                    aux_copy = remove_visit(i,time,aux_copy)
+                    saving = MIP1objFunction(aux_copy, i)
+                    savings.append(saving)
+    
+    return solution
     minimum = min()
-
     return minimum
 
 def MIP1objFunction(solution, removed_customer):
@@ -204,14 +216,14 @@ def MIP1objFunction(solution, removed_customer):
     savings = 1
     # wir binary variable equal to 1 if customer i is removed from route r
     for i in range(NB_CUSTOMERS):
-        for r in len(solution):
+        for r in range(HORIZON_LENGTH):
             wir = 1 if removed_customer == i else 0
             term_3 += savings * wir
 
     return term_1 + term_2 - term_3
 
 
-def passConstraints(solution, i, t):
+def passConstraints(solution, i):
     return True
 
 #TODO
@@ -276,12 +288,36 @@ def variants_type3(solution):
                         neighborhood_prima.append(saux)
     return neighborhood_prima
 
+def variants_type4(solution):
+    print("Inicio tipo 4")
+    neighborhood_prima = []
+    for t in range(HORIZON_LENGTH):
+        for c in range(len(solution[t][0])):
+            client1 = solution[t][0][c]
+            value1 = solution[t][1][c]
+            for t2 in range(HORIZON_LENGTH):
+                if t != t2:
+                    for c2 in range(len(solution[t2][0])):
+                        client2 = solution[t2][0][c2]
+                        value2 = solution[t2][1][c2]
+                        if not( (client2 in solution[t][0]) or (client1 in solution[t2][0]) ):
+                            saux = copy.deepcopy(solution)
+                            saux[t][0][c] = client2
+                            saux[t][1][c] = value2
+                            saux[t2][0][c2] = client1
+                            saux[t2][1][c2] = value1
+                            if is_admissible(saux):
+                                print(str(saux)+ str(obj_function(saux)))
+                                neighborhood_prima.append(saux)
+    return neighborhood_prima
+
+#Algorithm 2
 def neighborhood(solution):
     # Build N'(s) by using the four simple types of changes on s and set N(s) ← ∅; 
     neighborhood_prima = make_neighborhood_prima(solution)
     neighborhood = []
 
-    # for all solutions s0 ∈ N0(s) do
+    # for all solutions s' ∈ N'(s) do
     for solution_prima in neighborhood_prima:
     # Determine the set A of customers i with Ti(s) != Ti(s'). 
         set_A = construct_A(solution,solution_prima)
@@ -293,15 +329,15 @@ def neighborhood(solution):
             for time in T(removed, solution_prima):
                 # for all customers j served at time t in s' and such that t ∈ Tj (s') do
                 for j in solution_prima[time][0]:
-                    # if hj > h0, Qt(s0) > C or Bt(s0) < 0 then 
+                    # if hj > h0, Qt(s') > C or Bt(s') < 0 then 
                     if (HOLDING_COST[j] > HOLDING_COST_SUPPLIER) or (total_quantity_delivered(solution_prima, time) > VEHICLE_CAPACITY) or (supplier_inventory_level(solution_prima, time) < 0):
                         # OU policy: 
                         if REPLENISHMENT_POLICY == "OU":
-                            # Let s00 be the solution obtained from s0 by removing the visit to j at time t. 
+                            # Let s" be the solution obtained from s' by removing the visit to j at time t. 
                             solution_dosprima = remove_visit(j, time, solution_prima)
-                            # if s00 is admissible and f(s00) < f(s0) then 
+                            # if s" is admissible and f(s") < f(s') then 
                             if is_admissible(solution_dosprima) and obj_function(solution_dosprima) < obj_function(solution_prima):
-                                # Set s0 ← s00 and add j to A. 
+                                # Set s' ← s" and add j to A. 
                                 solution_prima = solution_dosprima
                                 set_A.append(j)        
                             # end if 
@@ -311,16 +347,16 @@ def neighborhood(solution):
                             # Let y ← min{xjt, mint0>t Ijt0}.
                             xjt = solution_prima[time][1][solution_prima[time][0].index(j)]
                             y = min(xjt, customer_inventory_level(j, solution_prima, time))     #TODO, time or time +1??                            
-                            # Let s'' be the solution obtained from s' by removing y units of delivery to j at time t (the visit to j at time t is removed if y = xjt). 
+                            # Let s" be the solution obtained from s' by removing y units of delivery to j at time t (the visit to j at time t is removed if y = xjt). 
                             if y == xjt:
                                 solution_dosprima = remove_visit(j, time, solution_prima)
                             else:
                                 solution_dosprima = copy.deepcopy(solution_prima)
                                 solution_dosprima[time][1][solution_dosprima[time][0].index(j)] -= y
 
-                            # if f(s00) < f(s0) then 
+                            # if f(s") < f(s') then 
                             if obj_function(solution_dosprima) < obj_function(solution_prima):
-                                # Set s0 ← s00
+                                # Set s' ← s"
                                 solution_prima = copy.deepcopy(solution_dosprima)
                                 #add j to A if j is not visited at time t in s'. 
                                 if not j in solution_prima[time][0]:
@@ -347,7 +383,7 @@ def neighborhood(solution):
 def construct_A(solution, solution_prima):
     A = []
     for customer in range(NB_CUSTOMERS):
-        if not T(customer, solution) == T(customer, solution_prima):
+        if not (T(customer, solution) == T(customer, solution_prima)):
             A.append(customer)
     return A
 
@@ -360,12 +396,11 @@ def T(customer, solution):
 
 def make_neighborhood_prima(solution):
     solution_prima = copy.deepcopy(solution)
-    print("Nuevo vecindario")
+    print("Creando vecindario de: " +str(solution_prima))
     neighborhood_prima = variants_type1(solution_prima)
     neighborhood_prima.extend(variants_type2(solution_prima))
-    # neighborhood_prima.extend(variants_type3(solution_prima))
-    # neighborhood_prima.append(variants_type4(solution))
-    print(neighborhood_prima)
+    neighborhood_prima.extend(variants_type3(solution_prima))
+    neighborhood_prima.extend(variants_type4(solution_prima))
     return neighborhood_prima
 
 def obj_function(solution):
@@ -468,8 +503,8 @@ def insert_visit(customer, t, solution):
                 new_solution[t2][1][new_solution[t2][0].index(i)] -= delivered 
     return new_solution
 
-#TODO
-def is_admissible(solution):
+#TO DO
+def is_admissible(solution):  
     client_has_stockout = client_stockout_situation(solution)
     client_has_overstock = client_overstock_situation(solution)
     return not (client_has_stockout or client_has_overstock)
@@ -477,7 +512,7 @@ def is_admissible(solution):
 def is_feasible(solution):
 
     supplier_has_stockout = supplier_stockout_situation(solution)
-    capacity_exceeded = exceed_capacity_situation(solution)
+    capacity_exceeded = vehicle_capacity_has_exceeded(solution)
     return is_admissible(solution) and not (supplier_has_stockout or capacity_exceeded)
 
 def client_overstock_situation(solution):
@@ -504,7 +539,7 @@ def supplier_stockout_situation(solution):
 
     return False
 
-def exceed_capacity_situation(solution):
+def vehicle_capacity_has_exceeded(solution):
     for t in range(HORIZON_LENGTH):
         if sum(solution[t][1]) > VEHICLE_CAPACITY:
             return True
