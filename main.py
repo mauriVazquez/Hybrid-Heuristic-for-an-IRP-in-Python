@@ -3,6 +3,12 @@ import math
 import copy
 import random
 from itertools import permutations
+
+from tsp_local.test import matrix
+from tsp_local.base import TSP
+from tsp_local.kopt import KOpt
+
+
 # Algorithm 1 (HAIR—A hybrid heuristic)
 def main(replenishment_policy):
     iterations_without_improvement = 1
@@ -141,7 +147,7 @@ def improvement(replenishment_policy, solution):
 
         # (* First type of improvement *)
         # Let s' be an optimal solution of MIP1(, sbest). Set s0 ← LK(sbest, s0).
-        solution_prima = MIP1(replenishment_policy, solution)
+        solution_prima = MIP1(solution)
         solution_prima = LK(solution, solution_prima)
         # if f(s') < f(sbest) then Set sbest ← s' and continue ← true.
         if obj_function(solution_prima) < obj_function(solution):
@@ -193,10 +199,10 @@ def reordenar_lista(array, combinacion):
     return nueva_lista
 
 #TO DO: t puede no ser único
-def MIP1(replenishment_policy, solution):
+def MIP1(solution):
     print("ENTRA AL MIP"+str(solution))
-    min_saving = float("inf")
-    min_saving_solution = []
+    min_cost = float("inf")
+    min_cost_solution = []
     permutation_orders = list(permutations(range(HORIZON_LENGTH)))
     
     for perm in permutation_orders:
@@ -211,14 +217,39 @@ def MIP1(replenishment_policy, solution):
             for time in range(HORIZON_LENGTH):
                 aux_copy = copy.deepcopy(new_solution)
                 if i in aux_copy[time][0]:
-                    saving = MIP1objFunction(aux_copy, i,time)
+                    mip_cost = MIP1objFunction(aux_copy, i,time)
                     aux_copy = remove_visit(i,time,aux_copy)
-                    if saving < min_saving and passConstraints(aux_copy,i):
+                    if mip_cost < min_cost and passConstraints(aux_copy,i,time,"REMOVE","MIP1"):
                         # print("PASA LAS CONSTRAINTS PARA "+str(i)+" - "+str(aux_copy))
-                        min_saving = saving
-                        min_saving_solution = copy.deepcopy(aux_copy)
-    print("MIP1"+str(min_saving_solution))
-    return min_saving_solution if len(min_saving_solution) >0 else solution
+                        min_cost = mip_cost
+                        min_cost_solution = copy.deepcopy(aux_copy)
+    print("MIP1"+str(min_cost_solution))
+    return min_cost_solution if len(min_cost_solution) >0 else solution
+
+def MIP2(solution):
+    print("ENTRA AL MIP"+str(solution))
+    min_cost = float("inf")
+    min_cost_solution = []
+
+    for i in range(NB_CUSTOMERS):
+        for time in range(HORIZON_LENGTH):
+            aux_copy = copy.deepcopy(solution)
+            if i in aux_copy[time][0]:
+                mip_cost = MIP2objFunction(aux_copy, i, None, time)
+                aux_copy = remove_visit(i,time,aux_copy)
+                if mip_cost < min_cost and passConstraints(aux_copy,i,time,"REMOVE","MIP2"):
+                    # print("PASA LAS CONSTRAINTS PARA "+str(i)+" - "+str(aux_copy))
+                    min_cost = mip_cost
+                    min_cost_solution = copy.deepcopy(aux_copy)
+            else:
+                mip_cost = MIP2objFunction(aux_copy, None, i, time)
+                aux_copy = insert_visit(i,time,aux_copy)
+                if mip_cost < min_cost and passConstraints(aux_copy,i,time,"INSERT","MIP2"):
+                    min_cost = mip_cost
+                    min_cost_solution = copy.deepcopy(aux_copy)
+
+    print("MIP2"+str(min_cost_solution))
+    return min_cost_solution if len(min_cost_solution) >0 else solution
 
 def MIP1objFunction(solution, removed_customer, removed_time):
     # cual sería t prima
@@ -255,6 +286,54 @@ def MIP1objFunction(solution, removed_customer, removed_time):
 
     return term_1 + term_2 - term_3
 
+
+def MIP2objFunction(solution, removed_customer, added_customer, time):
+     # cual sería t prima
+    term_1, term_2, term_3 = 0,0,0
+    #TODO: calcular bt
+    for t in range(HORIZON_LENGTH+1):
+        bt = supplier_inventory_level(solution, t)
+        term_1 += HOLDING_COST_SUPPLIER * bt
+
+    for i in range(NB_CUSTOMERS):
+        for t in range(HORIZON_LENGTH):
+            term_2 += HOLDING_COST[i] * customer_inventory_level(i,solution,t)
+
+    if removed_customer != None:
+        #TODO: calcular savings (This savings is calculated by simply joining the predecessor with the successor of i)
+        customer_index = solution[time][0].index(removed_customer)
+        current_cost = DIST_SUPPLIER_DATA[removed_customer] if (customer_index == 0) else DIST_MATRIX_DATA[solution[time][0][customer_index-1]][removed_customer]
+        current_cost += DIST_SUPPLIER_DATA[removed_customer] if (customer_index == len(solution[time][0]) - 1) else DIST_MATRIX_DATA[removed_customer][solution[time][0][customer_index+1]]
+        
+        if len(solution[time][0]) == 1:
+            new_cost = 0
+        elif customer_index == 0:
+            new_cost = DIST_SUPPLIER_DATA[solution[time][0][customer_index+1]]
+        elif customer_index == len(solution[time][0])-1:
+            new_cost = DIST_SUPPLIER_DATA[solution[time][0][customer_index-1]]
+        else:
+            new_cost = DIST_MATRIX_DATA[solution[time][0][customer_index-1]][solution[time][0][customer_index+1]]
+        savings = current_cost - new_cost
+
+        # wir binary variable equal to 1 if customer i is removed from route r
+        for i in range(NB_CUSTOMERS):
+            for r in range(HORIZON_LENGTH):
+                wir = 1 if removed_customer == i else 0
+                term_3 += savings * wir
+    else:
+        term_3 = 0
+    
+    if added_customer != None:
+        solution_aux = copy.deepcopy(solution)
+        solution_aux = insert_visit(added_customer,time,solution)
+        term_4 = transportation_costs(solution_aux) - transportation_costs(solution, t)
+
+    else:
+        term_4 = 0
+
+    return term_1 + term_2 - term_3 + term_4
+
+
 def quantity_delivered_to_customer_at_t(solution, i ,t):
     if (not i in solution[t][0]) or t == -1:
         return 0
@@ -263,34 +342,35 @@ def quantity_delivered_to_customer_at_t(solution, i ,t):
 def theeta(solution, i,t):
     return (1 if i in solution[t][0] else 0)
 
-def passConstraints(solution, i):
-    for t in range(HORIZON_LENGTH):
-        #Constraint 3
-        if supplier_inventory_level(solution,t) < quantity_delivered_at_t(solution,t):
-           print("Falla la constraint  3 para" + str(solution))
-           return False
-        #Constraint 5
-        if quantity_delivered_to_customer_at_t(solution,i,t) < MAX_LEVEL[i] * theeta(solution,i,t) - customer_inventory_level(i,solution,t):
-            print("Falla la constraint  5 para" + str(solution)+" para el cliente "+str(i))
-            return False
-        #Constraint 6
-        if quantity_delivered_to_customer_at_t(solution,i,t) > MAX_LEVEL[i] - customer_inventory_level(i,solution,t):
-            print("Falla la constraint  6 para" + str(solution)+" para el cliente "+str(i))
-            return False
-        #Constraint 7
-        if quantity_delivered_to_customer_at_t(solution,i,t) > MAX_LEVEL[i] * theeta(solution,i,t):
-            print("Falla la constraint  7 para" + str(solution)+" para el cliente "+str(i))
-            return False
-        #Constrain 8:
-        if quantity_delivered_at_t(solution,t) > VEHICLE_CAPACITY:
-            print("Falla la constraint 8: para" + str(solution))
-            return False
-        #Constraints 9 -13:
-            #TO DO
-        #Constraint 14
-        if quantity_delivered_at_t(solution,t) < 0:
-            print("Falla la constraint 14 para" + str(solution))
-            return False
+def passConstraints(solution, i, t, operation, MIP):
+    #Constraint 3
+    if supplier_inventory_level(solution,t) < quantity_delivered_at_t(solution,t):
+        print("Falla la constraint  3 para" + str(solution))
+        return False
+    #Constraint 5
+    if REPLENISHMENT_POLICY == "OU" and quantity_delivered_to_customer_at_t(solution,i,t) < MAX_LEVEL[i] * theeta(solution,i,t) - customer_inventory_level(i,solution,t):
+        print("Falla la constraint  5 para" + str(solution)+" para el cliente "+str(i))
+        return False
+    #Constraint 6
+    if quantity_delivered_to_customer_at_t(solution,i,t) > MAX_LEVEL[i] - customer_inventory_level(i,solution,t):
+        print("Falla la constraint  6 para" + str(solution)+" para el cliente "+str(i))
+        return False
+    #Constraint 7
+    if REPLENISHMENT_POLICY == "OU" and quantity_delivered_to_customer_at_t(solution,i,t) > MAX_LEVEL[i] * theeta(solution,i,t):
+        print("Falla la constraint  7 para" + str(solution)+" para el cliente "+str(i))
+        return False
+    #Constrain 8:
+    if quantity_delivered_at_t(solution,t) > VEHICLE_CAPACITY:
+        print("Falla la constraint 8: para" + str(solution))
+        return False
+    
+    #Constraints 9 -13: 
+        #TO DO (IMPORTANTE: SON SOLO DE MIP1)
+
+    #Constraint 14
+    if quantity_delivered_at_t(solution,t) < 0:
+        print("Falla la constraint 14 para" + str(solution))
+        return False
     
     for t in range(HORIZON_LENGTH+1):
         #Constraint 4
@@ -306,10 +386,55 @@ def passConstraints(solution, i):
             print("Falla la constraint 16 para" + str(solution))
             return False
     #Constraints 17 -19 son obvias
+
+    if MIP == "MIP2":
+        v_it = 1 if (operation == "INSERT") else 0
+        sigma_it = 1 if (i in solution[t][0]) else 0
+        w_it = 1 if (operation == "REMOVE") else 0
+        
+        #Constraint 21
+        if v_it > 1 - sigma_it:
+            print("Falla la constraint 21 para" + str(solution)+" para el cliente "+str(i))
+            return False
+        #Constraint 22
+        if w_it > sigma_it:
+            print("Falla la constraint 22 para" + str(solution)+" para el cliente "+str(i))
+            return False
+        #Constraint 23
+        if quantity_delivered_at_t(solution, t) > MAX_LEVEL[i] * (sigma_it - w_it + v_it):
+            print("Falla la constraint 23 para" + str(solution)+" para el cliente "+str(i))
+            return False
+        #Constraint 24
+        if v_it < 0 or v_it > 1:
+            print("Falla la constraint 24 para" + str(solution)+" para el cliente "+str(i))
+            return False
+        #Constraint 25
+        if w_it < 0 or v_it > 1:
+            print("Falla la constraint 25 para" + str(solution)+" para el cliente "+str(i))
+            return False
+
     return True
 
 #TODO
 def LK(solution, solution_prima = []):
+    if solution == solution_prima:
+        return solution
+    else:
+        # Load the distances
+        for t in range(HORIZON_LENGTH):
+            #TO DO: Ver si es necesario poner al proveedor
+            matrix = [[None for i in range(len(solution[t][0]))] for j in range(len(solution[t][0]))]
+            for c in range(len(solution[t][0])):
+                for c2 in range(len(solution[t][0])):
+                    matrix[c][c2] = DIST_MATRIX_DATA[solution[t][0][c]][solution[t][0][c2]]
+            
+            TSP.setEdges(matrix)
+            lk = KOpt(range(len(matrix)))
+            path, cost = lk.optimise()
+            print("Best path has cost: {}".format(cost))
+            print([solution[t][0][i] for i in path])
+
+
     return solution
 
 #TODO
@@ -592,13 +717,13 @@ def insert_visit(customer, t, solution):
     new_solution = copy.deepcopy(solution)
     min_cost = float("inf")
 
-    #Recorre todos los clientes de la solucion en el tiempo t.
-    for i in range(len(solution[t][0])+1):
+    #Recorre todos las posiciones de la solucion en el tiempo t, donde se podría insertar el cliente.
+    for pos in range(len(solution[t][0])+1):
         solution_aux = copy.deepcopy(solution)
-        solution_aux[t][0].insert(i, customer)
-        cost_solution = transportation_costs(solution_aux, 0)
+        solution_aux[t][0].insert(pos, customer)
+        cost_solution = transportation_costs(solution_aux, t)
         if cost_solution < min_cost:
-            min_cost_index = i
+            min_cost_index = pos
             min_cost = cost_solution
 
     new_solution[t][0].insert(min_cost_index, customer)
