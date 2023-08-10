@@ -197,3 +197,28 @@ class Solution():
             self.routes[time].insert_visit(customer, cheapest_index, quantity_delivered)
             
         self.refresh()
+    
+    def previous_visit(self, current_time, customer):
+        for index in range(current_time - 1, -1, -1):
+            if(self.routes[index].is_visited(customer)):
+                return index
+        
+        return None
+    
+    def get_all_customer_inventory_level(self, customer) -> list:
+        inventories = []
+        for inventories_level in self.customers_inventory_level:
+            inventories.append(inventories_level[customer])
+            
+        return inventories
+    
+    def get_all_customer_quantity_delivered(self, customer) -> list:
+        quantities = []
+        for route in self.routes:
+            quantities.append(route.get_customer_quantity_delivered(customer))
+        
+        return quantities
+    
+    def sort_list(self, combination) -> None:
+        self.routes = [self.routes[i] for i in combination]
+        self.refresh()
