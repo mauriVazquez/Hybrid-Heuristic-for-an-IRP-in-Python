@@ -16,20 +16,25 @@ class Solution():
         self.client_has_overstock = self.client_overstock_situation()
 
     def __str__(self) -> str:
-        resp = "Rutas:\n"
+        ruta = "Rutas de la solución (clientes - cantidades)\n"
         for route in self.routes:
-            resp += route.__str__() + "\n\n"
+            ruta += "["+route.__str__()+"]\n"
+        return ruta
 
-        resp += 'Function objetivo: ' + str(self.cost) + "\n"
-        resp += 'supplier_inventory_level: ' + \
-            str(self.supplier_inventory_level) + "\n"
-        resp += 'customers_inventory_level: ' + \
-            str(self.customers_inventory_level) + "\n"
+        # resp = "Rutas:\n"
+        # for route in self.routes:
+        #     resp += route.__str__() + "\n\n"
+
+        # resp += 'Function objetivo: ' + str(self.cost) + "\n"
+        # resp += 'supplier_inventory_level: ' + \
+        #     str(self.supplier_inventory_level) + "\n"
+        # resp += 'customers_inventory_level: ' + \
+        #     str(self.customers_inventory_level) + "\n"
             
-        resp += 'Stock out ? : ' + ('si' if self.client_has_stockout else 'no') + "\n"
-        resp += 'over stock ? : ' + ('si' if self.client_has_overstock else 'no') + "\n"
+        # resp += 'Stock out ? : ' + ('si' if self.client_has_stockout else 'no') + "\n"
+        # resp += 'over stock ? : ' + ('si' if self.client_has_overstock else 'no') + "\n"
 
-        return resp
+        # return resp
 
     def objetive_function(self):
         holding_cost, transportation_cost, penalty1, penalty2 = 0, 0, 0, 0
@@ -141,10 +146,10 @@ class Solution():
                     return True
         return False
 
-    def is_admissible(self):
+    def is_admissible(self) -> bool:
         return not (self.client_has_stockout or self.client_has_overstock)
 
-    def is_feasible(self):
+    def is_feasible(self) -> bool:
         return self.is_admissible() and not (self.supplier_stockout_situation() or self.vehicle_capacity_has_exceeded())
 
     def refresh(self):
