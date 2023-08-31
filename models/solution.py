@@ -1,4 +1,4 @@
-
+import sys
 from models.route import Route
 from models.penalty_variables import alpha, beta
 from constants import constants
@@ -19,6 +19,7 @@ class Solution():
         ruta = "Rutas de la solución (clientes - cantidades)\n"
         for route in self.routes:
             ruta += "["+route.__str__()+"]\n"
+        ruta += 'Function objetivo: ' + str(self.cost) + "\n"
         return ruta
 
         # resp = "Rutas:\n"
@@ -105,8 +106,7 @@ class Solution():
 
         for time in range(constants.horizon_lenght):
             for customer in range(constants.nb_customers):
-                customers_inventory[time][customer] = self.__customer_inventory_level(
-                    customer, time + 1)
+                customers_inventory[time][customer] = self.__customer_inventory_level(customer, time + 1)
 
         # para t'
         for customer in range(constants.nb_customers):
@@ -181,11 +181,11 @@ class Solution():
     def insert_visit(self, customer, time):
         
         cheapest_index = self.routes[time].cheapest_index_to_insert(customer)
-        
+
         if constants.replenishment_policy == "OU":
             quantity_delivered = constants.max_level[customer] - self.customers_inventory_level[time][customer]
             self.routes[time].insert_visit(customer, cheapest_index, quantity_delivered)  
-
+                
             for t in range(time + 1, constants.horizon_lenght):
                 if self.routes[t].is_visited(customer):
                     self.routes[t].remove_customer_quantity(customer, quantity_delivered)
@@ -197,7 +197,7 @@ class Solution():
                 constants.vehicle_capacity - self.routes[time].get_total_quantity(), 
                 self.supplier_inventory_level[time]
                 )
-            
+        
             quantity_delivered = quantity_delivered if quantity_delivered > 0 else constants.demand_rate[customer]
             self.routes[time].insert_visit(customer, cheapest_index, quantity_delivered)
             

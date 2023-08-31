@@ -20,27 +20,32 @@ def main():
     # Apply the Initialization procedure to generate an initial solution sbest.
     s = initialization()
     sbest = copy.deepcopy(s)
-    print(s)
-    print(triplet_manager.triplets)
     triplet_manager.remove_triplets_from_solution(s)
-    print(triplet_manager.triplets)
     main_iterator = 0
+
     # while the number of iterations without improvement of sbest ≤ MaxIter do
     while iterations_without_improvement <= MAX_ITER:
         # Apply the Move procedure to find the best solution s´ in the neighborhood N(s) of s.
+        # print("SOLUCION INICIAL:")
+        # print(s)
         sprima = move(s)
-
+        # print("SPRIMA:")
+        # print(sprima)
+        
         # Update tabu lists
         update_tabu_lists(s, sprima, main_iterator)
         
         if sprima.cost <= sbest.cost:
             # Apply the Improvement procedure to possibly improve s´ and set sbest ← s´
             sbest = improvement(sprima)
+            # print("NUEVO SBEST:")
+            # print(sbest)
             iterations_without_improvement = 0
         
 
         
         s = copy.deepcopy(sprima)
+
         if isMultiple(iterations_without_improvement, JUMP_ITER):
             # Apply the Jump procedure to modify the current solution s.
             s = jump(sbest)
@@ -53,7 +58,8 @@ def main():
 
         main_iterator += 1
         # print(f"costo sbest = {sbest.objetive_function()}")
-        # print(f"costo sbest = {s.cost}")
+        print(f"costo sbest = {sbest.cost}")
+        # print(f"iterator = {main_iterator}")
         # print(f"costo sbest = {sprima.objetive_function()}")
     print("MEJOR SOLUCION")
     print(s)
@@ -68,7 +74,6 @@ def ttl_tabu():
 def update_tabu_lists(s: Solution, sprima: Solution, main_iterator):
     global list_a
     global list_r
-
 
     # Acá manejamos las listas del Tabú
     for c in range(constants.nb_customers):
@@ -119,35 +124,28 @@ def initialization() -> Solution:
 
 def move(solution) -> Solution:
     neighborhood_set = neighborhood(solution)
-
+    
     best_solution = solution
 
     for sol in neighborhood_set:
         if sol.cost < best_solution.cost:
             best_solution = sol
 
-    # if len(neighborhood_set) > 0:
-    #     best_solution = copy.deepcopy(neighborhood_set[0])
-    #     min_cost_solution = obj_function(best_solution)
-    #     for solution_prima in neighborhood_set:
-    #         if obj_function(solution_prima) < min_cost_solution:
-    #             best_solution = copy.deepcopy(solution_prima)
-    #             min_cost_solution = obj_function(solution_prima)
-    # else:
-    #     best_solution = solution
-
     return best_solution
 
 
 def improvement(solution_best: Solution):
     # Set continue ← true.
+
     do_continue = True
 
     empty_solution = Solution([Route(route[0], route[1]) for route in [
                               [[], []] for _ in range(constants.horizon_lenght)]])
 
     # Set sbest ← LK(sbest)
+
     solution_best = LK(empty_solution, solution_best)
+
     # while continue do
     while do_continue:
         # Set continue ← false.
@@ -155,7 +153,10 @@ def improvement(solution_best: Solution):
 
         # (* First type of improvement *)
         # Let s' be an optimal solution of MIP1(, sbest). Set s' ← LK(sbest, s').
+
         solution_prima = MIP1(solution_best)
+
+
         solution_prima = LK(solution_best, solution_prima)
 
         # if f(s') < f(sbest) then Set sbest ← s' and continue ← true.
@@ -240,15 +241,14 @@ def improvement(solution_best: Solution):
             
             s2.refresh()
             # if MIP2(, s2) is feasible then
-            # Let s' be an optimal solution of MIP2(, s2).
-            # Set s'← LK(s2, s').
             if aux_solution.is_feasible():
+                # Let s' be an optimal solution of MIP2(, s2).
                 solution_prima = copy.deepcopy(aux_solution)
+                # Set s'← LK(s2, s').
                 solution_prima = LK(s2, solution_prima)
-                # if f(s') < f(smerge) then
-                #   Set smerge ← s'
+                # if f(s') < f(smerge) then set smerge ← s'
                 if solution_prima.objetive_function() < solution_merge.objetive_function():
-                    solution_merge = solution_prima
+                    solution_merge = copy.deepcopy(solution_prima)
 
         # if f(smerge) < f(sbest) then Set sbest ← s' and continue ← true.
         if solution_merge.objetive_function() < solution_best.objetive_function():
@@ -282,7 +282,8 @@ def MIP1(solution):
     for perm in permutation_orders:
         new_solution = copy.deepcopy(solution)
         new_solution.sort_list(perm)
-
+        new_solution.refresh()
+        
         for i in range(constants.nb_customers):
             # if(passConstraints(new_solution, i)):
             # print("PASA LAS CONSTRAINTS PARA "+str(i))
@@ -294,6 +295,7 @@ def MIP1(solution):
                     mip_cost = MIP1objFunction(aux_copy, i, time)
                     aux_copy.routes[time].remove_visit(i)
                     aux_copy.refresh()
+
                     if mip_cost < min_cost and passConstraints(aux_copy, i, time, "REMOVE", "MIP1"):
                         # print("PASA LAS CONSTRAINTS PARA "+str(i)+" - "+str(aux_copy))
                         min_cost = mip_cost
@@ -318,25 +320,24 @@ def MIP2(solution: Solution) -> Solution:
                 if mip_cost < min_cost and passConstraints(solution_aux, i, time, "REMOVE", "MIP2"):
                     # print("PASA LAS CONSTRAINTS PARA "+str(i)+" - "+str(solution_aux))
                     min_cost = mip_cost
-                    min_cost_solution = solution_aux
+                    min_cost_solution = copy.deepcopy(solution_aux)
             else:
                 mip_cost = MIP2objFunction(solution_aux, None, i, time)
                 solution_aux.insert_visit(i, time)
                 solution_aux.refresh()
                 if mip_cost < min_cost and passConstraints(solution_aux, i, time, "INSERT", "MIP2"):
                     min_cost = mip_cost
-                    min_cost_solution = solution_aux
+                    min_cost_solution = copy.deepcopy(solution_aux)
 
     # print("MIP2"+str(min_cost_solution))
     return min_cost_solution
 
 
 def MIP1objFunction(solution: Solution, removed_customer, removed_time):
-    term_1 = sum([constants.holding_cost_supplier * solution.supplier_inventory_level[t]
-                  for t in range(constants.horizon_lenght+1)])
-    term_2 = sum([sum([constants.holding_cost[i] * solution.customers_inventory_level[t][i]
-                       for t in range(constants.horizon_lenght+1)])
-                  for i in range(constants.nb_customers)])
+    term_1 = sum(constants.holding_cost_supplier * solution.supplier_inventory_level[t]
+                  for t in range(constants.horizon_lenght+1))
+    term_2 = sum(sum(constants.holding_cost[i] * solution.customers_inventory_level[t][i] for t in range(constants.horizon_lenght+1))
+                  for i in range(constants.nb_customers))
     # 3rd term represents the saving (in this implementation)
     aux_route = copy.deepcopy(solution.routes[removed_time])
     aux_route.remove_visit(removed_customer)
@@ -377,12 +378,13 @@ def theeta(solution: Solution, i, t):
 
 
 def passConstraints(solution: Solution, i, t, operation, MIP):
+
     # Constraint 3
     if solution.supplier_inventory_level[t] < solution.routes[t].get_total_quantity():
         # print("Falla la constraint  3 para" + str(solution))
         return False
     # Constraint 5
-    if constants.replenishment_policy == "OU" and solution.routes[t].get_customer_quantity_delivered(i) < constants.max_level[i] * theeta(solution, i, t) - solution.customers_inventory_level[t][i]:
+    if constants.replenishment_policy == "OU" and solution.routes[t].get_customer_quantity_delivered(i) < (constants.max_level[i] * theeta(solution, i, t)) - solution.customers_inventory_level[t][i]:
         # print("Falla la constraint  5 para" + str(solution)+" para el cliente "+str(i))
         return False
     # Constraint 6
@@ -391,8 +393,7 @@ def passConstraints(solution: Solution, i, t, operation, MIP):
         return False
     # Constraint 7
     if constants.replenishment_policy == "OU" and solution.routes[t].get_customer_quantity_delivered(i) > constants.max_level[i] * theeta(solution, i, t):
-        # print("Falla la constraint  7 para" +
-        #       str(solution)+" para el cliente "+str(i))
+        # print("Falla la constraint  7 para" + str(solution)+" para el cliente "+str(i))
         return False
     # Constrain 8:
     if solution.routes[t].get_total_quantity() > constants.vehicle_capacity:
@@ -410,13 +411,11 @@ def passConstraints(solution: Solution, i, t, operation, MIP):
     for t in range(constants.horizon_lenght+1):
         # Constraint 4
         if solution.customers_inventory_level[t][i] != solution.customers_inventory_level[t-1][i] + solution.routes[t-1].get_customer_quantity_delivered(i) - (constants.demand_rate[i] if t-1 >= 0 else 0):
-            # print("Falla la constraint  4 para" +
-            #       str(solution)+" para el cliente "+str(i))
+            # print("Falla la constraint  4 para" + str(solution)+" para el cliente "+str(i))
             return False
         # Constraint 15
         if solution.customers_inventory_level[t][i] < 0:
-            # print("Falla la constraint 15 para" +
-            #       str(solution)+" para el cliente "+str(i))
+            # print("Falla la constraint 15 para" + str(solution)+" para el cliente "+str(i))
             return False
         # Constraint 16
         if solution.supplier_inventory_level[t] < 0:
@@ -431,33 +430,29 @@ def passConstraints(solution: Solution, i, t, operation, MIP):
 
         # Constraint 21
         if v_it > 1 - sigma_it:
-            # print("Falla la constraint 21 para" +
-            #       str(solution)+" para el cliente "+str(i))
+            # print("Falla la constraint 21 para" + str(solution)+" para el cliente "+str(i))
             return False
         # Constraint 22
         if w_it > sigma_it:
-            # print("Falla la constraint 22 para" +
-            #       str(solution)+" para el cliente "+str(i))
+            # print("Falla la constraint 22 para" + str(solution)+" para el cliente "+str(i))
             return False
         # Constraint 23
         if solution.routes[t].get_total_quantity() > constants.max_level[i] * (sigma_it - w_it + v_it):
-            # print("Falla la constraint 23 para" +
-            #       str(solution)+" para el cliente "+str(i))
+            # print("Falla la constraint 23 para" + str(solution)+" para el cliente "+str(i))
             return False
         # Constraint 24
         if v_it < 0 or v_it > 1:
-            # print("Falla la constraint 24 para" +
-            #       str(solution)+" para el cliente "+str(i))
+            # print("Falla la constraint 24 para" + str(solution)+" para el cliente "+str(i))
             return False
         # Constraint 25
         if w_it < 0 or v_it > 1:
-            # print("Falla la constraint 25 para" +
-            #       str(solution)+" para el cliente "+str(i))
+            # print("Falla la constraint 25 para" + str(solution)+" para el cliente "+str(i))
             return False
     return True
 
 
 def LK(solution: Solution, solution_prima: Solution) -> Solution:
+
     if solution == solution_prima:
         return solution
     else:
@@ -490,8 +485,8 @@ def LK(solution: Solution, solution_prima: Solution) -> Solution:
             for index in path[1:]:
                 aux[0].append(solution_prima.routes[time].clients[index-1])
                 aux[1].append(solution_prima.routes[time].quantities[index-1])
-
             solution_prima.routes[time] = Route(aux[0], aux[1])
+        
 
     solution_prima.refresh()
     return solution_prima
@@ -500,7 +495,7 @@ def LK(solution: Solution, solution_prima: Solution) -> Solution:
 
 
 def jump(solution: Solution) -> Solution:
-    
+
     return solution
 
 
@@ -586,7 +581,7 @@ def variants_type4(solution: Solution):
                             saux.refresh()
 
                             if saux.is_admissible():
-                                print("Solucion admisible en variante 4")
+                                # print("Solucion admisible en variante 4")
                                 neighborhood_prima.append(saux)
 
     return neighborhood_prima

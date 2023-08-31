@@ -79,7 +79,7 @@ class Route():
     def insert_visit(self,customer, index, quantity):
         self.clients.insert(index, customer)
         self.quantities.insert(index, quantity)
-        
+
         self.refresh()
         
     def remove_customer_quantity(self, customer, quantity):
