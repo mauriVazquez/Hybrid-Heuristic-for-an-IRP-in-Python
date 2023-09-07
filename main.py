@@ -15,52 +15,40 @@ from tsp_local.kopt import KOpt
 
 # Algorithm 1 (HAIR—A hybrid heuristic)
 def main():
-    iterations_without_improvement = 0
-
-    # Apply the Initialization procedure to generate an initial solution sbest.
     s = initialization()
     sbest = copy.deepcopy(s)
+    
     triplet_manager.remove_triplets_from_solution(s)
+    iterations_without_improvement = 0
     main_iterator = 0
-
-    # while the number of iterations without improvement of sbest ≤ MaxIter do
+    
     while iterations_without_improvement <= MAX_ITER:
-        # Apply the Move procedure to find the best solution s´ in the neighborhood N(s) of s.
-        # print("SOLUCION INICIAL:")
-        # print(s)
         sprima = move(s)
-        # print("SPRIMA:")
-        # print(sprima)
         
         # Update tabu lists
         update_tabu_lists(s, sprima, main_iterator)
         
-        if sprima.cost <= sbest.cost:
-            # Apply the Improvement procedure to possibly improve s´ and set sbest ← s´
+        if sprima.cost < sbest.cost:
+            # Apply the Improvement procedure to POSSIBLY improve s´
             sbest = improvement(sprima)
-            # print("NUEVO SBEST:")
-            # print(sbest)
             iterations_without_improvement = 0
-        
-
-        
+        else:
+            iterations_without_improvement += 1
+          
         s = copy.deepcopy(sprima)
 
+        #TO DO: Preguntar si es jump(s) o jump(sbest), nosotros lo cambiamos por sbest, pero no sé si es tan obvio
         if isMultiple(iterations_without_improvement, JUMP_ITER):
-            # Apply the Jump procedure to modify the current solution s.
-            s = jump(sbest)
+            s = jump(s)
 
-        iterations_without_improvement += 1
-
+        #TO DO: SON SIEMPRE FEASIBLES
         # Update alpha and beta
         alpha.unfeasible() if s.vehicle_capacity_has_exceeded() else alpha.feasible()
         beta.unfeasible() if s.supplier_stockout_situation() else beta.feasible()
 
         main_iterator += 1
-        # print(f"costo sbest = {sbest.objetive_function()}")
-        print(f"costo sbest = {sbest.cost}")
-        # print(f"iterator = {main_iterator}")
-        # print(f"costo sbest = {sprima.objetive_function()}")
+        print(f"costo s = {s.cost}")
+
     print("MEJOR SOLUCION")
     print(s)
 
@@ -99,38 +87,29 @@ def update_tabu_lists(s: Solution, sprima: Solution, main_iterator):
 def initialization() -> Solution:
     # Each customer is considered sequentially, and the delivery times are set as late as possible before a stockout situation occurs.
     solution = [[[], []] for _ in range(constants.horizon_lenght)]
-    routes = []
+    
     for c in range(constants.nb_customers):
         time_stockout = math.floor(
             (constants.start_level[c] - constants.min_level[c]) / constants.demand_rate[c]) - 1
         solution[time_stockout][0].append(c)
         solution[time_stockout][1].append(
             constants.max_level[c] - (constants.start_level[c] - constants.demand_rate[c] * (time_stockout+1)))
-
         stockout_frequency = math.floor(
-            (constants.max_level[c]-constants.min_level[c]) / constants.demand_rate[c])
+            (constants.max_level[c] - constants.min_level[c]) / constants.demand_rate[c])
 
         for t in range(time_stockout+stockout_frequency, constants.horizon_lenght, stockout_frequency):
             solution[t][0].append(c)
             solution[t][1].append(constants.max_level[c])
-
-    for route in solution:
-        routes.append(Route(route[0], route[1]))
-
-    sol = Solution(routes)
-
-    return sol
+    
+    return Solution([Route(route[0], route[1]) for route in solution])
 
 
 def move(solution) -> Solution:
     neighborhood_set = neighborhood(solution)
-    
-    best_solution = solution
-
+    best_solution = copy.deepcopy(solution)
     for sol in neighborhood_set:
         if sol.cost < best_solution.cost:
             best_solution = sol
-
     return best_solution
 
 
@@ -492,10 +471,7 @@ def LK(solution: Solution, solution_prima: Solution) -> Solution:
     return solution_prima
 
 # TODO
-
-
 def jump(solution: Solution) -> Solution:
-
     return solution
 
 
@@ -511,7 +487,7 @@ def variants_type1(solution: Solution) -> list[Solution]:
                     solution_copy.remove_visit(customer, time)
                     if solution_copy.is_admissible():
                         neighborhood_prima.append(solution_copy)
-
+                        # print("Variant Type 1")
     return neighborhood_prima
 
 
@@ -525,7 +501,7 @@ def variants_type2(solution: Solution) -> list[Solution]:
                 solution_copy.insert_visit(customer, time)
                 if solution_copy.is_admissible():
                     neighborhood_prima.append(solution_copy)
-
+                    # print("Variant type 2")
     return neighborhood_prima
 
 
@@ -533,70 +509,49 @@ def variants_type3(solution: Solution) -> list[Solution]:
     neighborhood_prima = []
     for customer in range(constants.nb_customers):
         set_t_visited = T(customer, solution)
-        set_t_not_visited = [x for x in list(
-            range(constants.horizon_lenght)) if x not in set_t_visited]
+        set_t_not_visited = [x for x in list(range(constants.horizon_lenght)) if x not in set_t_visited]
 
         for t_visited in set_t_visited:
             new_solution = copy.deepcopy(solution)
-            quantity_removed = new_solution.routes[t_visited].remove_visit(
-                customer)
+            quantity_removed = new_solution.routes[t_visited].remove_visit(customer)
             for t_not_visited in set_t_not_visited:
                 if not forbidden_to_remove(customer, t_visited) and not forbidden_to_append(customer, t_not_visited):
                     saux = copy.deepcopy(new_solution)
-                    saux_cheapest_index = saux.routes[t_not_visited].cheapest_index_to_insert(
-                        customer)
-                    saux.routes[t_not_visited].insert_visit(
-                        customer, saux_cheapest_index, quantity_removed)
-                    saux.refresh()
+                    saux_cheapest_index = saux.routes[t_not_visited].cheapest_index_to_insert(customer)
+                    saux.routes[t_not_visited].insert_visit(customer, saux_cheapest_index, quantity_removed)
                     if saux.is_admissible():
-                        # print("Solucion admisible en variante 3")
+                        # print("Variant Type 3")
                         neighborhood_prima.append(saux)
-
     return neighborhood_prima
 
-
 def variants_type4(solution: Solution):
-
     neighborhood_prima = []
     for t1 in range(constants.horizon_lenght):
-        for index, client1 in enumerate(solution.routes[t1].clients):
+        for client1 in solution.routes[t1].clients:
             for t2 in range(constants.horizon_lenght):
                 if t1 != t2:
-                    for index2, client2 in enumerate(solution.routes[t2].clients):
+                    for client2 in solution.routes[t2].clients:
                         if not ((solution.routes[t1].is_visited(client2)) or (solution.routes[t2].is_visited(client1)) or forbidden_to_append(client1, t2) or forbidden_to_remove(client1, t1) or forbidden_to_append(client2, t1) or forbidden_to_remove(client2, t2)):
                             saux = copy.deepcopy(solution)
-                            client1_quantity_removed = saux.routes[t1].remove_visit(
-                                client1)
-                            client2_quantity_removed = saux.routes[t2].remove_visit(
-                                client2)
-                            client1_cheapes_index = saux.routes[t2].cheapest_index_to_insert(
-                                client1)
-                            client2_cheapes_index = saux.routes[t1].cheapest_index_to_insert(
-                                client2)
-
-                            saux.routes[t1].insert_visit(
-                                client2, client2_cheapes_index, client2_quantity_removed)
-                            saux.routes[t2].insert_visit(
-                                client1, client1_cheapes_index, client1_quantity_removed)
+                            saux.routes[t1].insert_visit(client2, 
+                                                         saux.routes[t1].cheapest_index_to_insert(client2), 
+                                                         saux.routes[t2].remove_visit(client2))
+                            saux.routes[t2].insert_visit(client1, 
+                                                         saux.routes[t2].cheapest_index_to_insert(client1), 
+                                                         saux.routes[t1].remove_visit(client1))
                             saux.refresh()
-
                             if saux.is_admissible():
                                 # print("Solucion admisible en variante 4")
                                 neighborhood_prima.append(saux)
-
     return neighborhood_prima
-
 
 def forbidden_to_append(i, t):
     return any(elemento[0] == [i, t] for elemento in list_a)
-
 
 def forbidden_to_remove(i, t):
     return any(elemento[0] == [i, t] for elemento in list_r)
 
 # Algorithm 2
-
-
 def neighborhood(solution) -> list[Solution]:
     # Build N'(s) by using the four simple types of changes on s and set N(s) ← ∅;
     neighborhood_prima = make_neighborhood_prima(solution)
@@ -690,8 +645,6 @@ def neighborhood(solution) -> list[Solution]:
     return neighborhood
 
 # Returns the set of customers which are not visited at the same time in solution and solution_prima
-
-
 def construct_A(solution: Solution, solution_prima: Solution) -> list:
     A = []
     for customer in range(constants.nb_customers):
@@ -700,8 +653,6 @@ def construct_A(solution: Solution, solution_prima: Solution) -> list:
     return A
 
 # Returns the set of times when is visited a customer in a given solution.
-
-
 def T(customer, solution: Solution):
     times = []
     for time in range(constants.horizon_lenght):
@@ -710,20 +661,15 @@ def T(customer, solution: Solution):
     return times
 
 # Returns a solution's Neighborhood. Obtained by using the four simple types of changes on s.
-
-
 def make_neighborhood_prima(solution) -> list[Solution]:
     neighborhood_prima = variants_type1(solution)
     neighborhood_prima.extend(variants_type2(solution))
     neighborhood_prima.extend(variants_type3(solution))
     neighborhood_prima.extend(variants_type4(solution))
-    # print(neighborhood_prima)
     return neighborhood_prima
-
 
 def isMultiple(num,  check_with):
     return num != 0 and num % check_with == 0
-
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
