@@ -28,14 +28,15 @@ class Route():
     def get_route_cost(self):
         transportation_cost = 0
         for i, client in enumerate(self.clients):
-            # primer cliente visitado
+            #primer cliente visitado
             if (i == 0):
                 transportation_cost += constants.distance_supplier[client]
-            else:
-                # ultimo cliente visitado
-                if (i == (len(self.clients) - 1)):
-                    transportation_cost += constants.distance_supplier[client]
-
+           
+            #ultimo cliente visitado
+            if (i == (len(self.clients) - 1)):
+                transportation_cost += constants.distance_supplier[client]
+            
+            if( i > 0 ):
                 transportation_cost += constants.distance_matrix[client][self.clients[i-1]]
 
         return transportation_cost

@@ -1,7 +1,10 @@
 import sys
+import copy
 from models.route import Route
 from models.penalty_variables import alpha, beta
+from models.tabulists import tabulists
 from constants import constants
+from typing import Type
 
 
 class Solution():
@@ -223,3 +226,92 @@ class Solution():
     def sort_list(self, combination) -> None:
         self.routes = [self.routes[i] for i in combination]
         self.refresh()
+
+    # Returns the set of customers which are not visited at the same time in solution and solution_prima
+    def construct_A(self, solution_prima: Type["Solution"]) -> list:
+        A = []
+        for customer in range(constants.nb_customers):
+            if not self.T(customer) == solution_prima.T(customer):
+                A.append(customer)
+        return A
+
+    # Returns the set of times when is visited a customer in a given solution.
+    def T(self, customer):
+        times = []
+        for time in range(constants.horizon_lenght):
+            if self.routes[time].is_visited(customer):
+                times.append(time)
+        return times
+
+    def variants_type1(self) -> list[Type["Solution"]]:
+        # print("Inicio tipo 1")
+        neighborhood_prima = []
+        for customer in range(constants.nb_customers):
+            # La eliminación del cliente parece ser interesante cuando hi>h0
+            if constants.holding_cost[customer] > constants.holding_cost_supplier:
+                for time in range(constants.horizon_lenght):
+                    solution_copy = copy.deepcopy(self)
+                    if (solution_copy.routes[time].is_visited(customer)) and (not tabulists.forbidden_to_remove(customer, time)):
+                        solution_copy.remove_visit(customer, time)
+                        if solution_copy.is_admissible():
+                            neighborhood_prima.append(solution_copy)
+                            # print("Variant Type 1")
+        return neighborhood_prima
+
+
+    def variants_type2(self) -> list[Type["Solution"]]:
+        # print("Inicio tipo 2")
+        neighborhood_prima = []
+        for customer in range(constants.nb_customers):
+            for time in range(constants.horizon_lenght):
+                solution_copy = self.clone()
+                if (not solution_copy.routes[time].is_visited(customer)) and (not tabulists.forbidden_to_append(customer, time)):
+                    solution_copy.insert_visit(customer, time)
+                    if solution_copy.is_admissible():
+                        neighborhood_prima.append(solution_copy)
+                        # print("Variant type 2")
+        return neighborhood_prima
+
+
+    def variants_type3(self) -> list[Type["Solution"]]:
+        neighborhood_prima = []
+        for customer in range(constants.nb_customers):
+            set_t_visited = self.T(customer)
+            set_t_not_visited = [x for x in list(range(constants.horizon_lenght)) if x not in set_t_visited]
+
+            for t_visited in set_t_visited:
+                new_solution = self.clone()
+                quantity_removed = new_solution.routes[t_visited].remove_visit(customer)
+                for t_not_visited in set_t_not_visited:
+                    if not tabulists.forbidden_to_remove(customer, t_visited) and not tabulists.forbidden_to_append(customer, t_not_visited):
+                        saux = copy.deepcopy(new_solution)
+                        saux_cheapest_index = saux.routes[t_not_visited].cheapest_index_to_insert(customer)
+                        saux.routes[t_not_visited].insert_visit(customer, saux_cheapest_index, quantity_removed)
+                        if saux.is_admissible():
+                            # print("Variant Type 3")
+                            neighborhood_prima.append(saux)
+        return neighborhood_prima
+
+    def variants_type4(self) -> list[Type["Solution"]]:
+        neighborhood_prima = []
+        for t1 in range(constants.horizon_lenght):
+            for client1 in self.routes[t1].clients:
+                for t2 in range(constants.horizon_lenght):
+                    if t1 != t2:
+                        for client2 in self.routes[t2].clients:
+                            if not ((self.routes[t1].is_visited(client2)) or (self.routes[t2].is_visited(client1)) or tabulists.forbidden_to_append(client1, t2) or tabulists.forbidden_to_remove(client1, t1) or tabulists.forbidden_to_append(client2, t1) or tabulists.forbidden_to_remove(client2, t2)):
+                                saux = self.clone()
+                                saux.routes[t1].insert_visit(client2, 
+                                                            saux.routes[t1].cheapest_index_to_insert(client2), 
+                                                            saux.routes[t2].remove_visit(client2))
+                                saux.routes[t2].insert_visit(client1, 
+                                                            saux.routes[t2].cheapest_index_to_insert(client1), 
+                                                            saux.routes[t1].remove_visit(client1))
+                                saux.refresh()
+                                if saux.is_admissible():
+                                    # print("Solucion admisible en variante 4")
+                                    neighborhood_prima.append(saux)
+        return neighborhood_prima
+    
+    def clone(self) -> Type["Solution"]:
+        return copy.deepcopy(self)
