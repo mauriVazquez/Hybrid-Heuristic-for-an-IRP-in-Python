@@ -16,11 +16,7 @@ class Solution():
         self.client_has_overstock = self.client_overstock_situation()
 
     def __str__(self) -> str:
-        ruta = "Rutas de la solución (clientes - cantidades)\n"
-        for route in self.routes:
-            ruta += "["+route.__str__()+"]\n"
-        ruta += 'Function objetivo: ' + str(self.cost) + "\n"
-        return ruta
+        return str([str(route) for route in self.routes ]) + '. Function objetivo: ' + str(self.cost)
 
         # resp = "Rutas:\n"
         # for route in self.routes:

@@ -57,7 +57,6 @@ class Beta():
     def unfeasible(self):
         self.unfeasible_counter += 1
         self.feasibles_counter = 0
-
         if (self.unfeasible_counter == 10):
             self.update(2)
             self.unfeasible_counter = 0
