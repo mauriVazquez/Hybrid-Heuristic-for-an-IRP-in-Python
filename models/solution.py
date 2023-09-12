@@ -19,22 +19,22 @@ class Solution():
         self.client_has_overstock = self.client_overstock_situation()
 
     def __str__(self) -> str:
-        return str([str(route) for route in self.routes ]) + '. Function objetivo: ' + str(self.cost)
+        # return str([str(route) for route in self.routes ]) + '. Function objetivo: ' + str(self.cost)
 
-        # resp = "Rutas:\n"
-        # for route in self.routes:
-        #     resp += route.__str__() + "\n\n"
+        resp = "Rutas:\n"
+        for route in self.routes:
+            resp += route.__str__() + "\n\n"
 
-        # resp += 'Function objetivo: ' + str(self.cost) + "\n"
-        # resp += 'supplier_inventory_level: ' + \
-        #     str(self.supplier_inventory_level) + "\n"
-        # resp += 'customers_inventory_level: ' + \
-        #     str(self.customers_inventory_level) + "\n"
+        resp += 'Function objetivo: ' + str(self.cost) + "\n"
+        resp += 'supplier_inventory_level: ' + \
+            str(self.supplier_inventory_level) + "\n"
+        resp += 'customers_inventory_level: ' + \
+            str(self.customers_inventory_level) + "\n"
             
-        # resp += 'Stock out ? : ' + ('si' if self.client_has_stockout else 'no') + "\n"
-        # resp += 'over stock ? : ' + ('si' if self.client_has_overstock else 'no') + "\n"
+        resp += 'Stock out ? : ' + ('si' if self.client_has_stockout else 'no') + "\n"
+        resp += 'over stock ? : ' + ('si' if self.client_has_overstock else 'no') + "\n"
 
-        # return resp
+        return resp
 
     @staticmethod
     def get_empty_solution() -> Type["Solution"]:
@@ -177,6 +177,14 @@ class Solution():
                 return index
         
         return None
+    
+    def jump(self, triplet) -> Type["Solution"]:
+        new_solution = self.clone()
+        quantity_removed = new_solution.routes[triplet[1]].remove_visit(triplet[0])
+        cheapest_index = new_solution.routes[triplet[2]].cheapest_index_to_insert(triplet[0])
+        new_solution.routes[triplet[2]].insert_visit(triplet[0], cheapest_index, quantity_removed)
+        new_solution.refresh()
+        return new_solution
     
     def get_all_customer_inventory_level(self, customer) -> list:
         inventories = []

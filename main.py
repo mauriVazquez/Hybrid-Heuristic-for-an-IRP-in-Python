@@ -21,7 +21,6 @@ def main():
     s = initialization()
     sbest = s.clone()
     
-    triplet_manager.remove_triplets_from_solution(s)
     iterations_without_improvement = 0
     main_iterator = 0
     
@@ -42,18 +41,30 @@ def main():
 
         #TO DO: Preguntar si es jump(s) o jump(sbest), nosotros lo cambiaríamos por sbest, pero no sé si es tan obvio
         if isMultiple(iterations_without_improvement, JUMP_ITER):
-            s = jump(s)
+            while True:
+                sjump = sbest.jump(triplet_manager.get_random_triplet())
+                if not sjump.client_stockout_situation():
+                    s = Mip2.execute(sjump.clone())
+                    break
+                if len(triplet_manager.triplets) == 0:
+                    break              
+            triplet_manager.reset()
 
         #TO DO: SON SIEMPRE FEASIBLES
         # Update alpha and beta
-        alpha.unfeasible() if s.vehicle_capacity_has_exceeded() else alpha.feasible()
-        beta.unfeasible() if s.supplier_stockout_situation() else beta.feasible()
+        # alpha.unfeasible() if s.vehicle_capacity_has_exceeded() else alpha.feasible()
+        # beta.unfeasible() if s.supplier_stockout_situation() else beta.feasible()
 
+        #Considerar que es para cuando se hace una sola vez
+        if iterations_without_improvement > (JUMP_ITER/2) and iterations_without_improvement <= JUMP_ITER:
+            triplet_manager.remove_triplets_from_solution(s)
+            print(triplet_manager.triplets)
+        
         main_iterator += 1
-        print(f"costo s = {s.cost}")
+        print(f"costo sbest = {sbest.cost}")
 
     print("MEJOR SOLUCION")
-    print(s)
+    print(sbest)
 
  # Acá manejamos las listas del Tabú
 def update_tabu_lists(s: Solution, sprima: Solution, main_iterator):
@@ -192,6 +203,7 @@ def improvement(solution_best: Solution):
 
 # TODO
 def jump(solution: Solution) -> Solution:
+
     return solution
 
 # Algorithm 2
@@ -339,6 +351,6 @@ if __name__ == '__main__':
 
     str_time_limit = sys.argv[4] if len(sys.argv) > 4 else "20"
 
-    MAX_ITER = 200*constants.nb_customers*constants.horizon_length
+    MAX_ITER = 20*constants.nb_customers*constants.horizon_length
     JUMP_ITER = MAX_ITER // 2
     main()
