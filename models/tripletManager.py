@@ -14,8 +14,8 @@ class TripletManager():
     def __init__(self) -> None:
         self.triplets = [[client, time, time_prima] 
             for client in range(constants.nb_customers)
-                for time in range(constants.horizon_lenght)
-                    for time_prima in range(constants.horizon_lenght)
+                for time in range(constants.horizon_length)
+                    for time_prima in range(constants.horizon_length)
                         if time != time_prima]
 
     def remove_triplets_from_solution(self, solution: Solution):

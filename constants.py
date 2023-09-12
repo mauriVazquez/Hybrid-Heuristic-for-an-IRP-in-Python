@@ -19,7 +19,7 @@ class Constants():
         file_it = iter(self.read_elem(filename))
 
         nb_customers = int(next(file_it)) - 1
-        horizon_lenght = int(next(file_it))
+        horizon_length = int(next(file_it))
         vehicle_capacity = int(next(file_it))
 
         x_coord = [None] * nb_customers
@@ -51,7 +51,7 @@ class Constants():
             x_coord_supplier, y_coord_supplier, x_coord, y_coord)
 
         self.nb_customers = nb_customers
-        self.horizon_lenght = horizon_lenght
+        self.horizon_length = horizon_length
         self.vehicle_capacity = vehicle_capacity
         self.start_level_supplier = start_level_supplier
         self.production_rate_supplier = production_rate_supplier

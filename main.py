@@ -9,6 +9,7 @@ from models.penalty_variables import alpha, beta
 from models.tripletManager import triplet_manager
 from models.tabulists import tabulists
 from models.mip1 import Mip1
+from models.mip2 import Mip2
 from constants import constants
 
 from tsp_local.base import TSP
@@ -18,7 +19,7 @@ from tsp_local.kopt import KOpt
 # Algorithm 1 (HAIR—A hybrid heuristic)
 def main():
     s = initialization()
-    sbest = copy.deepcopy(s)
+    sbest = s.clone()
     
     triplet_manager.remove_triplets_from_solution(s)
     iterations_without_improvement = 0
@@ -37,7 +38,7 @@ def main():
         else:
             iterations_without_improvement += 1
           
-        s = copy.deepcopy(sprima)
+        s = sprima.clone()
 
         #TO DO: Preguntar si es jump(s) o jump(sbest), nosotros lo cambiaríamos por sbest, pero no sé si es tan obvio
         if isMultiple(iterations_without_improvement, JUMP_ITER):
@@ -54,21 +55,16 @@ def main():
     print("MEJOR SOLUCION")
     print(s)
 
-
+ # Acá manejamos las listas del Tabú
 def update_tabu_lists(s: Solution, sprima: Solution, main_iterator):
-    # Acá manejamos las listas del Tabú
     for c in range(constants.nb_customers):
-        ts = s.T(c)
-        tsprima = sprima.T(c)
-        tabulists.add_forbiddens(ts, tsprima, c, main_iterator)
-
+        tabulists.add_forbiddens(s.T(c), sprima.T(c), c, main_iterator)
     tabulists.update_lists(main_iterator)
     
 
-
 def initialization() -> Solution:
     # Each customer is considered sequentially, and the delivery times are set as late as possible before a stockout situation occurs.
-    solution = [[[], []] for _ in range(constants.horizon_lenght)]
+    solution = [[[], []] for _ in range(constants.horizon_length)]
     
     for c in range(constants.nb_customers):
         time_stockout = math.floor(
@@ -79,7 +75,7 @@ def initialization() -> Solution:
         stockout_frequency = math.floor(
             (constants.max_level[c] - constants.min_level[c]) / constants.demand_rate[c])
 
-        for t in range(time_stockout+stockout_frequency, constants.horizon_lenght, stockout_frequency):
+        for t in range(time_stockout+stockout_frequency, constants.horizon_length, stockout_frequency):
             solution[t][0].append(c)
             solution[t][1].append(constants.max_level[c])
     
@@ -88,7 +84,7 @@ def initialization() -> Solution:
 
 def move(solution) -> Solution:
     neighborhood_set = neighborhood(solution)
-    best_solution = copy.deepcopy(solution)
+    best_solution = solution.clone()
     for sol in neighborhood_set:
         if sol.cost < best_solution.cost:
             best_solution = sol
@@ -96,59 +92,40 @@ def move(solution) -> Solution:
 
 
 def improvement(solution_best: Solution):
-    # Set continue ← true.
     do_continue = True
+    solution_best = LK(Solution.get_empty_solution(), solution_best)   
 
-    empty_solution = Solution([Route(route[0], route[1]) for route in [
-                              [[], []] for _ in range(constants.horizon_lenght)]])
-
-    # Set sbest ← LK(sbest)
-    solution_best = LK(empty_solution, solution_best)
-
-    # while continue do
     while do_continue:
-        # Set continue ← false.
         do_continue = False
 
         # (* First type of improvement *)
-        # Let s' be an optimal solution of MIP1(, sbest). Set s' ← LK(sbest, s').
-
         solution_prima = Mip1.execute(solution_best)
-
         solution_prima = LK(solution_best, solution_prima)
 
-        # if f(s') < f(sbest) then Set sbest ← s' and continue ← true.
         if solution_prima.cost < solution_best.cost:
-            solution_best = copy.deepcopy(solution_prima)
+            solution_best = solution_prima.clone()
             do_continue = True
 
         # (* Second type of improvement *)
-        # Set smerge ← sbest.
-        solution_merge = copy.deepcopy(solution_best)
+        solution_merge = solution_best.clone()
 
         # Determine the set L of all pairs (r1, r2) of consecutive routes in sbest.
         L = [[solution_best.routes[r-1], solution_best.routes[r]]
              for r in range(1, len(solution_best.routes))]
 
-        # for all pairs (r1, r2) ∈ L do
         for i, pair_of_routes in enumerate(L):
             # Let s1 be the solution obtained from sbest by merging r1 and r2 into a single route r
             # assigned to the same time as r1.
-            s1 = copy.deepcopy(solution_best)
-            s1.routes[i].clients = copy.deepcopy(
-                pair_of_routes[0].clients) + copy.deepcopy(pair_of_routes[1].clients)
-            s1.routes[i].quantities = copy.deepcopy(
-                pair_of_routes[0].quantities) + copy.deepcopy((pair_of_routes[1].quantities))
+            s1 = solution_best.clone()
+            s1.routes[i].clients.extend(pair_of_routes[1].clients)
+            s1.routes[i].quantities.extend(pair_of_routes[1].quantities)
             s1.routes[i].refresh()
             s1.routes[i+1].clients = []
             s1.routes[i+1].quantities = []
             s1.routes[i+1].refresh()
-
-            # Refresh s1
             s1.refresh()
 
-            aux_solution = MIP2(s1)
-
+            aux_solution = Mip2.execute(s1)
             # if MIP2(, s1) is infeasible and r is not the last route in s1 then
             # Modify s1 by anticipating the first route after r by one time period.
             if not aux_solution.is_feasible() and i + 2 < len(s1.routes):
@@ -158,35 +135,29 @@ def improvement(solution_best: Solution):
                 s1.routes[i+2].clients = []
                 s1.routes[i+2].quantities = []
                 s1.routes[i+2].refresh()
-
-            s1.refresh()
+                s1.refresh()
+               
             # if MIP2(, s1) is feasible then
             # Let s' be an optimal solution of MIP2(, s1).
             # Set s' ← LK(s1, s').
-            aux_solution = MIP2(s1)
+            aux_solution = Mip2.execute(s1)
             if aux_solution.is_feasible():
-                solution_prima = copy.deepcopy(aux_solution)
+                solution_prima = aux_solution.clone()
                 solution_prima = LK(s1, solution_prima)
-                # if f(s') < f(smerge) then Set smerge ← s'
                 if solution_prima.objetive_function() < solution_merge.objetive_function():
                     solution_merge = solution_prima
 
             # Let s2 be the solution obtained from sbest by merging r1 and r2 into a single route r assigned to the same time as r2.
-            s2 = copy.deepcopy(solution_best)
-            s2.routes[i+1].clients = copy.deepcopy(
-                pair_of_routes[0].clients) + copy.deepcopy(pair_of_routes[1].clients)
-            s2.routes[i+1].quantities = copy.deepcopy(
-                pair_of_routes[0].quantities) + copy.deepcopy((pair_of_routes[1].quantities))
+            s2 = solution_best.clone()
+            s2.routes[i+1].clients = pair_of_routes[0].clients + pair_of_routes[1].clients
+            s2.routes[i+1].quantities = pair_of_routes[0].quantities + pair_of_routes[1].quantities
             s2.routes[i+1].refresh()
-
             s2.routes[i].clients = []
             s2.routes[i].quantities = []
             s2.routes[i].refresh()
-            # Refresh s2
             s2.refresh()
 
-            aux_solution = MIP2(s2)
-
+            aux_solution = Mip2.execute(s2)
             # if MIP2(, s2) is infeasible and r is not the first route in s2 then
             # Modify s2 by delaying the last route before r by one time period.
             if not aux_solution.is_feasible() and i > 0:
@@ -196,222 +167,28 @@ def improvement(solution_best: Solution):
                 s2.routes[i-1].clients = []
                 s2.routes[i-1].quantities = []
                 s2.routes[i-1].refresh()
+                s2.refresh()
             
-            s2.refresh()
-            # if MIP2(, s2) is feasible then
+            aux_solution = Mip2.execute(s2)
             if aux_solution.is_feasible():
-                # Let s' be an optimal solution of MIP2(, s2).
-                solution_prima = copy.deepcopy(aux_solution)
-                # Set s'← LK(s2, s').
+                solution_prima = aux_solution.clone()
                 solution_prima = LK(s2, solution_prima)
-                # if f(s') < f(smerge) then set smerge ← s'
                 if solution_prima.objetive_function() < solution_merge.objetive_function():
-                    solution_merge = copy.deepcopy(solution_prima)
+                    solution_merge = solution_prima.clone()
 
         # if f(smerge) < f(sbest) then Set sbest ← s' and continue ← true.
         if solution_merge.objetive_function() < solution_best.objetive_function():
-            solution_best = copy.deepcopy(solution_prima)
+            solution_best = solution_prima.clone()
             do_continue = True
 
         # (* Third type of improvement *)
-        # Let s' be an optimal solution of MIP2(, sbest).
-        solution_prima = MIP2(solution_best)
-        # Set s'← LK(sbest, s').
+        solution_prima = Mip2.execute(solution_best)
         solution_prima = LK(solution_best, solution_prima)
-
-        # if f(s') < f(sbest) then Set sbest ← s' and continue ← true.
         if solution_prima.objetive_function() < solution_best.objetive_function():
             solution_best = solution_prima
             do_continue = True
 
     return solution_best
-
-
-def reordenar_lista(array, combinacion):
-    nueva_lista = [array[i] for i in combinacion]
-    return nueva_lista
-
-
-
-
-
-def MIP2(solution: Solution) -> Solution:
-    # print("ENTRA AL MIP"+str(solution))
-    min_cost = float("inf")
-    min_cost_solution = solution
-
-    for i in range(constants.nb_customers):
-        for time in range(constants.horizon_lenght):
-            solution_aux = copy.deepcopy(solution)
-
-            if solution.routes[time].is_visited(i):
-                mip_cost = MIP2objFunction(solution_aux, i, None, time)
-                solution_aux.remove_visit(i, time)
-                solution_aux.refresh()
-                if mip_cost < min_cost and passConstraints(solution_aux, i, time, "REMOVE", "MIP2"):
-                    # print("PASA LAS CONSTRAINTS PARA "+str(i)+" - "+str(solution_aux))
-                    min_cost = mip_cost
-                    min_cost_solution = copy.deepcopy(solution_aux)
-            else:
-                mip_cost = MIP2objFunction(solution_aux, None, i, time)
-                solution_aux.insert_visit(i, time)
-                solution_aux.refresh()
-                if mip_cost < min_cost and passConstraints(solution_aux, i, time, "INSERT", "MIP2"):
-                    min_cost = mip_cost
-                    min_cost_solution = copy.deepcopy(solution_aux)
-
-    # print("MIP2"+str(min_cost_solution))
-    return min_cost_solution
-
-
-
-
-
-def MIP2objFunction(solution, removed_customer, added_customer, time):
-    term_1 = sum([constants.holding_cost_supplier * solution.supplier_inventory_level[t]
-                  for t in range(constants.horizon_lenght+1)])
-
-    term_2 = sum([sum([constants.holding_cost[i] * solution.customers_inventory_level[t][i]
-                       for t in range(constants.horizon_lenght)])
-                  for i in range(constants.nb_customers)])
-
-    if removed_customer != None:
-        customer_index = solution.routes[time].clients.index(removed_customer)
-        aux_route = copy.deepcopy(solution.routes[time])
-        aux_route.remove_visit(removed_customer)
-        term_3 = solution.routes[time].cost - aux_route.cost
-    else:
-        term_3 = 0
-
-    if added_customer != None:
-        solution_aux = copy.deepcopy(solution)
-        solution_aux.insert_visit(added_customer, time)
-        solution_aux.refresh()
-        term_4 = sum([solution_aux.routes[it].cost -
-                     solution.routes[it].cost for it in range(constants.horizon_lenght)])
-    else:
-        term_4 = 0
-
-    return term_1 + term_2 - term_3 + term_4
-
-
-def theeta(solution: Solution, i, t):
-    return (1 if solution.routes[t].is_visited(i) else 0)
-
-
-def passConstraints(solution: Solution, i, t, operation, MIP):
-
-    # Constraint 3
-    if solution.supplier_inventory_level[t] < solution.routes[t].get_total_quantity():
-        # print("Falla la constraint  3 para" + str(solution))
-        return False
-    # Constraint 5
-    if constants.replenishment_policy == "OU" and solution.routes[t].get_customer_quantity_delivered(i) < (constants.max_level[i] * theeta(solution, i, t)) - solution.customers_inventory_level[t][i]:
-        # print("Falla la constraint  5 para" + str(solution)+" para el cliente "+str(i))
-        return False
-    # Constraint 6
-    if solution.routes[t].get_customer_quantity_delivered(i) > constants.max_level[i] - solution.customers_inventory_level[t][i]:
-        # print("Falla la constraint  6 para" + str(solution)+" para el cliente "+str(i))
-        return False
-    # Constraint 7
-    if constants.replenishment_policy == "OU" and solution.routes[t].get_customer_quantity_delivered(i) > constants.max_level[i] * theeta(solution, i, t):
-        # print("Falla la constraint  7 para" + str(solution)+" para el cliente "+str(i))
-        return False
-    # Constrain 8:
-    if solution.routes[t].get_total_quantity() > constants.vehicle_capacity:
-        # print("Falla la constraint 8: para" + str(solution))
-        return False
-
-    # Constraints 9 -13:
-        # TODO (IMPORTANTE: SON SOLO DE MIP1)
-
-    # Constraint 14
-    if solution.routes[t].get_total_quantity() < 0:
-        # print("Falla la constraint 14 para" + str(solution))
-        return False
-
-    for t in range(constants.horizon_lenght+1):
-        # Constraint 4
-        if solution.customers_inventory_level[t][i] != solution.customers_inventory_level[t-1][i] + solution.routes[t-1].get_customer_quantity_delivered(i) - (constants.demand_rate[i] if t-1 >= 0 else 0):
-            # print("Falla la constraint  4 para" + str(solution)+" para el cliente "+str(i))
-            return False
-        # Constraint 15
-        if solution.customers_inventory_level[t][i] < 0:
-            # print("Falla la constraint 15 para" + str(solution)+" para el cliente "+str(i))
-            return False
-        # Constraint 16
-        if solution.supplier_inventory_level[t] < 0:
-            # print("Falla la constraint 16 para" + str(solution))
-            return False
-    # Constraints 17 -19 son obvias
-
-    if MIP == "MIP2":
-        v_it = 1 if (operation == "INSERT") else 0
-        sigma_it = 1 if (i in solution[t][0]) else 0
-        w_it = 1 if (operation == "REMOVE") else 0
-
-        # Constraint 21
-        if v_it > 1 - sigma_it:
-            # print("Falla la constraint 21 para" + str(solution)+" para el cliente "+str(i))
-            return False
-        # Constraint 22
-        if w_it > sigma_it:
-            # print("Falla la constraint 22 para" + str(solution)+" para el cliente "+str(i))
-            return False
-        # Constraint 23
-        if solution.routes[t].get_total_quantity() > constants.max_level[i] * (sigma_it - w_it + v_it):
-            # print("Falla la constraint 23 para" + str(solution)+" para el cliente "+str(i))
-            return False
-        # Constraint 24
-        if v_it < 0 or v_it > 1:
-            # print("Falla la constraint 24 para" + str(solution)+" para el cliente "+str(i))
-            return False
-        # Constraint 25
-        if w_it < 0 or v_it > 1:
-            # print("Falla la constraint 25 para" + str(solution)+" para el cliente "+str(i))
-            return False
-    return True
-
-
-def LK(solution: Solution, solution_prima: Solution) -> Solution:
-
-    if solution == solution_prima:
-        return solution
-    else:
-
-        for time in range(constants.horizon_lenght):
-            matrix = [[0 for i in range(len(solution_prima.routes[time].clients)+1)]
-                      for j in range(len(solution_prima.routes[time].clients)+1)]
-
-            # Provider distance
-            for index, i in enumerate(solution_prima.routes[time].clients):
-                matrix[0][index+1] = constants.distance_supplier[i]
-                matrix[index+1][0] = constants.distance_supplier[i]
-
-            # Clients distances
-            for index, c in enumerate(solution_prima.routes[time].clients):
-                for index2, c2 in enumerate(solution_prima.routes[time].clients):
-                    matrix[index+1][index2+1] = constants.distance_matrix[c][c2]
-            # print(matrix)
-            # Make an instance with all nodes
-            TSP.setEdges(matrix)
-
-            lk = KOpt(range(len(matrix)))
-            # print(matrix)
-
-            #
-            # Load the distances
-            path, cost = lk.optimise()
-
-            aux = [[], []]
-            for index in path[1:]:
-                aux[0].append(solution_prima.routes[time].clients[index-1])
-                aux[1].append(solution_prima.routes[time].quantities[index-1])
-            solution_prima.routes[time] = Route(aux[0], aux[1])
-        
-
-    solution_prima.refresh()
-    return solution_prima
 
 # TODO
 def jump(solution: Solution) -> Solution:
@@ -440,15 +217,14 @@ def neighborhood(solution) -> list[Solution]:
                         # OU policy:
                         if constants.replenishment_policy == "OU":
                             # Let s" be the solution obtained from s' by removing the visit to j at time t.
-                            solution_dosprima = copy.deepcopy(solution_prima)
+                            solution_dosprima = solution_prima.clone()
                             solution_dosprima.routes[time].remove_visit(j)
                             solution_dosprima.refresh()
 
                             # if s" is admissible and f(s") < f(s') then
                             if solution_dosprima.is_admissible() and solution_dosprima.cost < solution_prima.cost:
                                 # Set s' ← s" and add j to A.
-                                solution_prima = copy.deepcopy(
-                                    solution_dosprima)
+                                solution_prima = solution_dosprima.clone()
                                 set_A.append(j)
                             # end if
 
@@ -462,7 +238,7 @@ def neighborhood(solution) -> list[Solution]:
                                 solution_prima.get_all_customer_inventory_level(j)[time:-1])
                             y = min(xjt, minijt)
                             # Let s" be the solution obtained from s' by removing y units of delivery to j at time t (the visit to j at time t is removed if y = xjt).
-                            solution_dosprima = copy.deepcopy(solution_prima)
+                            solution_dosprima = solution_prima.clone()
                             if y == xjt:
                                 solution_dosprima.routes[time].remove_visit(j)
                             else:
@@ -473,12 +249,7 @@ def neighborhood(solution) -> list[Solution]:
                             # if f(s") < f(s') then
                             if solution_dosprima.is_admissible() and solution_dosprima.cost < solution_prima.cost:
                                 # Set s' ← s"
-                                # print("SOLUCION ADMISIBLE")
-                                # print(solution_prima)
-                                # print(f"se remueve {y} elementos de {j}, xjt: {xjt}")
-                                # print(solution_dosprima)
-                                solution_prima = copy.deepcopy(
-                                    solution_dosprima)
+                                solution_prima = solution_dosprima.clone()
                                 # add j to A if j is not visited at time t in s'.
                                 if not solution_prima.routes[time].is_visited(j):
                                     set_A.append(j)
@@ -497,16 +268,15 @@ def neighborhood(solution) -> list[Solution]:
                                 list(i+j for (i, j) in zip(xjt, Ijt[:-1]))[time:])
 
                             # Let s" be the solution obtained from s' by adding Uj − y units of delivery to j at time t.
-                            solution_dosprima = copy.deepcopy(solution_prima)
+                            solution_dosprima = solution_prima.clone()
                             solution_dosprima.routes[time].add_customer_quantity(
                                 j, constants.max_level[j] - y)
 
                             solution_dosprima.refresh()
                             if solution_dosprima.cost < solution_prima.cost:
-                                solution_prima = copy.deepcopy(
-                                    solution_dosprima)
+                                solution_prima = solution_dosprima.clone()
 
-        neighborhood.append(copy.deepcopy(solution_prima))
+        neighborhood.append(solution_prima.clone())
 
     return neighborhood
 
@@ -521,6 +291,43 @@ def make_neighborhood_prima(solution) -> list[Solution]:
 def isMultiple(num,  check_with):
     return num != 0 and num % check_with == 0
 
+def LK(solution: Solution, solution_prima: Solution) -> Solution:
+    if solution == solution_prima:
+        return solution
+    else:
+
+        for time in range(constants.horizon_length):
+            matrix = [[0 for i in range(len(solution_prima.routes[time].clients)+1)]
+                      for j in range(len(solution_prima.routes[time].clients)+1)]
+
+            # Provider distance
+            for index, i in enumerate(solution_prima.routes[time].clients):
+                matrix[0][index+1] = constants.distance_supplier[i]
+                matrix[index+1][0] = constants.distance_supplier[i]
+
+            # Clients distances
+            for index, c in enumerate(solution_prima.routes[time].clients):
+                for index2, c2 in enumerate(solution_prima.routes[time].clients):
+                    matrix[index+1][index2+1] = constants.distance_matrix[c][c2]
+            # print(matrix)
+            # Make an instance with all nodes
+            TSP.setEdges(matrix)
+
+            lk = KOpt(range(len(matrix)))
+            # print(matrix)
+
+            #
+            # Load the distances
+            path, cost = lk.optimise()
+
+            aux = [[], []]
+            for index in path[1:]:
+                aux[0].append(solution_prima.routes[time].clients[index-1])
+                aux[1].append(solution_prima.routes[time].quantities[index-1])
+            solution_prima.routes[time] = Route(aux[0], aux[1])
+    solution_prima.refresh()
+    return solution_prima
+
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         print(
@@ -532,6 +339,6 @@ if __name__ == '__main__':
 
     str_time_limit = sys.argv[4] if len(sys.argv) > 4 else "20"
 
-    MAX_ITER = 200*constants.nb_customers*constants.horizon_lenght
+    MAX_ITER = 200*constants.nb_customers*constants.horizon_length
     JUMP_ITER = MAX_ITER // 2
     main()
