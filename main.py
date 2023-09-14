@@ -293,7 +293,7 @@ def neighborhood(solution) -> list[Solution]:
     return neighborhood
 
 # Returns a solution's Neighborhood. Obtained by using the four simple types of changes on s.
-def make_neighborhood_prima(solution) -> list[Solution]:
+def make_neighborhood_prima(solution: Solution) -> list[Solution]:
     neighborhood_prima = solution.variants_type1()
     neighborhood_prima.extend(solution.variants_type2())
     neighborhood_prima.extend(solution.variants_type3())
@@ -351,6 +351,6 @@ if __name__ == '__main__':
 
     str_time_limit = sys.argv[4] if len(sys.argv) > 4 else "20"
 
-    MAX_ITER = 20*constants.nb_customers*constants.horizon_length
+    MAX_ITER = 200*constants.nb_customers*constants.horizon_length
     JUMP_ITER = MAX_ITER // 2
     main()

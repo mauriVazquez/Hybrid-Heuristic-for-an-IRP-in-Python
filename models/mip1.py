@@ -3,19 +3,20 @@ from constants import constants
 from models.solution import Solution
 import copy
 
+
 class Mip1():
     @staticmethod
-    def execute(solution : Solution):
+    def execute(solution: Solution):
         min_cost = float("inf")
         min_cost_solution = None
-        permutation_orders = list(permutations(range(constants.horizon_length)))
+        permutation_orders = list(permutations(
+            range(constants.horizon_length)))
 
         for perm in permutation_orders:
             new_solution = solution.clone()
             new_solution.sort_list(perm)
-            print(new_solution)
             new_solution.refresh()
-            
+
             for i in range(constants.nb_customers):
                 # if(passConstraints(new_solution, i)):
                 # print("PASA LAS CONSTRAINTS PARA "+str(i))
@@ -24,7 +25,7 @@ class Mip1():
                 for time in range(constants.horizon_length):
                     aux_copy = new_solution.clone()
                     if aux_copy.routes[time].is_visited(i):
-                        mip_cost = Mip1.MIP1objFunction(aux_copy, i, time)
+                        mip_cost = Mip1.objetive_function(aux_copy, i, time)
                         aux_copy.routes[time].remove_visit(i)
                         aux_copy.refresh()
 
@@ -35,12 +36,13 @@ class Mip1():
 
         return min_cost_solution if min_cost_solution is not None else solution
     
-    def MIP1objFunction(solution: Solution, removed_customer, removed_time):
-        term_1 = sum(constants.holding_cost_supplier * solution.supplier_inventory_level[t]
-                    for t in range(constants.horizon_length+1))
-        term_2 = sum(sum(constants.holding_cost[i] * solution.customers_inventory_level[t][i] for t in range(constants.horizon_length+1))
-                    for i in range(constants.nb_customers))
+    @staticmethod
+    def objetive_function(solution: Solution, removed_customer, removed_time):
+        term_1 = constants.holding_cost_supplier * sum(solution.B(t) for t in range(constants.horizon_length+1))
         
+        term_2 = sum(sum(constants.holding_cost[i] * solution.customers_inventory_level[t][i] for t in range(constants.horizon_length+1))
+                     for i in range(constants.nb_customers))
+
         # 3rd term represents the saving (in this implementation)
         aux_route = copy.deepcopy(solution.routes[removed_time])
         aux_route.remove_visit(removed_customer)
