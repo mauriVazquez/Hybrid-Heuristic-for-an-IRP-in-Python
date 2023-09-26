@@ -32,7 +32,9 @@ def main():
         
         if sprima.cost < sbest.cost:
             # Apply the Improvement procedure to POSSIBLY improve s´
+            # print(f"sbest antes {sbest}")
             sbest = improvement(sprima)
+            # print(f"sbest despues de improvement {sbest}")
             iterations_without_improvement = 0
         else:
             iterations_without_improvement += 1
@@ -52,16 +54,15 @@ def main():
 
         #TO DO: SON SIEMPRE FEASIBLES
         # Update alpha and beta
-        # alpha.unfeasible() if s.vehicle_capacity_has_exceeded() else alpha.feasible()
-        # beta.unfeasible() if s.supplier_stockout_situation() else beta.feasible()
+        alpha.unfeasible() if s.vehicle_capacity_has_exceeded() else alpha.feasible()
+        beta.unfeasible() if s.supplier_stockout_situation() else beta.feasible()
 
         #Considerar que es para cuando se hace una sola vez
-        if iterations_without_improvement > (JUMP_ITER/2) and iterations_without_improvement <= JUMP_ITER:
+        if (JUMP_ITER/2) < iterations_without_improvement <= JUMP_ITER:
             triplet_manager.remove_triplets_from_solution(s)
-            print(triplet_manager.triplets)
         
         main_iterator += 1
-        print(f"costo sbest = {sbest.cost}")
+        # print(f"costo sbest = {sbest.cost}")
 
     print("MEJOR SOLUCION")
     print(sbest)
@@ -104,7 +105,9 @@ def move(solution) -> Solution:
 
 def improvement(solution_best: Solution):
     do_continue = True
-    solution_best = LK(Solution.get_empty_solution(), solution_best)   
+    print(f"solution_best cost = {solution_best.cost}")
+    solution_best = LK(Solution.get_empty_solution(), solution_best)
+    print(f"solution_best cost after lk = {solution_best.cost}")
 
     while do_continue:
         do_continue = False
@@ -114,6 +117,7 @@ def improvement(solution_best: Solution):
         solution_prima = LK(solution_best, solution_prima)
 
         if solution_prima.cost < solution_best.cost:
+            print(f"cambio sbest {solution_best.cost} por sprima {solution_prima.cost} first")
             solution_best = solution_prima.clone()
             do_continue = True
 
@@ -156,7 +160,7 @@ def improvement(solution_best: Solution):
                 solution_prima = aux_solution.clone()
                 solution_prima = LK(s1, solution_prima)
                 if solution_prima.objetive_function() < solution_merge.objetive_function():
-                    solution_merge = solution_prima
+                    solution_merge = solution_prima.clone()
 
             # Let s2 be the solution obtained from sbest by merging r1 and r2 into a single route r assigned to the same time as r2.
             s2 = solution_best.clone()
@@ -184,22 +188,24 @@ def improvement(solution_best: Solution):
             if aux_solution.is_feasible():
                 solution_prima = aux_solution.clone()
                 solution_prima = LK(s2, solution_prima)
-                if solution_prima.objetive_function() < solution_merge.objetive_function():
+                if solution_prima.cost < solution_merge.cost:
                     solution_merge = solution_prima.clone()
 
         # if f(smerge) < f(sbest) then Set sbest ← s' and continue ← true.
-        if solution_merge.objetive_function() < solution_best.objetive_function():
+        if solution_merge.cost < solution_best.cost:
+            print(f"cambio sbest {solution_best.cost} por solution_merge {solution_merge.cost} en second")
             solution_best = solution_prima.clone()
             do_continue = True
 
         # (* Third type of improvement *)
         solution_prima = Mip2.execute(solution_best)
         solution_prima = LK(solution_best, solution_prima)
-        if solution_prima.objetive_function() < solution_best.objetive_function():
-            solution_best = solution_prima
+        if solution_prima.cost < solution_best.cost:
+            print(f"cambio sbest {solution_best.cost} por solution_prima {solution_merge.cost} en third")
+            solution_best = solution_prima.clone()
             do_continue = True
 
-    return solution_best
+    return solution_best.clone()
 
 # TODO
 def jump(solution: Solution) -> Solution:
@@ -305,9 +311,11 @@ def isMultiple(num,  check_with):
 
 def LK(solution: Solution, solution_prima: Solution) -> Solution:
     if solution == solution_prima:
+        # print(f"retornando soluciones iguales")
+        # print(f"solution = {solution.cost} y solution_prima = {solution_prima.cost}")
         return solution
     else:
-
+        aux_solution = solution_prima.clone()
         for time in range(constants.horizon_length):
             matrix = [[0 for i in range(len(solution_prima.routes[time].clients)+1)]
                       for j in range(len(solution_prima.routes[time].clients)+1)]
@@ -336,9 +344,9 @@ def LK(solution: Solution, solution_prima: Solution) -> Solution:
             for index in path[1:]:
                 aux[0].append(solution_prima.routes[time].clients[index-1])
                 aux[1].append(solution_prima.routes[time].quantities[index-1])
-            solution_prima.routes[time] = Route(aux[0], aux[1])
-    solution_prima.refresh()
-    return solution_prima
+            aux_solution.routes[time] = Route(aux[0], aux[1])
+    aux_solution.refresh()
+    return aux_solution if aux_solution.cost < solution_prima.cost else solution_prima
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
