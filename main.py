@@ -26,15 +26,15 @@ def main():
     
     while iterations_without_improvement <= MAX_ITER:
         sprima = move(s)
-        
+        print(sprima)
         # Update tabu lists
         update_tabu_lists(s, sprima, main_iterator)
-        
+
         if sprima.cost < sbest.cost:
             # Apply the Improvement procedure to POSSIBLY improve s´
-            # print(f"sbest antes {sbest}")
+            print(f"sbest antes {sbest}")
             sbest = improvement(sprima)
-            # print(f"sbest despues de improvement {sbest}")
+            print(f"sbest despues de improvement {sbest}")
             iterations_without_improvement = 0
         else:
             iterations_without_improvement += 1
@@ -56,6 +56,7 @@ def main():
         # Update alpha and beta
         alpha.unfeasible() if s.is_vehicle_capacity_exceeded() else alpha.feasible()
         beta.unfeasible() if s.supplier_stockout_situation() else beta.feasible()
+        
 
         #Considerar que es para cuando se hace una sola vez
         if (JUMP_ITER/2) < iterations_without_improvement <= JUMP_ITER:
@@ -105,16 +106,19 @@ def move(solution) -> Solution:
 
 def improvement(solution_best: Solution):
     do_continue = True
-    print(f"solution_best cost = {solution_best.cost}")
+    # print(f"solution_best cost = {solution_best.cost}")
     solution_best = LK(Solution.get_empty_solution(), solution_best)
-    print(f"solution_best cost after lk = {solution_best.cost}")
+    # print(f"solution_best cost after lk = {solution_best.cost}")
 
     while do_continue:
         do_continue = False
 
         # (* First type of improvement *)
+        # print(solution_best)
         solution_prima = Mip1.execute(solution_best)
+        # print(solution_prima)
         solution_prima = LK(solution_best, solution_prima)
+        # print(solution_prima)
 
         if solution_prima.cost < solution_best.cost:
             print(f"cambio sbest {solution_best.cost} por sprima {solution_prima.cost} first")
@@ -206,11 +210,6 @@ def improvement(solution_best: Solution):
             do_continue = True
 
     return solution_best.clone()
-
-# TODO
-def jump(solution: Solution) -> Solution:
-
-    return solution
 
 # Algorithm 2
 def neighborhood(solution) -> list[Solution]:

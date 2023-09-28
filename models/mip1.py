@@ -26,9 +26,12 @@ class Mip1():
                     aux_copy = new_solution.clone()
                     if aux_copy.routes[time].is_visited(i):
                         mip_cost = Mip1.objetive_function(aux_copy, i, time)
+                        print(f"Funcion objetivo MIP = {mip_cost}")
                         aux_copy.routes[time].remove_visit(i)
                         aux_copy.refresh()
 
+                        print(f"min_cost = {min_cost}")
+                        print(aux_copy)
                         if mip_cost < min_cost and aux_copy.passConstraints(i, time, "REMOVE", "MIP1"):
                             # print("PASA LAS CONSTRAINTS PARA "+str(i)+" - "+str(aux_copy))
                             min_cost = mip_cost
@@ -40,7 +43,7 @@ class Mip1():
     def objetive_function(solution: Solution, removed_customer, removed_time):
         term_1 = constants.holding_cost_supplier * sum(solution.B(t) for t in range(constants.horizon_length+1))
         
-        term_2 = sum(sum(constants.holding_cost[i] * solution.customers_inventory_level[t][i] for t in range(constants.horizon_length+1))
+        term_2 = sum(sum(constants.holding_cost[i] * solution.customers_inventory_level[i][t] for t in range(constants.horizon_length+1))
                      for i in range(constants.nb_customers))
 
         # 3rd term represents the saving (in this implementation)
