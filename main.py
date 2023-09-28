@@ -54,7 +54,7 @@ def main():
 
         #TO DO: SON SIEMPRE FEASIBLES
         # Update alpha and beta
-        alpha.unfeasible() if s.vehicle_capacity_has_exceeded() else alpha.feasible()
+        alpha.unfeasible() if s.is_vehicle_capacity_exceeded() else alpha.feasible()
         beta.unfeasible() if s.supplier_stockout_situation() else beta.feasible()
 
         #Considerar que es para cuando se hace una sola vez
@@ -231,7 +231,7 @@ def neighborhood(solution) -> list[Solution]:
                 # for all customers j served at time t in s' and such that t ∈ Tj (s') do
                 for j in solution_prima.routes[time].clients:
                     # if hj > h0, Qt(s') > C or Bt(s') < 0 then
-                    if (constants.holding_cost[j] > constants.holding_cost_supplier) or (solution_prima.routes[time].get_total_quantity() > constants.vehicle_capacity) or (solution_prima.supplier_inventory_level[time] < 0):
+                    if (constants.holding_cost[j] > constants.holding_cost_supplier) or (solution_prima.routes[time].get_total_quantity_delivered() > constants.vehicle_capacity) or (solution_prima.supplier_inventory_level[time] < 0):
                         # OU policy:
                         if constants.replenishment_policy == "OU":
                             # Let s" be the solution obtained from s' by removing the visit to j at time t.

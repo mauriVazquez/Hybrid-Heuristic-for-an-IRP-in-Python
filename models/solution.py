@@ -59,7 +59,7 @@ class Solution():
 
             # Third term (penalty 1)
             penalty1 += max(0,
-                            self.routes[time].get_total_quantity() - constants.vehicle_capacity)
+                            self.routes[time].get_total_quantity_delivered() - constants.vehicle_capacity)
 
             # Fourth term
             penalty2 += max(0, - bt)
@@ -81,7 +81,7 @@ class Solution():
     def get_supplier_inventory_level(self):
         current_level = constants.start_level_supplier
         inventory_level = [
-            current_level := current_level + (constants.production_rate_supplier - route.get_total_quantity())
+            current_level := current_level + (constants.production_rate_supplier - route.get_total_quantity_delivered())
             for route in self.routes
         ]
         inventory_level.append(
@@ -102,12 +102,12 @@ class Solution():
             for customer in range(constants.nb_customers)]
             for time in range(constants.horizon_length + 1)]
 
-    def vehicle_capacity_has_exceeded(self) -> bool:
-        return any(route.vehicle_capacity_has_exceeded() for route in self.routes)
+    def is_vehicle_capacity_exceeded(self) -> bool:
+        return any(route.is_vehicle_capacity_exceeded() for route in self.routes)
 
     def supplier_stockout_situation(self) -> bool:
         stock_level = constants.start_level_supplier
-        return any(stock_level + constants.production_rate_supplier - route.get_total_quantity() < 0 for route in self.routes)
+        return any(stock_level + constants.production_rate_supplier - route.get_total_quantity_delivered() < 0 for route in self.routes)
 
     def client_stockout_situation(self) -> bool:
         return any(self.customers_inventory_level[time][customer] <= constants.min_level[customer]
@@ -123,7 +123,7 @@ class Solution():
         return not (self.client_has_stockout or self.client_has_overstock)
 
     def is_feasible(self) -> bool:
-        return self.is_admissible() and not (self.supplier_stockout_situation() or self.vehicle_capacity_has_exceeded())
+        return self.is_admissible() and not (self.supplier_stockout_situation() or self.is_vehicle_capacity_exceeded())
 
     def refresh(self):
         self.supplier_inventory_level = self.get_supplier_inventory_level()
@@ -156,7 +156,7 @@ class Solution():
 
     def insert_visit(self, customer, time):
 
-        cheapest_index = self.routes[time].cheapest_index_to_insert(customer)
+        cheapest_index = self.routes[time].get_cheapest_index_to_insert(customer)
 
         if constants.replenishment_policy == "OU":
             quantity_delivered = constants.max_level[customer] - \
@@ -175,7 +175,7 @@ class Solution():
                 constants.max_level[customer] -
                 self.customers_inventory_level[time][customer],
                 constants.vehicle_capacity -
-                self.routes[time].get_total_quantity(),
+                self.routes[time].get_total_quantity_delivered(),
                 self.supplier_inventory_level[time]
             )
 
@@ -202,7 +202,7 @@ class Solution():
         
         quantity_removed = new_solution.routes[time_visited].remove_visit(
             customer)
-        cheapest_index = new_solution.routes[time_not_visited].cheapest_index_to_insert(
+        cheapest_index = new_solution.routes[time_not_visited].get_cheapest_index_to_insert(
             customer)
         new_solution.routes[time_not_visited].insert_visit(
             customer, cheapest_index, quantity_removed)
@@ -287,7 +287,7 @@ class Solution():
                 for t_not_visited in set_t_not_visited:
                     if not tabulists.forbidden_to_remove(customer, t_visited) and not tabulists.forbidden_to_append(customer, t_not_visited):
                         saux = copy.deepcopy(new_solution)
-                        saux_cheapest_index = saux.routes[t_not_visited].cheapest_index_to_insert(
+                        saux_cheapest_index = saux.routes[t_not_visited].get_cheapest_index_to_insert(
                             customer)
                         saux.routes[t_not_visited].insert_visit(
                             customer, saux_cheapest_index, quantity_removed)
@@ -307,11 +307,11 @@ class Solution():
                             if not ((self.routes[t1].is_visited(client2)) or (self.routes[t2].is_visited(client1)) or tabulists.forbidden_to_append(client1, t2) or tabulists.forbidden_to_remove(client1, t1) or tabulists.forbidden_to_append(client2, t1) or tabulists.forbidden_to_remove(client2, t2)):
                                 saux = self.clone()
                                 saux.routes[t1].insert_visit(client2,
-                                                             saux.routes[t1].cheapest_index_to_insert(
+                                                             saux.routes[t1].get_cheapest_index_to_insert(
                                                                  client2),
                                                              saux.routes[t2].remove_visit(client2))
                                 saux.routes[t2].insert_visit(client1,
-                                                             saux.routes[t2].cheapest_index_to_insert(
+                                                             saux.routes[t2].get_cheapest_index_to_insert(
                                                                  client1),
                                                              saux.routes[t1].remove_visit(client1))
                                 saux.refresh()
@@ -329,7 +329,7 @@ class Solution():
     def passConstraints(self, i, t, operation, MIP):
 
         # Constraint 3
-        if self.supplier_inventory_level[t] < self.routes[t].get_total_quantity():
+        if self.supplier_inventory_level[t] < self.routes[t].get_total_quantity_delivered():
             # print("Falla la constraint  3 para" + str(self))
             return False
         # Constraint 5
@@ -345,7 +345,7 @@ class Solution():
             # print("Falla la constraint  7 para" + str(self)+" para el cliente "+str(i))
             return False
         # Constrain 8:
-        if self.routes[t].get_total_quantity() > constants.vehicle_capacity:
+        if self.routes[t].get_total_quantity_delivered() > constants.vehicle_capacity:
             # print("Falla la constraint 8: para" + str(self))
             return False
 
@@ -353,7 +353,7 @@ class Solution():
             # TODO (IMPORTANTE: SON SOLO DE MIP1)
 
         # Constraint 14
-        if self.routes[t].get_total_quantity() < 0:
+        if self.routes[t].get_total_quantity_delivered() < 0:
             # print("Falla la constraint 14 para" + str(self))
             return False
 
@@ -386,7 +386,7 @@ class Solution():
                 # print("Falla la constraint 22 para" + str(self)+" para el cliente "+str(i))
                 return False
             # Constraint 23
-            if self.routes[t].get_total_quantity() > constants.max_level[i] * (sigma_it - w_it + v_it):
+            if self.routes[t].get_total_quantity_delivered() > constants.max_level[i] * (sigma_it - w_it + v_it):
                 # print("Falla la constraint 23 para" + str(self)+" para el cliente "+str(i))
                 return False
             # Constraint 24
@@ -402,6 +402,6 @@ class Solution():
     def B(self, t):
         if (t > 0):
             b = self.B(t-1)
-            return b + constants.production_rate_supplier - self.routes[t-1].get_total_quantity()
+            return b + constants.production_rate_supplier - self.routes[t-1].get_total_quantity_delivered()
         if (t == 0):
             return constants.start_level_supplier
