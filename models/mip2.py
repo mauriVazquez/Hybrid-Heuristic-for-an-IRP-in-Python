@@ -30,8 +30,9 @@ class Mip2():
                     if mip_cost < min_cost and solution_aux.passConstraints(i, time, "INSERT", "MIP2"):
                         min_cost = mip_cost
                         min_cost_solution = solution_aux.clone()
+                        print(f"MIP2: Nueva solucion {min_cost_solution}")
 
-        # print("MIP2"+str(min_cost_solution))
+        
         return min_cost_solution
 
     @staticmethod

@@ -18,21 +18,20 @@ from tsp_local.kopt import KOpt
 
 # Algorithm 1 (HAIR—A hybrid heuristic)
 def main():
+    # random.seed()
     s = initialization()
     sbest = s.clone()
-    
+    print(f"solucion inicial: {s}")
     iterations_without_improvement = 0
     main_iterator = 0
     
     while iterations_without_improvement <= MAX_ITER:
         sprima = move(s)
-        print(sprima)
         # Update tabu lists
         update_tabu_lists(s, sprima, main_iterator)
 
         if sprima.cost < sbest.cost:
             # Apply the Improvement procedure to POSSIBLY improve s´
-            print(f"sbest antes {sbest}")
             sbest = improvement(sprima)
             print(f"sbest despues de improvement {sbest}")
             iterations_without_improvement = 0
@@ -43,8 +42,9 @@ def main():
 
         #TO DO: Preguntar si es jump(s) o jump(sbest), nosotros lo cambiaríamos por sbest, pero no sé si es tan obvio
         if isMultiple(iterations_without_improvement, JUMP_ITER):
+            print("JUMP!")
             while True:
-                sjump = sbest.jump(triplet_manager.get_random_triplet())
+                sjump = s.jump(triplet_manager.get_random_triplet())
                 if not sjump.client_stockout_situation():
                     s = Mip2.execute(sjump.clone())
                     break
@@ -57,16 +57,17 @@ def main():
         alpha.unfeasible() if s.is_vehicle_capacity_exceeded() else alpha.feasible()
         beta.unfeasible() if s.supplier_stockout_situation() else beta.feasible()
         
-
         #Considerar que es para cuando se hace una sola vez
         if (JUMP_ITER/2) < iterations_without_improvement <= JUMP_ITER:
             triplet_manager.remove_triplets_from_solution(s)
         
         main_iterator += 1
+        if isMultiple(main_iterator, 250):
+            print(f"Cantidad iteraciones: {main_iterator}")
         # print(f"costo sbest = {sbest.cost}")
 
     print("MEJOR SOLUCION")
-    print(sbest)
+    print(sbest.detail())
 
  # Acá manejamos las listas del Tabú
 def update_tabu_lists(s: Solution, sprima: Solution, main_iterator):
@@ -114,14 +115,11 @@ def improvement(solution_best: Solution):
         do_continue = False
 
         # (* First type of improvement *)
-        # print(solution_best)
         solution_prima = Mip1.execute(solution_best)
-        # print(solution_prima)
         solution_prima = LK(solution_best, solution_prima)
-        # print(solution_prima)
 
         if solution_prima.cost < solution_best.cost:
-            print(f"cambio sbest {solution_best.cost} por sprima {solution_prima.cost} first")
+            print(f"first improvement: {solution_prima.cost}")
             solution_best = solution_prima.clone()
             do_continue = True
 
@@ -163,7 +161,7 @@ def improvement(solution_best: Solution):
             if aux_solution.is_feasible():
                 solution_prima = aux_solution.clone()
                 solution_prima = LK(s1, solution_prima)
-                if solution_prima.objetive_function() < solution_merge.objetive_function():
+                if solution_prima.cost < solution_merge.cost:
                     solution_merge = solution_prima.clone()
 
             # Let s2 be the solution obtained from sbest by merging r1 and r2 into a single route r assigned to the same time as r2.
@@ -192,22 +190,23 @@ def improvement(solution_best: Solution):
             if aux_solution.is_feasible():
                 solution_prima = aux_solution.clone()
                 solution_prima = LK(s2, solution_prima)
+                solution_prima.refresh()
                 if solution_prima.cost < solution_merge.cost:
                     solution_merge = solution_prima.clone()
-
         # if f(smerge) < f(sbest) then Set sbest ← s' and continue ← true.
         if solution_merge.cost < solution_best.cost:
-            print(f"cambio sbest {solution_best.cost} por solution_merge {solution_merge.cost} en second")
-            solution_best = solution_prima.clone()
+            print(f"second improvement: {solution_merge.cost}")
+            solution_best = solution_merge.clone()
             do_continue = True
 
         # (* Third type of improvement *)
         solution_prima = Mip2.execute(solution_best)
         solution_prima = LK(solution_best, solution_prima)
         if solution_prima.cost < solution_best.cost:
-            print(f"cambio sbest {solution_best.cost} por solution_prima {solution_merge.cost} en third")
+            print(f"Third improvement: {solution_prima.cost}")
             solution_best = solution_prima.clone()
             do_continue = True
+            
 
     return solution_best.clone()
 

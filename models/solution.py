@@ -19,7 +19,8 @@ class Solution():
         self.client_has_overstock = self.client_overstock_situation()
 
     def __str__(self) -> str:
-        return str([str(route) for route in self.routes ]) + '. Function objetivo: ' + str(self.cost)
+        return 'costo:' + str(self.cost)
+        # return str([str(route) for route in self.routes ]) + '. Function objetivo: ' + str(self.cost)
 
         # resp = "Rutas:\n"
         # for route in self.routes:
@@ -38,6 +39,24 @@ class Solution():
 
         # return resp
 
+    def  detail(self) -> str:
+        resp = "Routes:\n"
+        for route in self.routes:
+            resp += route.__str__() + "\n\n"
+
+        resp += 'Objective function: ' + str(self.cost) + "\n"
+        resp += 'Supplier inventory: ' + \
+            str(self.supplier_inventory_level) + "\n"
+        resp += 'Customers inventory: ' + \
+            str(self.customers_inventory_level) + "\n"
+
+        resp += 'Has stock out ? : ' + \
+            ('yes' if self.client_has_stockout else 'no') + "\n"
+        resp += 'Has over stock ? : ' + \
+            ('yes' if self.client_has_overstock else 'no') + "\n"
+
+        return resp
+    
     @staticmethod
     def get_empty_solution() -> Type["Solution"]:
         return Solution([Route(route[0], route[1]) for route in [[[], []] for _ in range(constants.horizon_length)]])
@@ -114,7 +133,7 @@ class Solution():
         return any(stock_level + constants.production_rate_supplier - route.get_total_quantity_delivered() < 0 for route in self.routes)
 
     def client_stockout_situation(self) -> bool:
-        return any(self.customers_inventory_level[customer][time] <= constants.min_level[customer]
+        return any(self.customers_inventory_level[customer][time] < constants.min_level[customer]
                    for customer in range(constants.nb_customers)
                    for time in range(constants.horizon_length))
 
@@ -214,11 +233,11 @@ class Solution():
         return new_solution
 
     def get_all_customer_inventory_level(self, customer) -> list:
-        inventories = []
-        for inventories_level in self.customers_inventory_level:
-            inventories.append(inventories_level[customer])
+        # inventories = []
+        # for inventories_level in self.customers_inventory_level:
+        #     inventories.append(inventories_level[customer])
 
-        return inventories
+        return self.customers_inventory_level[customer]
 
     def get_all_customer_quantity_delivered(self, customer) -> list:
         quantities = []
@@ -334,23 +353,23 @@ class Solution():
 
         # Constraint 3
         if self.supplier_inventory_level[t] < self.routes[t].get_total_quantity_delivered():
-            print("Falla la constraint  3 para" + str(self))
+            # print("Falla la constraint  3 para" + str(self))
             return False
         # Constraint 5
         if constants.replenishment_policy == "OU" and self.routes[t].get_customer_quantity_delivered(i) < (constants.max_level[i] * self.theeta(i, t)) - self.customers_inventory_level[i][t]:
-            print("Falla la constraint  5 para" + str(self)+" para el cliente "+str(i))
+            # print("Falla la constraint  5 para" + str(self)+" para el cliente "+str(i))
             return False
         # Constraint 6
         if self.routes[t].get_customer_quantity_delivered(i) > constants.max_level[i] - self.customers_inventory_level[i][t]:
-            print("Falla la constraint  6 para" + str(self)+" para el cliente "+str(i))
+            # print("Falla la constraint  6 para" + str(self)+" para el cliente "+str(i))
             return False
         # Constraint 7
         if constants.replenishment_policy == "OU" and self.routes[t].get_customer_quantity_delivered(i) > constants.max_level[i] * self.theeta(i, t):
-            print("Falla la constraint  7 para" + str(self)+" para el cliente "+str(i))
+            # print("Falla la constraint  7 para" + str(self)+" para el cliente "+str(i))
             return False
         # Constrain 8:
         if self.routes[t].get_total_quantity_delivered() > constants.vehicle_capacity:
-            print("Falla la constraint 8: para" + str(self))
+            # print("Falla la constraint 8: para" + str(self))
             return False
 
         # Constraints 9 -13:
@@ -358,21 +377,21 @@ class Solution():
 
         # Constraint 14
         if self.routes[t].get_total_quantity_delivered() < 0:
-            print("Falla la constraint 14 para" + str(self))
+            # print("Falla la constraint 14 para" + str(self))
             return False
 
         for inner_t in range(constants.horizon_length+1):
             # Constraint 4
             if inner_t > 0 and self.customers_inventory_level[i][inner_t] != self.customers_inventory_level[i][inner_t-1] + self.routes[inner_t-1].get_customer_quantity_delivered(i) - (constants.demand_rate[i] if inner_t > 0 else 0):
-                print("Falla la constraint  4 para" + str(self)+" para el cliente "+str(i))
+                # print("Falla la constraint  4 para" + str(self)+" para el cliente "+str(i))
                 return False
             # Constraint 15
             if self.customers_inventory_level[i][inner_t] < 0:
-                print("Falla la constraint 15 para" + str(self)+" para el cliente "+str(i))
+                # print("Falla la constraint 15 para" + str(self)+" para el cliente "+str(i))
                 return False
             # Constraint 16
             if self.supplier_inventory_level[inner_t] < 0:
-                print("Falla la constraint 16 para" + str(self))
+                # print("Falla la constraint 16 para" + str(self))
                 return False
         # Constraints 17 -19 son obvias
 
@@ -383,23 +402,23 @@ class Solution():
 
             # Constraint 21
             if v_it > 1 - sigma_it:
-                print("Falla la constraint 21 para" + str(self)+" para el cliente "+str(i))
+                # print("Falla la constraint 21 para" + str(self)+" para el cliente "+str(i))
                 return False
             # Constraint 22
             if w_it > sigma_it:
-                print("Falla la constraint 22 para" + str(self)+" para el cliente "+str(i))
+                # print("Falla la constraint 22 para" + str(self)+" para el cliente "+str(i))
                 return False
             # Constraint 23
             if self.routes[t].get_total_quantity_delivered() > constants.max_level[i] * (sigma_it - w_it + v_it):
-                print("Falla la constraint 23 para" + str(self)+" para el cliente "+str(i))
+                # print("Falla la constraint 23 para" + str(self)+" para el cliente "+str(i))
                 return False
             # Constraint 24
             if v_it < 0 or v_it > 1:
-                print("Falla la constraint 24 para" + str(self)+" para el cliente "+str(i))
+                # print("Falla la constraint 24 para" + str(self)+" para el cliente "+str(i))
                 return False
             # Constraint 25
-            if w_it < 0 or v_it > 1:
-                print("Falla la constraint 25 para" + str(self)+" para el cliente "+str(i))
+            if w_it < 0 or w_it > 1:
+                # print("Falla la constraint 25 para" + str(self)+" para el cliente "+str(i))
                 return False
         return True
 

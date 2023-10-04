@@ -9,10 +9,8 @@ class Mip1():
     def execute(solution: Solution):
         min_cost = float("inf")
         min_cost_solution = None
-        permutation_orders = list(permutations(
-            range(constants.horizon_length)))
 
-        for perm in permutation_orders:
+        for perm in permutations(range(constants.horizon_length)):
             new_solution = solution.clone()
             new_solution.sort_list(perm)
             new_solution.refresh()
@@ -26,17 +24,14 @@ class Mip1():
                     aux_copy = new_solution.clone()
                     if aux_copy.routes[time].is_visited(i):
                         mip_cost = Mip1.objetive_function(aux_copy, i, time)
-                        print(f"Funcion objetivo MIP = {mip_cost}")
                         aux_copy.routes[time].remove_visit(i)
                         aux_copy.refresh()
-
-                        print(f"min_cost = {min_cost}")
-                        print(aux_copy)
                         if mip_cost < min_cost and aux_copy.passConstraints(i, time, "REMOVE", "MIP1"):
                             # print("PASA LAS CONSTRAINTS PARA "+str(i)+" - "+str(aux_copy))
                             min_cost = mip_cost
                             min_cost_solution = aux_copy.clone()
-
+                            print(f"MIP1: Nueva solucion {min_cost_solution}")
+                            
         return min_cost_solution if min_cost_solution is not None else solution
     
     @staticmethod

@@ -22,10 +22,9 @@ class TripletManager():
         self.__init__()
         
     def remove_triplets_from_solution(self, solution: Solution):
-        print("Cantidad Anterior"+str(len(self.triplets)))
         self.triplets = [triplet for triplet in self.triplets 
             if (solution.routes[triplet[1]].is_visited(triplet[0]) and (not solution.routes[triplet[2]].is_visited(triplet[0])))]
-        print("Cantidad Posterior"+str(len(self.triplets)))
+
 
     def get_random_triplet(self):
         return self.triplets.pop(randint(0,len(self.triplets)-1))
