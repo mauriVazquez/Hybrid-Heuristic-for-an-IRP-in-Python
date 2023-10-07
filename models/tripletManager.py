@@ -1,6 +1,7 @@
+import random
+import datetime
 from constants import constants
 from models.solution import Solution
-from random import randint
 
 class TripletManager():
     _self = None
@@ -27,6 +28,7 @@ class TripletManager():
 
 
     def get_random_triplet(self):
-        return self.triplets.pop(randint(0,len(self.triplets)-1))
+        random.seed(datetime.datetime.now().microsecond)
+        return self.triplets.pop(random.randint(0,len(self.triplets)-1))
     
 triplet_manager = TripletManager()

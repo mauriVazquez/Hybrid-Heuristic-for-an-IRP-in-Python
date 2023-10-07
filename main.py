@@ -2,7 +2,7 @@ import sys
 import math
 import copy
 import random
-
+import datetime
 from models.route import Route
 from models.solution import Solution
 from models.penalty_variables import alpha, beta
@@ -18,53 +18,53 @@ from tsp_local.kopt import KOpt
 
 # Algorithm 1 (HAIR—A hybrid heuristic)
 def main():
-    # random.seed()
-    s = initialization()
-    sbest = s.clone()
-    print(f"solucion inicial: {s}")
+    #Inicializo iteradores
     iterations_without_improvement = 0
     main_iterator = 0
+    last_jump = 0
+
+    #Se define el seed para el random basado en la fecha y hora actual.
+    random.seed(datetime.datetime.now().microsecond)
+
+    #Se inicializa una solución s, la cual será admisible pero no necesariamente factible.
+    s = initialization()
+    
+    #Se inicializa sbest con el valor de s, siendo la primer solución candidata
+    sbest = s.clone()
     
     while iterations_without_improvement <= MAX_ITER:
+        #Se busca una solución del vecindario de s, a traves del procedimiento move.
         sprima = move(s)
-        # Update tabu lists
+        #Se actualiza la lista tabú
         update_tabu_lists(s, sprima, main_iterator)
 
         if sprima.cost < sbest.cost:
-            # Apply the Improvement procedure to POSSIBLY improve s´
+            #Si sprima es mejor que sbest, se le aplica IMPROVEMENT para posiblemente encontrar una mejora.
             sbest = improvement(sprima)
-            print(f"sbest despues de improvement {sbest}")
             iterations_without_improvement = 0
         else:
             iterations_without_improvement += 1
-          
+
+        #Se asigna el valor de sprima a s
         s = sprima.clone()
 
-        #TO DO: Preguntar si es jump(s) o jump(sbest), nosotros lo cambiaríamos por sbest, pero no sé si es tan obvio
-        if isMultiple(iterations_without_improvement, JUMP_ITER):
-            print("JUMP!")
-            while True:
-                sjump = s.jump(triplet_manager.get_random_triplet())
-                if not sjump.client_stockout_situation():
-                    s = Mip2.execute(sjump.clone())
-                    break
-                if len(triplet_manager.triplets) == 0:
-                    break              
-            triplet_manager.reset()
+        #Si iterations_without_improvement es múltiple de JUMP_ITER, mientras haya triplets, se realizan saltos a partir de s.
+        if isMultiple(iterations_without_improvement, JUMP_ITER) and (iterations_without_improvement != MAX_ITER):
+            #Se almacena cuando fue el útlimo JUMP
+            last_jump = iterations_without_improvement
+            #Se realiza el jump
+            s = jump(s)
+            print(f"JUMP! Nuevo costo: {[route.__str__() for route in s.routes]}{s.cost}")
 
-        #TO DO: SON SIEMPRE FEASIBLES
-        # Update alpha and beta
+        #Considerar que es para cuando se hace una sola vez
+        if ((last_jump + JUMP_ITER)/2) < iterations_without_improvement <= last_jump + JUMP_ITER:
+            triplet_manager.remove_triplets_from_solution(s)
+
+        # Update alpha and beta (TODO: REVISAR, SON SIEMPRE FEASIBLES)
         alpha.unfeasible() if s.is_vehicle_capacity_exceeded() else alpha.feasible()
         beta.unfeasible() if s.supplier_stockout_situation() else beta.feasible()
-        
-        #Considerar que es para cuando se hace una sola vez
-        if (JUMP_ITER/2) < iterations_without_improvement <= JUMP_ITER:
-            triplet_manager.remove_triplets_from_solution(s)
-        
+
         main_iterator += 1
-        if isMultiple(main_iterator, 250):
-            print(f"Cantidad iteraciones: {main_iterator}")
-        # print(f"costo sbest = {sbest.cost}")
 
     print("MEJOR SOLUCION")
     print(sbest.detail())
@@ -81,29 +81,45 @@ def initialization() -> Solution:
     solution = [[[], []] for _ in range(constants.horizon_length)]
     
     for c in range(constants.nb_customers):
-        time_stockout = math.floor(
-            (constants.start_level[c] - constants.min_level[c]) / constants.demand_rate[c]) - 1
+        start_level, min_level, max_level = constants.start_level[c], constants.min_level[c], constants.max_level[c]
+        demand_rate = constants.demand_rate[c]
+
+        time_stockout = math.floor((start_level - min_level) / demand_rate) - 1
         solution[time_stockout][0].append(c)
-        solution[time_stockout][1].append(
-            constants.max_level[c] - (constants.start_level[c] - constants.demand_rate[c] * (time_stockout+1)))
-        stockout_frequency = math.floor(
-            (constants.max_level[c] - constants.min_level[c]) / constants.demand_rate[c])
+        solution[time_stockout][1].append(max_level - (start_level - demand_rate * (time_stockout+1)))
+        stockout_frequency = math.floor((max_level - min_level) / demand_rate)
 
         for t in range(time_stockout+stockout_frequency, constants.horizon_length, stockout_frequency):
             solution[t][0].append(c)
-            solution[t][1].append(constants.max_level[c])
-    
-    return Solution([Route(route[0], route[1]) for route in solution])
-
+            solution[t][1].append(max_level)
+    initial_solution = Solution([Route(route[0], route[1]) for route in solution])
+    print(f"solucion inicial: {initial_solution}")
+    return initial_solution
 
 def move(solution) -> Solution:
     neighborhood_set = neighborhood(solution)
     best_solution = solution.clone()
     for sol in neighborhood_set:
+        best_solution.refresh()
+        sol.refresh()
         if sol.cost < best_solution.cost:
             best_solution = sol
     return best_solution
 
+def jump(solution:Solution):
+    new_solution = solution.clone()
+    while len(triplet_manager.triplets) > 0:
+        sjump = new_solution.jump(triplet_manager.get_random_triplet())
+        #Si la solución encontrada mediante el salto no presenta stockout, se asigna a s.
+        if not sjump.client_stockout_situation():
+            new_solution = sjump.clone()
+
+    #Cuando no se puedan hacer mas saltos, se ejecuta el MIP2 sobre la solución encontrada.
+    new_solution = Mip2.execute(new_solution)         
+    #También se resetean los triplets.
+    triplet_manager.reset()
+    new_solution.refresh()
+    return new_solution
 
 def improvement(solution_best: Solution):
     do_continue = True
@@ -207,7 +223,7 @@ def improvement(solution_best: Solution):
             solution_best = solution_prima.clone()
             do_continue = True
             
-
+    print(f"sbest despues de improvement {solution_best}")
     return solution_best.clone()
 
 # Algorithm 2

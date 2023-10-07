@@ -58,7 +58,8 @@ class Beta():
         self.unfeasible_counter += 1
         self.feasibles_counter = 0
         if (self.unfeasible_counter == 10):
-            self.update(2)
+            if self.value <= 16:
+                self.update(2)
             self.unfeasible_counter = 0
 
     def feasible(self):
@@ -66,7 +67,8 @@ class Beta():
         self.unfeasible_counter = 0
 
         if (self.feasibles_counter == 10):
-            self.update(1/2)
+            if self.value >= 1/16:
+                self.update(1/2)
             self.feasibles_counter = 0
 
     def get_value(self):

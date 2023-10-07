@@ -220,15 +220,11 @@ class Solution():
         new_solution = self.clone()
         customer, time_visited, time_not_visited = triplet        
             
-        if not new_solution.routes[time_visited].is_visited(customer):
-            return new_solution
-        
-        quantity_removed = new_solution.routes[time_visited].remove_visit(
-            customer)
-        cheapest_index = new_solution.routes[time_not_visited].get_cheapest_index_to_insert(
-            customer)
-        new_solution.routes[time_not_visited].insert_visit(
-            customer, cheapest_index, quantity_removed)
+        if self.routes[time_visited].is_visited(customer) and (not self.routes[time_not_visited].is_visited(customer)):    
+            quantity_removed = new_solution.routes[time_visited].remove_visit(customer)
+            cheapest_index = new_solution.routes[time_not_visited].get_cheapest_index_to_insert(customer)
+            new_solution.routes[time_not_visited].insert_visit(customer, cheapest_index, quantity_removed)
+            new_solution.refresh()
         new_solution.refresh()
         return new_solution
 

@@ -7,6 +7,7 @@ import copy
 class Mip2():
     @staticmethod
     def execute(solution: Solution) -> Solution:
+        solution.refresh()
         # print("ENTRA AL MIP"+str(solution))
         min_cost = float("inf")
         min_cost_solution = solution
@@ -37,6 +38,7 @@ class Mip2():
 
     @staticmethod
     def objetive_function(solution, removed_customer, added_customer, time):
+        solution.refresh()
         term_1 = sum([constants.holding_cost_supplier * solution.supplier_inventory_level[t]
                       for t in range(constants.horizon_length+1)])
 
