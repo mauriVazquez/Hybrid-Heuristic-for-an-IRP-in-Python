@@ -25,7 +25,7 @@ def hair():
         #Se busca una solución del vecindario de s, a traves del procedimiento move.
         sprima = move(s)
         sprima.refresh()
-        
+
         #Se actualiza la lista tabú
         update_tabu_lists(s, sprima, main_iterator)
 
@@ -95,7 +95,7 @@ def move(solution) -> Solution:
         #Se toma el primero siempre como best_solution, en iteraciones posteriores, sólo se almacena si es mejor.
         if index == 0 or neighbor.cost < best_solution.cost:
             best_solution = neighbor.clone()
-    return best_solution
+    return best_solution if len(neighborhood_set)> 0 else solution.clone()
 
 def jump(solution:Solution) -> Solution:
     new_solution = solution.clone()
