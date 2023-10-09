@@ -20,41 +20,16 @@ class Solution():
 
     def __str__(self) -> str:
         return 'costo:' + str(self.cost)
-        # return str([str(route) for route in self.routes ]) + '. Function objetivo: ' + str(self.cost)
-
-        # resp = "Rutas:\n"
-        # for route in self.routes:
-        #     resp += route.__str__() + "\n\n"
-
-        # resp += 'Function objetivo: ' + str(self.cost) + "\n"
-        # resp += 'supplier_inventory_level: ' + \
-        #     str(self.supplier_inventory_level) + "\n"
-        # resp += 'customers_inventory_level: ' + \
-        #     str(self.customers_inventory_level) + "\n"
-
-        # resp += 'Stock out ? : ' + \
-        #     ('si' if self.client_has_stockout else 'no') + "\n"
-        # resp += 'over stock ? : ' + \
-        #     ('si' if self.client_has_overstock else 'no') + "\n"
-
-        # return resp
 
     def  detail(self) -> str:
         resp = "Routes:\n"
         for route in self.routes:
             resp += route.__str__() + "\n\n"
-
         resp += 'Objective function: ' + str(self.cost) + "\n"
-        resp += 'Supplier inventory: ' + \
-            str(self.supplier_inventory_level) + "\n"
-        resp += 'Customers inventory: ' + \
-            str(self.customers_inventory_level) + "\n"
-
-        resp += 'Has stock out ? : ' + \
-            ('yes' if self.client_has_stockout else 'no') + "\n"
-        resp += 'Has over stock ? : ' + \
-            ('yes' if self.client_has_overstock else 'no') + "\n"
-
+        resp += 'Supplier inventory: ' + str(self.supplier_inventory_level) + "\n"
+        resp += 'Customers inventory: ' + str(self.customers_inventory_level) + "\n"
+        resp += 'Has stock out ? : ' + ('yes' if self.client_has_stockout else 'no') + "\n"
+        resp += 'Has over stock ? : ' + ('yes' if self.client_has_overstock else 'no') + "\n"
         return resp
     
     @staticmethod
@@ -229,10 +204,6 @@ class Solution():
         return new_solution
 
     def get_all_customer_inventory_level(self, customer) -> list:
-        # inventories = []
-        # for inventories_level in self.customers_inventory_level:
-        #     inventories.append(inventories_level[customer])
-
         return self.customers_inventory_level[customer]
 
     def get_all_customer_quantity_delivered(self, customer) -> list:
@@ -340,7 +311,9 @@ class Solution():
         return neighborhood_prima
 
     def clone(self) -> Type["Solution"]:
-        return copy.deepcopy(self)
+        solution = copy.deepcopy(self)
+        solution.refresh()
+        return solution
 
     def theeta(self, i, t):
         return (1 if self.routes[t].is_visited(i) else 0)

@@ -13,26 +13,19 @@ from constants import constants
 from tsp_local.base import TSP
 from tsp_local.kopt import KOpt
 
-
-# Algorithm 1 (HAIR—A hybrid heuristic)
-def main():
-    #Inicializo iteradores
-    iterations_without_improvement = 0
-    main_iterator = 0
-    last_jump = 0
-
-    #Se define el seed para el random basado en la fecha y hora actual.
-    seed(datetime.now().microsecond)
-
+def hair():
+    #Se inicializan los iteradores y la variable last_jump
+    iterations_without_improvement, main_iterator, last_jump = 0, 0, 0
     #Se inicializa una solución s, la cual será admisible pero no necesariamente factible.
     s = initialization()
-    
     #Se inicializa sbest con el valor de s, siendo la primer solución candidata
     sbest = s.clone()
     
     while iterations_without_improvement <= constants.max_iter:
         #Se busca una solución del vecindario de s, a traves del procedimiento move.
         sprima = move(s)
+        sprima.refresh()
+        
         #Se actualiza la lista tabú
         update_tabu_lists(s, sprima, main_iterator)
 
@@ -64,8 +57,7 @@ def main():
 
         main_iterator += 1
 
-    print("MEJOR SOLUCION")
-    print(sbest.detail())
+    print("MEJOR SOLUCION\n"+sbest.detail())
 
  # Acá manejamos las listas del Tabú
 def update_tabu_lists(s: Solution, sprima: Solution, main_iterator):
@@ -95,23 +87,23 @@ def initialization() -> Solution:
     return initial_solution
 
 def move(solution) -> Solution:
+    #Se crea un vecindario, un conjunto de soluciones que surjen de pequeñas alteraciones de la solución.
     neighborhood_set = neighborhood(solution)
-    best_solution = solution.clone()
-    for sol in neighborhood_set:
-        best_solution.refresh()
-        sol.refresh()
-        if sol.cost < best_solution.cost:
-            best_solution = sol
+    
+    #Se recorre el vecindario y para tomar la mejor solución vecina.
+    for index, neighbor in enumerate(neighborhood_set):
+        #Se toma el primero siempre como best_solution, en iteraciones posteriores, sólo se almacena si es mejor.
+        if index == 0 or neighbor.cost < best_solution.cost:
+            best_solution = neighbor.clone()
     return best_solution
 
-def jump(solution:Solution):
+def jump(solution:Solution) -> Solution:
     new_solution = solution.clone()
-    while len(triplet_manager.triplets) > 0:
+    #Mientras haya triplets, se realizan jump
+    while triplet_manager.triplets:
         sjump = new_solution.jump(triplet_manager.get_random_triplet())
-        #Si la solución encontrada mediante el salto no presenta stockout, se asigna a s.
         if not sjump.client_stockout_situation():
             new_solution = sjump.clone()
-
     #Cuando no se puedan hacer mas saltos, se ejecuta el MIP2 sobre la solución encontrada.
     new_solution = Mip2.execute(new_solution)         
     #También se resetean los triplets.
@@ -121,9 +113,7 @@ def jump(solution:Solution):
 
 def improvement(solution_best: Solution):
     do_continue = True
-    # print(f"solution_best cost = {solution_best.cost}")
     solution_best = LK(Solution.get_empty_solution(), solution_best)
-    # print(f"solution_best cost after lk = {solution_best.cost}")
 
     while do_continue:
         do_continue = False
@@ -141,8 +131,7 @@ def improvement(solution_best: Solution):
         solution_merge = solution_best.clone()
 
         # Determine the set L of all pairs (r1, r2) of consecutive routes in sbest.
-        L = [[solution_best.routes[r-1], solution_best.routes[r]]
-             for r in range(1, len(solution_best.routes))]
+        L = [[solution_best.routes[r-1], solution_best.routes[r]] for r in range(1, len(solution_best.routes))]
 
         for i, pair_of_routes in enumerate(L):
             # Let s1 be the solution obtained from sbest by merging r1 and r2 into a single route r
@@ -261,19 +250,15 @@ def neighborhood(solution) -> list[Solution]:
                         # ML policy:
                         if constants.replenishment_policy == "ML":
                             # Let y ← min{xjt, min t'>t Ijt'}.
-                            xjt = solution_prima.routes[time].get_customer_quantity_delivered(
-                                j)
-
-                            minijt = min(
-                                solution_prima.get_all_customer_inventory_level(j)[time:-1])
+                            xjt = solution_prima.routes[time].get_customer_quantity_delivered(j)
+                            minijt = min(solution_prima.get_all_customer_inventory_level(j)[time:-1])
                             y = min(xjt, minijt)
                             # Let s" be the solution obtained from s' by removing y units of delivery to j at time t (the visit to j at time t is removed if y = xjt).
                             solution_dosprima = solution_prima.clone()
                             if y == xjt:
                                 solution_dosprima.routes[time].remove_visit(j)
                             else:
-                                solution_dosprima.routes[time].remove_customer_quantity(
-                                    j, y)
+                                solution_dosprima.routes[time].remove_customer_quantity(j, y)
 
                             solution_dosprima.refresh()
                             # if f(s") < f(s') then
@@ -289,18 +274,13 @@ def neighborhood(solution) -> list[Solution]:
                     for j in solution_prima.routes[time].clients:
                         if constants.holding_cost[j] < constants.holding_cost_supplier:
                             # Let y ← max t' ≥ t(Ijt' + xjt').
-                            Ijt = solution_prima.get_all_customer_inventory_level(
-                                j)
-                            xjt = solution_prima.get_all_customer_quantity_delivered(
-                                j)
-
-                            y = max(
-                                list(i+j for (i, j) in zip(xjt, Ijt[:-1]))[time:])
+                            Ijt = solution_prima.get_all_customer_inventory_level(j)
+                            xjt = solution_prima.get_all_customer_quantity_delivered(j)
+                            y = max(list(i+j for (i, j) in zip(xjt, Ijt[:-1]))[time:])
 
                             # Let s" be the solution obtained from s' by adding Uj − y units of delivery to j at time t.
                             solution_dosprima = solution_prima.clone()
-                            solution_dosprima.routes[time].add_customer_quantity(
-                                j, constants.max_level[j] - y)
+                            solution_dosprima.routes[time].add_customer_quantity(j, constants.max_level[j] - y)
 
                             solution_dosprima.refresh()
                             if solution_dosprima.cost < solution_prima.cost:
@@ -341,14 +321,12 @@ def LK(solution: Solution, solution_prima: Solution) -> Solution:
             for index, c in enumerate(solution_prima.routes[time].clients):
                 for index2, c2 in enumerate(solution_prima.routes[time].clients):
                     matrix[index+1][index2+1] = constants.distance_matrix[c][c2]
-            # print(matrix)
+            
             # Make an instance with all nodes
             TSP.setEdges(matrix)
 
             lk = KOpt(range(len(matrix)))
-            # print(matrix)
-
-            #
+           
             # Load the distances
             path, cost = lk.optimise()
 
@@ -361,4 +339,7 @@ def LK(solution: Solution, solution_prima: Solution) -> Solution:
     return aux_solution if aux_solution.cost < solution_prima.cost else solution_prima
 
 if __name__ == '__main__':
-    main()
+    #Se define el seed para el random basado en la fecha y hora actual.
+    seed(datetime.now().microsecond)
+
+    hair()
