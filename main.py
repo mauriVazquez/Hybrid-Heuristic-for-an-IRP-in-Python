@@ -1,8 +1,6 @@
-import sys
-import math
-import copy
-import random
-import datetime
+from datetime import datetime
+from random import random, seed
+from math import floor
 from models.route import Route
 from models.solution import Solution
 from models.penalty_variables import alpha, beta
@@ -24,7 +22,7 @@ def main():
     last_jump = 0
 
     #Se define el seed para el random basado en la fecha y hora actual.
-    random.seed(datetime.datetime.now().microsecond)
+    seed(datetime.now().microsecond)
 
     #Se inicializa una solución s, la cual será admisible pero no necesariamente factible.
     s = initialization()
@@ -32,7 +30,7 @@ def main():
     #Se inicializa sbest con el valor de s, siendo la primer solución candidata
     sbest = s.clone()
     
-    while iterations_without_improvement <= MAX_ITER:
+    while iterations_without_improvement <= constants.max_iter:
         #Se busca una solución del vecindario de s, a traves del procedimiento move.
         sprima = move(s)
         #Se actualiza la lista tabú
@@ -48,8 +46,8 @@ def main():
         #Se asigna el valor de sprima a s
         s = sprima.clone()
 
-        #Si iterations_without_improvement es múltiple de JUMP_ITER, mientras haya triplets, se realizan saltos a partir de s.
-        if isMultiple(iterations_without_improvement, JUMP_ITER) and (iterations_without_improvement != MAX_ITER):
+        #Si iterations_without_improvement es múltiple de constants.jump_iter, mientras haya triplets, se realizan saltos a partir de s.
+        if isMultiple(iterations_without_improvement, constants.jump_iter) and (iterations_without_improvement != constants.max_iter):
             #Se almacena cuando fue el útlimo JUMP
             last_jump = iterations_without_improvement
             #Se realiza el jump
@@ -57,7 +55,7 @@ def main():
             print(f"JUMP! Nuevo costo: {[route.__str__() for route in s.routes]}{s.cost}")
 
         #Considerar que es para cuando se hace una sola vez
-        if ((last_jump + JUMP_ITER)/2) < iterations_without_improvement <= last_jump + JUMP_ITER:
+        if ((last_jump + constants.jump_iter)/2) < iterations_without_improvement <= last_jump + constants.jump_iter:
             triplet_manager.remove_triplets_from_solution(s)
 
         # Update alpha and beta (TODO: REVISAR, SON SIEMPRE FEASIBLES)
@@ -84,10 +82,10 @@ def initialization() -> Solution:
         start_level, min_level, max_level = constants.start_level[c], constants.min_level[c], constants.max_level[c]
         demand_rate = constants.demand_rate[c]
 
-        time_stockout = math.floor((start_level - min_level) / demand_rate) - 1
+        time_stockout = floor((start_level - min_level) / demand_rate) - 1
         solution[time_stockout][0].append(c)
         solution[time_stockout][1].append(max_level - (start_level - demand_rate * (time_stockout+1)))
-        stockout_frequency = math.floor((max_level - min_level) / demand_rate)
+        stockout_frequency = floor((max_level - min_level) / demand_rate)
 
         for t in range(time_stockout+stockout_frequency, constants.horizon_length, stockout_frequency):
             solution[t][0].append(c)
@@ -162,8 +160,8 @@ def improvement(solution_best: Solution):
             # if MIP2(, s1) is infeasible and r is not the last route in s1 then
             # Modify s1 by anticipating the first route after r by one time period.
             if not aux_solution.is_feasible() and i + 2 < len(s1.routes):
-                s1.routes[i+1].clients = copy.deepcopy(s1.routes[i+2].clients)
-                s1.routes[i + 1].quantities = copy.deepcopy(s1.routes[i+2].quantities)
+                s1.routes[i+1].clients = list(s1.routes[i+2].clients)
+                s1.routes[i + 1].quantities = list(s1.routes[i+2].quantities)
                 s1.routes[i+1].refresh()
                 s1.routes[i+2].clients = []
                 s1.routes[i+2].quantities = []
@@ -194,8 +192,8 @@ def improvement(solution_best: Solution):
             # if MIP2(, s2) is infeasible and r is not the first route in s2 then
             # Modify s2 by delaying the last route before r by one time period.
             if not aux_solution.is_feasible() and i > 0:
-                s2.routes[i].clients = copy.deepcopy(s2.routes[i-1].clients)
-                s2.routes[i].quantities = copy.deepcopy(s2.routes[i-1].quantities)
+                s2.routes[i].clients = list(s2.routes[i-1].clients)
+                s2.routes[i].quantities = list(s2.routes[i-1].quantities)
                 s2.routes[i].refresh()
                 s2.routes[i-1].clients = []
                 s2.routes[i-1].quantities = []
@@ -239,7 +237,7 @@ def neighborhood(solution) -> list[Solution]:
         # while A is not empty do
         while len(set_A) > 0:
             # Choose a customer i ∈ A and remove it from A.
-            removed = set_A.pop(int(random.random() * len(set_A)))
+            removed = set_A.pop(int(random() * len(set_A)))
             # for all visit times t ∈ Ti(s') do
             for time in solution_prima.T(removed):
                 # for all customers j served at time t in s' and such that t ∈ Tj (s') do
@@ -363,16 +361,4 @@ def LK(solution: Solution, solution_prima: Solution) -> Solution:
     return aux_solution if aux_solution.cost < solution_prima.cost else solution_prima
 
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        print(
-            "Usage: python irp.py input_file output_file REPLENISHMENT_POLICY [time_limit]")
-        sys.exit(1)
-
-    instance_file = sys.argv[1]
-    sol_file = sys.argv[2]
-
-    str_time_limit = sys.argv[4] if len(sys.argv) > 4 else "20"
-
-    MAX_ITER = 200*constants.nb_customers*constants.horizon_length
-    JUMP_ITER = MAX_ITER // 2
     main()

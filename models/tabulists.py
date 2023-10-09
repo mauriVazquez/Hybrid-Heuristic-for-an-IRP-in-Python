@@ -1,8 +1,8 @@
 import math
 import random
 from constants import constants
-class TabuLists():
 
+class TabuLists():
     _self = None
 
     # singleton
@@ -16,8 +16,8 @@ class TabuLists():
         self.list_a = []
 
     def get_ttl(self):
-        lambda_ttl = 0.5
-        L = 10
+        lambda_ttl = constants.lambda_ttl
+        L = constants.taboo_len
         return L + random.randint(0, math.floor(lambda_ttl * math.sqrt(constants.nb_customers*constants.horizon_length))-1)
     
     def forbidden_to_append(self, i, t):

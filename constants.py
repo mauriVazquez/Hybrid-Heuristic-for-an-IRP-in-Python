@@ -1,5 +1,5 @@
 import math
-import sys
+import configparser
 
 class Constants():
 
@@ -12,8 +12,16 @@ class Constants():
         return cls._self
 
     def __init__(self) -> None:
-        self.read_input_irp(sys.argv[1])
-        self.replenishment_policy = sys.argv[3]
+        # Crear un objeto ConfigParser, para leer un archivo de configuración
+        config = configparser.ConfigParser()
+        config.read('config.ini')
+
+        self.replenishment_policy = config['App']['replenishment_policy']
+        self.read_input_irp(config['App']['instance'])
+        self.taboo_len = int(config['Taboo']['list_length'])
+        self.lambda_ttl = float(config['Taboo']['lambda_ttl'])
+        self.max_iter = 200 * self.nb_customers * self.horizon_length
+        self.jump_iter = self.max_iter // 2
 
     def read_input_irp(self, filename):
         file_it = iter(self.read_elem(filename))
