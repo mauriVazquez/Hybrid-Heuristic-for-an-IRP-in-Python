@@ -118,24 +118,22 @@ def improvement(solution_best: Solution):
     while do_continue:
         do_continue = False
 
-        # (* First type of improvement *)
+        #PRIMER TIPO DE MEJORA
+        #Se aplica el MIP1 a solution_best, luego se le aplica LK
         solution_prima = Mip1.execute(solution_best)
         solution_prima = LK(solution_best, solution_prima)
-
+        #Si el costo de la solución encontrada es mejor que el de solution_best, se actualiza solution_best
         if solution_prima.cost < solution_best.cost:
             print(f"first improvement: {solution_prima.cost}")
             solution_best = solution_prima.clone()
             do_continue = True
 
-        # (* Second type of improvement *)
+        #SEGUNDO TIPO DE MEJORA
         solution_merge = solution_best.clone()
-
-        # Determine the set L of all pairs (r1, r2) of consecutive routes in sbest.
+        # Se determina el conjunto L, con pares de rutas consecutivas de la solución.
         L = [[solution_best.routes[r-1], solution_best.routes[r]] for r in range(1, len(solution_best.routes))]
-
         for i, pair_of_routes in enumerate(L):
-            # Let s1 be the solution obtained from sbest by merging r1 and r2 into a single route r
-            # assigned to the same time as r1.
+            # Por cada par de rutas, se crea una solución s1 que resulta de trasladar las visitas de r2 a r1
             s1 = solution_best.clone()
             s1.routes[i].clients.extend(pair_of_routes[1].clients)
             s1.routes[i].quantities.extend(pair_of_routes[1].quantities)
@@ -144,30 +142,26 @@ def improvement(solution_best: Solution):
             s1.routes[i+1].quantities = []
             s1.routes[i+1].refresh()
             s1.refresh()
-
+            #Se aplica el Mip2 a la solución s1 encontrada
             aux_solution = Mip2.execute(s1)
-            # if MIP2(, s1) is infeasible and r is not the last route in s1 then
-            # Modify s1 by anticipating the first route after r by one time period.
-            if not aux_solution.is_feasible() and i + 2 < len(s1.routes):
+            # Si el resultado de aplicar el MIP2 sobre s1 no es factible y r no es la última ruta en s1, entonces
+            #se anticipa la siguiente ruta despues de r en un período de tiempo
+            if (not aux_solution.is_feasible()) and (i + 2 < len(s1.routes)):
                 s1.routes[i+1].clients = list(s1.routes[i+2].clients)
-                s1.routes[i + 1].quantities = list(s1.routes[i+2].quantities)
+                s1.routes[i+1].quantities = list(s1.routes[i+2].quantities)
                 s1.routes[i+1].refresh()
                 s1.routes[i+2].clients = []
                 s1.routes[i+2].quantities = []
                 s1.routes[i+2].refresh()
                 s1.refresh()
-               
-            # if MIP2(, s1) is feasible then
-            # Let s' be an optimal solution of MIP2(, s1).
-            # Set s' ← LK(s1, s').
+            #Si el resultado de aplicar el MIP2 a s1 es factible, entonces solution_prima es una solución óptima
             aux_solution = Mip2.execute(s1)
             if aux_solution.is_feasible():
-                solution_prima = aux_solution.clone()
-                solution_prima = LK(s1, solution_prima)
+                solution_prima = LK(s1, aux_solution)
                 if solution_prima.cost < solution_merge.cost:
                     solution_merge = solution_prima.clone()
 
-            # Let s2 be the solution obtained from sbest by merging r1 and r2 into a single route r assigned to the same time as r2.
+            #Por cada par de rutas, se crea una solución s2 que resulta de trasladar las visitas de r1 a r2
             s2 = solution_best.clone()
             s2.routes[i+1].clients = pair_of_routes[0].clients + pair_of_routes[1].clients
             s2.routes[i+1].quantities = pair_of_routes[0].quantities + pair_of_routes[1].quantities
@@ -176,11 +170,10 @@ def improvement(solution_best: Solution):
             s2.routes[i].quantities = []
             s2.routes[i].refresh()
             s2.refresh()
-
             aux_solution = Mip2.execute(s2)
-            # if MIP2(, s2) is infeasible and r is not the first route in s2 then
-            # Modify s2 by delaying the last route before r by one time period.
-            if not aux_solution.is_feasible() and i > 0:
+            #Si el resultado de aplicar el MIP2 sobre s2 no es factible y r no es la primer ruta en s2, entonces
+            #se posterga la siguiente ruta despues de r en un período de tiempo
+            if (not aux_solution.is_feasible()) and (i > 0):
                 s2.routes[i].clients = list(s2.routes[i-1].clients)
                 s2.routes[i].quantities = list(s2.routes[i-1].quantities)
                 s2.routes[i].refresh()
@@ -188,28 +181,27 @@ def improvement(solution_best: Solution):
                 s2.routes[i-1].quantities = []
                 s2.routes[i-1].refresh()
                 s2.refresh()
-            
+            #Si el resultado de aplicar el MIP2 a s2 es factible, entonces solution_prima es una solución óptima
             aux_solution = Mip2.execute(s2)
             if aux_solution.is_feasible():
-                solution_prima = aux_solution.clone()
                 solution_prima = LK(s2, solution_prima)
-                solution_prima.refresh()
+                #En este punto solution_merge es la mejor solución entre solution_best y la primer parte de esta mejora.
                 if solution_prima.cost < solution_merge.cost:
                     solution_merge = solution_prima.clone()
-        # if f(smerge) < f(sbest) then Set sbest ← s' and continue ← true.
+        #Si el costo de solution_merge es mejor que el de solution_best, se actualiza el valor de solution_best
         if solution_merge.cost < solution_best.cost:
             print(f"second improvement: {solution_merge.cost}")
             solution_best = solution_merge.clone()
             do_continue = True
 
-        # (* Third type of improvement *)
+        #TERCER TIPO DE MEJORA
+        #Se aplica el MIP2 a solution_best, luego se le aplica LK
         solution_prima = Mip2.execute(solution_best)
         solution_prima = LK(solution_best, solution_prima)
         if solution_prima.cost < solution_best.cost:
             print(f"Third improvement: {solution_prima.cost}")
             solution_best = solution_prima.clone()
-            do_continue = True
-            
+            do_continue = True 
     print(f"sbest despues de improvement {solution_best}")
     return solution_best.clone()
 
@@ -303,9 +295,7 @@ def isMultiple(num,  check_with):
 
 def LK(solution: Solution, solution_prima: Solution) -> Solution:
     if solution == solution_prima:
-        # print(f"retornando soluciones iguales")
-        # print(f"solution = {solution.cost} y solution_prima = {solution_prima.cost}")
-        return solution
+        aux_solution = solution.clone()
     else:
         aux_solution = solution_prima.clone()
         for time in range(constants.horizon_length):

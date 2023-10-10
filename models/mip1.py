@@ -7,9 +7,9 @@ import copy
 class Mip1():
     @staticmethod
     def execute(solution: Solution):
-        solution.refresh()
         min_cost = float("inf")
-        min_cost_solution = None
+        min_cost_solution = solution.clone()
+        min_cost_solution.refresh()
 
         for perm in permutations(range(constants.horizon_length)):
             new_solution = solution.clone()
@@ -32,8 +32,8 @@ class Mip1():
                             min_cost = mip_cost
                             min_cost_solution = aux_copy.clone()
                             print(f"MIP1: Nueva solucion {min_cost_solution}")
-                            
-        return min_cost_solution if min_cost_solution is not None else solution
+        min_cost_solution.refresh()               
+        return min_cost_solution
     
     @staticmethod
     def objetive_function(solution: Solution, removed_customer, removed_time):

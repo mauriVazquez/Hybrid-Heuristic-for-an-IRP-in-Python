@@ -180,10 +180,8 @@ class Solution():
                 self.supplier_inventory_level[time]
             )
 
-            quantity_delivered = quantity_delivered if quantity_delivered > 0 else constants.demand_rate[
-                customer]
-            self.routes[time].insert_visit(
-                customer, cheapest_index, quantity_delivered)
+            quantity_delivered = quantity_delivered if quantity_delivered > 0 else constants.demand_rate[customer]
+            self.routes[time].insert_visit(customer, cheapest_index, quantity_delivered)
 
         self.refresh()
 
