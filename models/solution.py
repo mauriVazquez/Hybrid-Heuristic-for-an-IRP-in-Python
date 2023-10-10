@@ -8,7 +8,6 @@ from typing import Type
 
 
 class Solution():
-
     def __init__(self,  routes: list[Route] = None) -> None:
         self.routes = routes if routes else [
             Route for _ in range(constants.horizon_length)]
@@ -19,7 +18,7 @@ class Solution():
         self.client_has_overstock = self.client_overstock_situation()
 
     def __str__(self) -> str:
-        return 'costo:' + str(self.cost)
+        return str([f"[{str(route.clients)}][{str(route.quantities)}]" for route in self.routes]) + 'costo:' + str(self.cost)
 
     def  detail(self) -> str:
         resp = "Routes:\n"
@@ -34,11 +33,15 @@ class Solution():
     
     @staticmethod
     def get_empty_solution() -> Type["Solution"]:
-        return Solution([Route(route[0], route[1]) for route in [[[], []] for _ in range(constants.horizon_length)]])
+        solution = Solution([Route(route[0], route[1]) for route in [[[], []] for _ in range(constants.horizon_length)]])
+        solution.refresh()
+        return solution
 
     def objetive_function(self):
         holding_cost, transportation_cost, penalty1, penalty2 = 0, 0, 0, 0
-
+        if not any(len(route.clients) > 0 for route in self.routes):
+            return sys.float_info.max
+        
         for time in range(constants.horizon_length):
             # First term (holding_cost)
             bt = self.supplier_inventory_level[time]
@@ -233,7 +236,7 @@ class Solution():
                 times.append(time)
         return times
 
-    def variants_type1(self) -> list[Type["Solution"]]:
+    def variante_eliminacion(self) -> list[Type["Solution"]]:
         # print("Inicio tipo 1")
         neighborhood_prima = []
         for customer in range(constants.nb_customers):
@@ -249,7 +252,7 @@ class Solution():
                             # print("Variant Type 1")
         return neighborhood_prima
 
-    def variants_type2(self) -> list[Type["Solution"]]:
+    def variante_insercion(self) -> list[Type["Solution"]]:
         # print("Inicio tipo 2")
         neighborhood_prima = []
         for customer in range(constants.nb_customers):
@@ -263,7 +266,7 @@ class Solution():
                         # print("Variant type 2")
         return neighborhood_prima
 
-    def variants_type3(self) -> list[Type["Solution"]]:
+    def variante_mover_visita(self) -> list[Type["Solution"]]:
         neighborhood_prima = []
         for customer in range(constants.nb_customers):
             set_t_visited = self.T(customer)
@@ -272,22 +275,19 @@ class Solution():
 
             for t_visited in set_t_visited:
                 new_solution = self.clone()
-                quantity_removed = new_solution.routes[t_visited].remove_visit(
-                    customer)
+                quantity_removed = new_solution.routes[t_visited].remove_visit(customer)
                 for t_not_visited in set_t_not_visited:
                     if not tabulists.forbidden_to_remove(customer, t_visited) and not tabulists.forbidden_to_append(customer, t_not_visited):
                         saux = new_solution.clone()
-                        saux_cheapest_index = saux.routes[t_not_visited].get_cheapest_index_to_insert(
-                            customer)
-                        saux.routes[t_not_visited].insert_visit(
-                            customer, saux_cheapest_index, quantity_removed)
+                        saux_cheapest_index = saux.routes[t_not_visited].get_cheapest_index_to_insert(customer)
+                        saux.routes[t_not_visited].insert_visit(customer, saux_cheapest_index, quantity_removed)
                         saux.refresh()
                         if saux.is_admissible():
                             # print("Variant Type 3")
                             neighborhood_prima.append(saux)
         return neighborhood_prima
 
-    def variants_type4(self) -> list[Type["Solution"]]:
+    def variante_intercambiar_visitas(self) -> list[Type["Solution"]]:
         neighborhood_prima = []
         for t1 in range(constants.horizon_length):
             for client1 in self.routes[t1].clients:

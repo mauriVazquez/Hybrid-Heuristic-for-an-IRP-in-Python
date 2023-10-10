@@ -33,7 +33,7 @@ class Mip2():
                         min_cost_solution = solution_aux.clone()
                         print(f"MIP2: Nueva solucion {min_cost_solution}")
 
-        
+        min_cost_solution.refresh()
         return min_cost_solution
 
     @staticmethod

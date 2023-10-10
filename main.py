@@ -24,7 +24,6 @@ def hair():
     while iterations_without_improvement <= constants.max_iter:
         #Se busca una solución del vecindario de s, a traves del procedimiento move.
         sprima = move(s)
-        sprima.refresh()
 
         #Se actualiza la lista tabú
         update_tabu_lists(s, sprima, main_iterator)
@@ -46,6 +45,8 @@ def hair():
             #Se realiza el jump
             s = jump(s)
             print(f"JUMP! Nuevo costo: {[route.__str__() for route in s.routes]}{s.cost}")
+            #Se resetean los triplets.
+            triplet_manager.reset()
 
         #Considerar que es para cuando se hace una sola vez
         if ((last_jump + constants.jump_iter)/2) < iterations_without_improvement <= last_jump + constants.jump_iter:
@@ -63,39 +64,41 @@ def hair():
 def update_tabu_lists(s: Solution, sprima: Solution, main_iterator):
     for c in range(constants.nb_customers):
         tabulists.add_forbiddens(s.T(c), sprima.T(c), c, main_iterator)
-    tabulists.update_lists(main_iterator)
-    
+    tabulists.update_lists(main_iterator)  
 
 def initialization() -> Solution:
-    # Each customer is considered sequentially, and the delivery times are set as late as possible before a stockout situation occurs.
-    solution = [[[], []] for _ in range(constants.horizon_length)]
-    
+    # Cada cliente se considera secuancialmente y se elijen los tiempos de entrega lo mas tarde posible antes de 
+    # que ocurra una situación de stockout.
+    solution = [[[], []] for _ in range(constants.horizon_length)] 
     for c in range(constants.nb_customers):
+        #Para cada cliente, se asignan los niveles de inicio, minimo y máximo según los dataset. 
         start_level, min_level, max_level = constants.start_level[c], constants.min_level[c], constants.max_level[c]
+        #Se asigna el demand_rate.
         demand_rate = constants.demand_rate[c]
-
-        time_stockout = floor((start_level - min_level) / demand_rate) - 1
+        #Se determina el tiempo en que sucederá el stockout, y la frecuencia del mismo.
+        time_stockout = floor((start_level - min_level) / demand_rate)
+        stockout_frequency = floor((max_level - min_level) / demand_rate)
+        #Se agrega el primer stockout
         solution[time_stockout][0].append(c)
         solution[time_stockout][1].append(max_level - (start_level - demand_rate * (time_stockout+1)))
-        stockout_frequency = floor((max_level - min_level) / demand_rate)
-
+        #Se calculan todos los tiempos dentro del horizonte donde ocurrirá el stockout y se agrega la visita.
         for t in range(time_stockout+stockout_frequency, constants.horizon_length, stockout_frequency):
             solution[t][0].append(c)
             solution[t][1].append(max_level)
+    #Armado el arreglo de rutas, se crea la solución inicial
     initial_solution = Solution([Route(route[0], route[1]) for route in solution])
     print(f"solucion inicial: {initial_solution}")
     return initial_solution
 
 def move(solution) -> Solution:
-    #Se crea un vecindario, un conjunto de soluciones que surjen de pequeñas alteraciones de la solución.
-    neighborhood_set = neighborhood(solution)
-    
-    #Se recorre el vecindario y para tomar la mejor solución vecina.
-    for index, neighbor in enumerate(neighborhood_set):
+    #Se define la best_solution como una solución vacía, cualquiera que se encuentre en el vecindario será mejor.
+    best_solution = Solution.get_empty_solution()  
+    #Se recorre un vecindario, conformado por soluciones que surjen de pequeñas alteraciones de la solución dada.
+    for neighbor in neighborhood(solution):
         #Se toma el primero siempre como best_solution, en iteraciones posteriores, sólo se almacena si es mejor.
-        if index == 0 or neighbor.cost < best_solution.cost:
+        if neighbor.cost < best_solution.cost:
             best_solution = neighbor.clone()
-    return best_solution if len(neighborhood_set)> 0 else solution.clone()
+    return best_solution
 
 def jump(solution:Solution) -> Solution:
     new_solution = solution.clone()
@@ -105,10 +108,7 @@ def jump(solution:Solution) -> Solution:
         if not sjump.client_stockout_situation():
             new_solution = sjump.clone()
     #Cuando no se puedan hacer mas saltos, se ejecuta el MIP2 sobre la solución encontrada.
-    new_solution = Mip2.execute(new_solution)         
-    #También se resetean los triplets.
-    triplet_manager.reset()
-    new_solution.refresh()
+    new_solution = Mip2.execute(new_solution)
     return new_solution
 
 def improvement(solution_best: Solution):
@@ -290,12 +290,12 @@ def neighborhood(solution) -> list[Solution]:
 
     return neighborhood
 
-# Returns a solution's Neighborhood. Obtained by using the four simple types of changes on s.
+#Retorna un vecindario con soluciones vecinas de s, aplicando cuatro variaciones sobre la misma.
 def make_neighborhood_prima(solution: Solution) -> list[Solution]:
-    neighborhood_prima = solution.variants_type1()
-    neighborhood_prima.extend(solution.variants_type2())
-    neighborhood_prima.extend(solution.variants_type3())
-    neighborhood_prima.extend(solution.variants_type4())
+    neighborhood_prima = solution.variante_eliminacion()
+    neighborhood_prima.extend(solution.variante_insercion())
+    neighborhood_prima.extend(solution.variante_mover_visita())
+    neighborhood_prima.extend(solution.variante_intercambiar_visitas())
     return neighborhood_prima
 
 def isMultiple(num,  check_with):
@@ -341,5 +341,4 @@ def LK(solution: Solution, solution_prima: Solution) -> Solution:
 if __name__ == '__main__':
     #Se define el seed para el random basado en la fecha y hora actual.
     seed(datetime.now().microsecond)
-
     hair()
