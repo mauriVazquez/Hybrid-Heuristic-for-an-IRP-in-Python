@@ -7,7 +7,7 @@ class Route():
         self.cost = self.get_route_cost()
 
     def __str__(self) -> str:
-        return str(self.clients)+", "+str(self.quantities)
+        return "["+str(self.clients)+","+str(self.quantities)+"]"
         # resp = "Clientes visitados: " + str(self.clients) + "\n"
         # resp += "Cantidades: " + str(self.quantities) + "\n"
         # resp += "Costo de ruta: " + str(self.cost)

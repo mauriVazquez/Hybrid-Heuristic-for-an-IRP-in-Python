@@ -1,5 +1,5 @@
-import sys
-import copy
+from sys import float_info
+from copy import deepcopy
 from models.route import Route
 from models.penalty_variables import alpha, beta
 from models.tabulists import tabulists
@@ -18,13 +18,11 @@ class Solution():
         self.client_has_overstock = self.client_overstock_situation()
 
     def __str__(self) -> str:
-        return str([f"[{str(route.clients)}][{str(route.quantities)}]" for route in self.routes]) + 'costo:' + str(self.cost)
+        return "".join("T"+str(i+1)+"= "+route.__str__()+"    " for i, route in enumerate(self.routes)) + 'Costo:' + str(self.cost)
 
     def  detail(self) -> str:
-        resp = "Routes:\n"
-        for route in self.routes:
-            resp += route.__str__() + "\n\n"
-        resp += 'Objective function: ' + str(self.cost) + "\n"
+        resp = "Routes:"+" ".join("T"+str(i+1)+"= "+route.__str__()+"\t" for i, route in enumerate(self.routes))
+        resp += '\nObjective function: ' + str(self.cost) + "\n"
         resp += 'Supplier inventory: ' + str(self.supplier_inventory_level) + "\n"
         resp += 'Customers inventory: ' + str(self.customers_inventory_level) + "\n"
         resp += 'Has stock out ? : ' + ('yes' if self.client_has_stockout else 'no') + "\n"
@@ -40,7 +38,7 @@ class Solution():
     def objetive_function(self):
         holding_cost, transportation_cost, penalty1, penalty2 = 0, 0, 0, 0
         if not any(len(route.clients) > 0 for route in self.routes):
-            return sys.float_info.max
+            return float_info.max
         
         for time in range(constants.horizon_length):
             # First term (holding_cost)
@@ -308,8 +306,18 @@ class Solution():
                                     neighborhood_prima.append(saux)
         return neighborhood_prima
 
+    def merge_routes(self, routebase_index, routesecondary_index) -> None:
+        # print(f"Entrada al merge route con parametros {str(routebase_index)}, {str(routesecondary_index)}: {self} ")
+        self.routes[routebase_index].clients.extend(self.routes[routesecondary_index].clients)
+        self.routes[routebase_index].quantities.extend(self.routes[routesecondary_index].quantities)
+        self.routes[routebase_index].refresh()
+        self.routes[routesecondary_index].clients = []
+        self.routes[routesecondary_index].quantities = []
+        self.routes[routesecondary_index].refresh()
+        # print(f"Salida del merge route {self}")
+
     def clone(self) -> Type["Solution"]:
-        solution = copy.deepcopy(self)
+        solution = deepcopy(self)
         solution.refresh()
         return solution
 

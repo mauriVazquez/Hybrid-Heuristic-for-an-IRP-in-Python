@@ -27,7 +27,7 @@ def hair():
 
         #Se actualiza la lista tabú
         update_tabu_lists(s, sprima, main_iterator)
-
+        
         if sprima.cost < sbest.cost:
             #Si sprima es mejor que sbest, se le aplica IMPROVEMENT para posiblemente encontrar una mejora.
             sbest = improvement(sprima)
@@ -44,7 +44,7 @@ def hair():
             last_jump = iterations_without_improvement
             #Se realiza el jump
             s = jump(s)
-            print(f"JUMP! Nuevo costo: {[route.__str__() for route in s.routes]}{s.cost}")
+            print(f"\n¡SALTO!\n Nueva solución: {s.detail()}\n")
             #Se resetean los triplets.
             triplet_manager.reset()
 
@@ -57,6 +57,8 @@ def hair():
         beta.unfeasible() if s.supplier_stockout_situation() else beta.feasible()
 
         main_iterator += 1
+        if isMultiple(iterations_without_improvement, 250):
+            print(f"\n*SIN MEJORA {str(iterations_without_improvement)}. Solución : {s.__str__()}")
 
     print("MEJOR SOLUCION\n"+sbest.detail())
 
@@ -114,8 +116,8 @@ def jump(solution:Solution) -> Solution:
 def improvement(solution_best: Solution):
     do_continue = True
     solution_best = LK(Solution.get_empty_solution(), solution_best)
-
     while do_continue:
+        solution_best.refresh()
         do_continue = False
 
         #PRIMER TIPO DE MEJORA
@@ -132,27 +134,17 @@ def improvement(solution_best: Solution):
         solution_merge = solution_best.clone()
         # Se determina el conjunto L, con pares de rutas consecutivas de la solución.
         L = [[solution_best.routes[r-1], solution_best.routes[r]] for r in range(1, len(solution_best.routes))]
-        for i, pair_of_routes in enumerate(L):
+        for i in range(len(L)):
             # Por cada par de rutas, se crea una solución s1 que resulta de trasladar las visitas de r2 a r1
             s1 = solution_best.clone()
-            s1.routes[i].clients.extend(pair_of_routes[1].clients)
-            s1.routes[i].quantities.extend(pair_of_routes[1].quantities)
-            s1.routes[i].refresh()
-            s1.routes[i+1].clients = []
-            s1.routes[i+1].quantities = []
-            s1.routes[i+1].refresh()
+            s1.merge_routes(i,i+1)
             s1.refresh()
             #Se aplica el Mip2 a la solución s1 encontrada
             aux_solution = Mip2.execute(s1)
             # Si el resultado de aplicar el MIP2 sobre s1 no es factible y r no es la última ruta en s1, entonces
             #se anticipa la siguiente ruta despues de r en un período de tiempo
             if (not aux_solution.is_feasible()) and (i + 2 < len(s1.routes)):
-                s1.routes[i+1].clients = list(s1.routes[i+2].clients)
-                s1.routes[i+1].quantities = list(s1.routes[i+2].quantities)
-                s1.routes[i+1].refresh()
-                s1.routes[i+2].clients = []
-                s1.routes[i+2].quantities = []
-                s1.routes[i+2].refresh()
+                s1.merge_routes(i+1,i+2)
                 s1.refresh()
             #Si el resultado de aplicar el MIP2 a s1 es factible, entonces solution_prima es una solución óptima
             aux_solution = Mip2.execute(s1)
@@ -163,23 +155,13 @@ def improvement(solution_best: Solution):
 
             #Por cada par de rutas, se crea una solución s2 que resulta de trasladar las visitas de r1 a r2
             s2 = solution_best.clone()
-            s2.routes[i+1].clients = pair_of_routes[0].clients + pair_of_routes[1].clients
-            s2.routes[i+1].quantities = pair_of_routes[0].quantities + pair_of_routes[1].quantities
-            s2.routes[i+1].refresh()
-            s2.routes[i].clients = []
-            s2.routes[i].quantities = []
-            s2.routes[i].refresh()
+            s2.merge_routes(i+1,i)
             s2.refresh()
             aux_solution = Mip2.execute(s2)
             #Si el resultado de aplicar el MIP2 sobre s2 no es factible y r no es la primer ruta en s2, entonces
             #se posterga la siguiente ruta despues de r en un período de tiempo
             if (not aux_solution.is_feasible()) and (i > 0):
-                s2.routes[i].clients = list(s2.routes[i-1].clients)
-                s2.routes[i].quantities = list(s2.routes[i-1].quantities)
-                s2.routes[i].refresh()
-                s2.routes[i-1].clients = []
-                s2.routes[i-1].quantities = []
-                s2.routes[i-1].refresh()
+                s2.merge_routes(i,i-1)
                 s2.refresh()
             #Si el resultado de aplicar el MIP2 a s2 es factible, entonces solution_prima es una solución óptima
             aux_solution = Mip2.execute(s2)

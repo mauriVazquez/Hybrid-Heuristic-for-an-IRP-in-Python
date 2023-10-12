@@ -1,4 +1,4 @@
-from itertools import permutations
+from sys import float_info
 from constants import constants
 from models.solution import Solution
 import copy
@@ -39,6 +39,9 @@ class Mip2():
     @staticmethod
     def objetive_function(solution, removed_customer, added_customer, time):
         solution.refresh()
+        if not any(len(route.clients) > 0 for route in solution.routes):
+            return float_info.max
+        
         term_1 = sum([constants.holding_cost_supplier * solution.supplier_inventory_level[t]
                       for t in range(constants.horizon_length+1)])
 
