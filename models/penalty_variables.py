@@ -12,7 +12,12 @@ class Alpha():
         self.value = 1
         self.feasibles_counter = 0
         self.unfeasible_counter = 0
-
+    
+    def reset(self) -> None:
+        self.value = 1
+        self.feasibles_counter = 0
+        self.unfeasible_counter = 0
+        
     def update(self, multiplicator):
         self.value = self.value * multiplicator
 
@@ -21,7 +26,8 @@ class Alpha():
         self.feasibles_counter = 0
 
         if (self.unfeasible_counter == 10):
-            self.update(2)
+            if self.value <= 16:
+                self.update(2)
             self.unfeasible_counter = 0
 
     def feasible(self) ->None:
@@ -29,7 +35,8 @@ class Alpha():
         self.unfeasible_counter = 0
 
         if (self.feasibles_counter == 10):
-            self.update(1/2)
+            if self.value <= 1/16:
+                self.update(1/2)
             self.feasibles_counter = 0
 
     def get_value(self):
@@ -47,6 +54,11 @@ class Beta():
         return cls._self
 
     def __init__(self) -> None:
+        self.value = 1
+        self.feasibles_counter = 0
+        self.unfeasible_counter = 0
+    
+    def reset(self) -> None:
         self.value = 1
         self.feasibles_counter = 0
         self.unfeasible_counter = 0

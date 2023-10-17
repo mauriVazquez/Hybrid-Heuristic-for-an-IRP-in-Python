@@ -93,13 +93,17 @@ def initialization() -> Solution:
     return initial_solution
 
 def move(solution) -> Solution:
-    #Se define la best_solution como una solución vacía, cualquiera que se encuentre en el vecindario será mejor.
-    best_solution = Solution.get_empty_solution()  
-    #Se recorre un vecindario, conformado por soluciones que surjen de pequeñas alteraciones de la solución dada.
-    for neighbor in neighborhood(solution):
-        #Se toma el primero siempre como best_solution, en iteraciones posteriores, sólo se almacena si es mejor.
-        if neighbor.cost < best_solution.cost:
-            best_solution = neighbor.clone()
+    neighborhood_obtained = neighborhood(solution)
+    if len(neighborhood_obtained) == 0:
+        best_solution = solution.clone()
+    else:
+        #Se define la best_solution como una solución vacía, cualquiera que se encuentre en el vecindario será mejor.
+        best_solution = Solution.get_empty_solution()  
+        #Se recorre un vecindario, conformado por soluciones que surjen de pequeñas alteraciones de la solución dada.
+        for neighbor in neighborhood_obtained:
+            #Se toma el primero siempre como best_solution, en iteraciones posteriores, sólo se almacena si es mejor.
+            if neighbor.cost < best_solution.cost:
+                best_solution = neighbor.clone()
     return best_solution
 
 def jump(solution:Solution) -> Solution:
