@@ -53,8 +53,8 @@ def hair():
             triplet_manager.remove_triplets_from_solution(s)
 
         # Update alpha and beta (TODO: REVISAR, SON SIEMPRE FEASIBLES)
-        alpha.unfeasible() if s.is_vehicle_capacity_exceeded() else alpha.feasible()
-        beta.unfeasible() if s.supplier_stockout_situation() else beta.feasible()
+        # alpha.unfeasible() if s.is_vehicle_capacity_exceeded() else alpha.feasible()
+        # beta.unfeasible() if s.supplier_stockout_situation() else beta.feasible()
 
         main_iterator += 1
         if isMultiple(iterations_without_improvement, 250):
