@@ -1,4 +1,3 @@
-from sys import float_info
 from constants import constants
 from models.solution import Solution
 import copy
@@ -8,63 +7,55 @@ class Mip2():
     @staticmethod
     def execute(solution: Solution) -> Solution:
         solution.refresh()
-        # print("ENTRA AL MIP"+str(solution))
-        min_cost = float("inf")
-        min_cost_solution = solution
+        min_cost = constants.float_inf
+        min_cost_solution = solution.clone()
 
         for i in range(constants.nb_customers):
             for time in range(constants.horizon_length):
                 solution_aux = solution.clone()
 
                 if solution.routes[time].is_visited(i):
-                    mip_cost = Mip2.objetive_function(solution_aux, i, None, time)
-                    solution_aux.remove_visit(i, time)
-                    solution_aux.refresh()
-                    if mip_cost < min_cost and solution_aux.passConstraints(i, time, "REMOVE", "MIP2"):
-                        # print("PASA LAS CONSTRAINTS PARA "+str(i)+" - "+str(solution_aux))
+                    mip_cost = Mip2.objetive_function(solution_aux, i, time, "REMOVE")
+                    solution_aux.remove_visit(i,time)
+                    if mip_cost < min_cost and solution_aux.passConstraints("MIP2", i, time, "REMOVE"):
                         min_cost = mip_cost
                         min_cost_solution = solution_aux.clone()
                 else:
-                    mip_cost = Mip2.objetive_function(solution_aux, None, i, time)
+                    mip_cost = Mip2.objetive_function(solution_aux, i, time, "INSERT")
                     solution_aux.insert_visit(i, time)
-                    solution_aux.refresh()
-                    if mip_cost < min_cost and solution_aux.passConstraints(i, time, "INSERT", "MIP2"):
+                    if mip_cost < min_cost and solution_aux.passConstraints("MIP2", i, time, "INSERT"):
                         min_cost = mip_cost
                         min_cost_solution = solution_aux.clone()
                         print(f"MIP2: Nueva solucion {min_cost_solution}")
 
-        min_cost_solution.refresh()
         return min_cost_solution
 
     @staticmethod
-    def objetive_function(solution, removed_customer, added_customer, time):
+    def objetive_function(solution, customer, time, operation):
         solution.refresh()
         if not any(len(route.clients) > 0 for route in solution.routes):
-            return float_info.max
+            return constants.float_inf
         
         term_1 = sum([constants.holding_cost_supplier * solution.supplier_inventory_level[t]
                       for t in range(constants.horizon_length+1)])
 
         term_2 = sum([sum([constants.holding_cost[i] * solution.customers_inventory_level[i][t]
-                           for t in range(constants.horizon_length)])
-                      for i in range(constants.nb_customers)])
+                    for t in range(constants.horizon_length)])
+                    for i in range(constants.nb_customers)])
 
-        if removed_customer != None:
-            customer_index = solution.routes[time].clients.index(
-                removed_customer)
-            aux_route = copy.deepcopy(solution.routes[time])
-            aux_route.remove_visit(removed_customer)
-            term_3 = solution.routes[time].cost - aux_route.cost
-        else:
+        if operation != "REMOVE":
             term_3 = 0
-
-        if added_customer != None:
-            solution_aux = solution.clone()
-            solution_aux.insert_visit(added_customer, time)
-            solution_aux.refresh()
-            term_4 = sum([solution_aux.routes[it].cost -
-                          solution.routes[it].cost for it in range(constants.horizon_length)])
         else:
+            aux_route = copy.deepcopy(solution.routes[time])
+            aux_route.remove_visit(customer)
+            term_3 = solution.routes[time].cost - aux_route.cost
+            
+
+        if operation != "INSERT":
             term_4 = 0
+        else:
+            solution_aux = solution.clone()
+            solution_aux.insert_visit(customer, time)
+            term_4 = solution_aux.routes[time].cost - solution.routes[time].cost
 
         return term_1 + term_2 - term_3 + term_4

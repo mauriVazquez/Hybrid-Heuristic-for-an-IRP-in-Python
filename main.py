@@ -18,9 +18,9 @@ def hair():
     iterations_without_improvement, main_iterator, last_jump = 0, 0, 0
     #Se inicializa una solución s, la cual será admisible pero no necesariamente factible.
     s = initialization()
+    
     #Se inicializa sbest con el valor de s, siendo la primer solución candidata
     sbest = s.clone()
-    
     while iterations_without_improvement <= constants.max_iter:
         #Se busca una solución del vecindario de s, a traves del procedimiento move.
         sprima = move(s)
@@ -59,8 +59,8 @@ def hair():
         main_iterator += 1
         if isMultiple(iterations_without_improvement, 250):
             print(f"\n*SIN MEJORA {str(iterations_without_improvement)}. Solución : {s.__str__()}")
-
     print("MEJOR SOLUCION\n"+sbest.detail())
+    sbest.draw_routes()
 
  # Acá manejamos las listas del Tabú
 def update_tabu_lists(s: Solution, sprima: Solution, main_iterator):
@@ -128,6 +128,7 @@ def improvement(solution_best: Solution):
         #Se aplica el MIP1 a solution_best, luego se le aplica LK
         solution_prima = Mip1.execute(solution_best)
         solution_prima = LK(solution_best, solution_prima)
+        
         #Si el costo de la solución encontrada es mejor que el de solution_best, se actualiza solution_best
         if solution_prima.cost < solution_best.cost:
             print(f"first improvement: {solution_prima.cost}")
@@ -312,6 +313,7 @@ def LK(solution: Solution, solution_prima: Solution) -> Solution:
                 aux[1].append(solution_prima.routes[time].quantities[index-1])
             aux_solution.routes[time] = Route(aux[0], aux[1])
     aux_solution.refresh()
+    solution_prima.refresh()
     return aux_solution if aux_solution.cost < solution_prima.cost else solution_prima
 
 if __name__ == '__main__':

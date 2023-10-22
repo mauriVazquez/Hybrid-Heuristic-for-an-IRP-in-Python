@@ -1,5 +1,6 @@
 import math
 import configparser
+from sys import float_info
 
 class Constants():
 
@@ -22,7 +23,8 @@ class Constants():
         self.lambda_ttl = float(config['Taboo']['lambda_ttl'])
         self.max_iter = 200 * self.nb_customers * self.horizon_length
         self.jump_iter = self.max_iter // 2
-
+        self.float_inf = float("inf")
+        
     def read_input_irp(self, filename):
         file_it = iter(self.read_elem(filename))
 
@@ -44,6 +46,7 @@ class Constants():
         start_level_supplier = int(next(file_it))
         production_rate_supplier = int(next(file_it))
         holding_cost_supplier = float(next(file_it))
+        self.coords = [[x_coord_supplier, y_coord_supplier]]
         for i in range(nb_customers):
             next(file_it)
             x_coord[i] = float(next(file_it))
@@ -53,10 +56,10 @@ class Constants():
             min_level[i] = int(next(file_it))
             demand_rate[i] = int(next(file_it))
             holding_cost[i] = float(next(file_it))
+            self.coords.append([x_coord[i], y_coord[i]])
 
         distance_matrix = self.compute_distance_matrix(x_coord, y_coord)
-        distance_supplier = self.compute_distance_supplier(
-            x_coord_supplier, y_coord_supplier, x_coord, y_coord)
+        distance_supplier = self.compute_distance_supplier(x_coord_supplier, y_coord_supplier, x_coord, y_coord)
 
         self.nb_customers = nb_customers
         self.horizon_length = horizon_length
@@ -71,6 +74,7 @@ class Constants():
         self.holding_cost = holding_cost
         self.distance_matrix = distance_matrix
         self.distance_supplier = distance_supplier
+        
 
     # Compute the distance matrix
 

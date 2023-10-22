@@ -1,5 +1,5 @@
-from sys import float_info
 from copy import deepcopy
+from graph import Graph
 from models.route import Route
 from models.penalty_variables import alpha, beta
 from models.tabulists import tabulists
@@ -38,23 +38,21 @@ class Solution():
     def objetive_function(self):
         holding_cost, transportation_cost, penalty1, penalty2 = 0, 0, 0, 0
         if not any(len(route.clients) > 0 for route in self.routes):
-            return float_info.max
+            return constants.float_inf
         
         for time in range(constants.horizon_length):
             # First term (holding_cost)
             bt = self.supplier_inventory_level[time]
             holding_cost_t = constants.holding_cost_supplier * bt
             for i in range(constants.nb_customers):
-                holding_cost_t += constants.holding_cost[i] * \
-                    self.customers_inventory_level[i][time]
+                holding_cost_t += constants.holding_cost[i] * self.customers_inventory_level[i][time]
             holding_cost += holding_cost_t
 
             # Second term (transportation_cost)
             transportation_cost += self.routes[time].cost
 
             # Third term (penalty 1)
-            penalty1 += max(0,
-                            self.routes[time].get_total_quantity_delivered() - constants.vehicle_capacity)
+            penalty1 += max(0,self.routes[time].get_total_quantity_delivered() - constants.vehicle_capacity)
 
             # Fourth term
             penalty2 += max(0, - bt)
@@ -79,12 +77,10 @@ class Solution():
             current_level := current_level + (constants.production_rate_supplier - route.get_total_quantity_delivered())
             for route in self.routes
         ]
-        inventory_level.append(
-            current_level + constants.production_rate_supplier)
+        inventory_level.append(current_level + constants.production_rate_supplier)
         return inventory_level
 
     def customer_inventory_level(self, customer):
-        
         customer_inventory = []
         customer_inventory.append(constants.start_level[customer])
         for time in range(1, constants.horizon_length +1):
@@ -93,9 +89,7 @@ class Solution():
         return customer_inventory
            
     def get_customers_inventory_level(self):
-        
         # [[1,2,3,4],[1,2,3,4],[1,2,3,4],[1,2,3,4],[1,2,3,4]]
-        #   [[1][1][1][1]]
         customers_inventory = []
         for customer in range(constants.nb_customers):
             customers_inventory.append(self.customer_inventory_level(customer))
@@ -324,84 +318,66 @@ class Solution():
     def theeta(self, i, t):
         return (1 if self.routes[t].is_visited(i) else 0)
 
-    def passConstraints(self, MIPcustomer = None, MIPtime = None, operation = None, MIP = None):
-        # for time in range(constants.horizon_length):
-        #     # Constraint 3: La cantidad entregada en t, es menor o igual al nivel de inventario del proveedor en t.
-        #     if self.get_supplier_inventory_level()[time] < self.routes[time].get_total_quantity_delivered():
-        #         # print("Falla la constraint  3 para" + str(self))
-        #         return False
-        #     # Constraint 8: La cantidad entregada a los clientes en un tiempo dado, es menor o igual a la capacidad del camión.
-        #     if self.routes[time].get_total_quantity_delivered() > constants.vehicle_capacity:
-        #         # print("Falla la constraint 8: para" + str(self))
-        #         return False
-        #      # Constraint 16
-        #     if self.get_supplier_inventory_level()[time] < 0:
-        #         # print("Falla la constraint 16 para" + str(self))
-        #         return False
-        
-        #     for i in range(constants.nb_customers):
-        #         #Retorna 1 si 'customer' es visitado en el tiempo 'time', caso contrario devuelve 0
-        #         theeta = 1 if self.routes[time].is_visited(i) else 0
-                
-        #         # Constraint 4
-        #         # if self.get_customers_inventory_level()[i][time] != self.get_customers_inventory_level()[i][time-1] + self.routes[time-1].get_customer_quantity_delivered(i) - constants.demand_rate[i]:
-        #         #     print("Falla la constraint  4 para" + str(self))
-        #         #     return False
-        #         # Constraint 5 (Para OU): La cantidad entregada a un cliente en un tiempo dado es mayor o igual a la capacidad máxima menos el nivel de inventario (si lo visita en el tiempo dado).
-        #         if constants.replenishment_policy == "OU" and (self.routes[time].get_customer_quantity_delivered(i) < (constants.max_level[i] * theeta) - self.get_customers_inventory_level()[i][time]):
-        #             # print("Falla la constraint  5 para" + str(self))
-        #             return False
-        #         # Constraint 6: La cantidad entregada a un cliente en un tiempo dado debe ser menor o igual a la capacidad máxima menos el nivel de inventario (Junto con C5, definen OU)
-        #         if self.routes[time].get_customer_quantity_delivered(i) > constants.max_level[i] - self.get_customers_inventory_level()[i][time]:
-        #             # print("Falla la constraint  6 para" + str(self))
-        #             return False
-        #         # Constraint 7: La cantidad entregada a un cliente es menor o igual al nivel máximo de inventario si es que lo visita.
-        #         if constants.replenishment_policy == "OU" and (self.routes[time].get_customer_quantity_delivered(i) > constants.max_level[i] * theeta):
-        #             # print("Falla la constraint  7 para" + str(self))
-        #             return False
-        #         # Constraint 14: La cantidad entregada a los clientes siempre debe ser mayor a cero
-        #         if self.routes[time].get_customer_quantity_delivered(i) < 0:
-        #             # print("Falla la constraint 14 para" + str(self))
-        #             return False
-        #         # Constraint 15: No puede haber stockout
-        #         if self.client_has_stockout:
-        #             # print("Falla la constraint 15 para" + str(self)+" para el cliente "+str(i))
-        #             return False
-        # if MIP == "MIP2":
-        #     v_it = 1 if (operation == "INSERT") else 0
-        #     w_it = 1 if (operation == "REMOVE") else 0
-        #     sigma_it = 1 if (MIPcustomer in self.routes[MIPtime].customers) else 0
-        #     # # Constraint 21: v_it no puede ser 1 y sigma_it 1, implicaría que se insertó y está presente ¿¿??
-        #     # if v_it > 1 - sigma_it:
-        #     #     print("Falla la constraint 21 para" + str(self))
-        #     #     return False
-        #     # # Constraint 22:  w_it no puede ser 1 y sigma_it 0, implicaría que se borró y no está presente ¿¿??
-        #     # if w_it > sigma_it:
-        #     #     print("Falla la constraint 22 para" + str(self))
-        #     #     return False
-        #     # Constraint 23: La cantidad entregada al cliente i no puede ser mayor a la capacidad máxima
-        #     if self.routes[MIPtime].get_customer_quantity_delivered(MIPcustomer) > constants.max_level[MIPcustomer] * (sigma_it - w_it + v_it):
-        #         # print("Falla la constraint 23 para" + str(self))
-        #         return False
-        #     #Constraint 24: v_it debe ser 0 o 1
-        #     if not v_it in [0,1]:
-        #         # print("Falla la constraint 24 para" + str(self))
-        #         return False
-        #     #Constraint 25: w_it debe ser 0 o 1
-        #     if not w_it in [0,1]:
-        #         # print("Falla la constraint 25 para" + str(self))
-        #         return False
-            
-        # # Constraint 4: Para el termino diferencial de T'
-        # for i in range(constants.nb_customers):
-        #     expected_level = self.get_customers_inventory_level()[i][constants.horizon_length-1] + self.routes[constants.horizon_length-1].get_customer_quantity_delivered(i) - constants.demand_rate[i]
-        #     if self.get_customers_inventory_level()[i][constants.horizon_length] != expected_level:
-        #         # print("Falla la constraint  4 para" + str(self))
-        #         return False
+    def passConstraints(self, MIP, MIPcustomer = None, MIPtime = None, operation = None): 
+        nb_customers = constants.nb_customers
+        horizon_lenght = constants.horizon_length
+        for time in range(horizon_lenght):
+            # Constraint 3: La cantidad entregada en t, es menor o igual al nivel de inventario del proveedor en t.
+            if self.get_supplier_inventory_level()[time] < self.routes[time].get_total_quantity_delivered():
+                return False
+            for i in range(nb_customers):
+                theeta = 1 if self.routes[time].is_visited(i) else 0
+                # Constraint 5: La cantidad entregada a un cliente en un tiempo dado es mayor o igual a la capacidad máxima menos el nivel de inventario (si lo visita en el tiempo dado).
+                if constants.replenishment_policy == "OU" and (self.routes[time].get_customer_quantity_delivered(i) < (constants.max_level[i] * theeta) - self.customers_inventory_level[i][time]):
+                    return False
+                # Constraint 6: La cantidad entregada a un cliente en un tiempo dado debe ser menor o igual a la capacidad máxima menos el nivel de inventario (Junto con C5, definen OU)
+                if  constants.replenishment_policy == "OU" and self.routes[time].get_customer_quantity_delivered(i) > constants.max_level[i] - self.customers_inventory_level[i][time]:
+                    return False
+                # Constraint 7: La cantidad entregada a un cliente es menor o igual al nivel máximo de inventario si es que lo visita.
+                if constants.replenishment_policy == "OU" and (self.routes[time].get_customer_quantity_delivered(i) > constants.max_level[i] * theeta):
+                    return False
+                # Constraint 8: La cantidad entregada a los clientes en un tiempo dado, es menor o igual a la capacidad del camión.
+                if self.routes[time].get_total_quantity_delivered() > constants.vehicle_capacity:
+                    return False
+                # Constraint 14: La cantidad entregada a los clientes siempre debe ser mayor a cero
+                if self.routes[time].get_customer_quantity_delivered(i) < 0:
+                    return False
         
         # #Constraints 9 -13: #TODO (IMPORTANTE: SON SOLO DE MIP1)
-        # #Constraints 17 -19 son obvias
+        # #Constraints 17 -19 son obvias     
+            
+        for time in range(horizon_lenght):
+            #Constraint 16: No puede haber stockout en el proveedor
+            if self.get_supplier_inventory_level()[time] < 0:
+                return False
+            for i in range(nb_customers):
+                # # Constraint 4
+                # if self.customers_inventory_level[i][time] != self.customers_inventory_level[i][time-1] + self.routes[time-1].get_customer_quantity_delivered(i) - constants.demand_rate[i]:
+                #     return False
 
+                # Constraint 15: No puede haber stockout
+                if self.customers_inventory_level[i][time] < 0:
+                    return False
+
+        if MIP == "MIP2":
+            v_it = 1 if (operation == "INSERT") else 0
+            w_it = 1 if (operation == "REMOVE") else 0
+            sigma_it = 1 if self.routes[MIPtime].is_visited(MIPcustomer) else 0
+            # Constraint 21: v_it no puede ser 1 y sigma_it 1, implicaría que se insertó y está presente ¿¿??
+            if v_it > 1 - sigma_it:
+                return False
+            # Constraint 22:  w_it no puede ser 1 y sigma_it 0, implicaría que se borró y no está presente ¿¿??
+            if w_it > sigma_it:
+                return False
+            # Constraint 23: La cantidad entregada al cliente i no puede ser mayor a la capacidad máxima
+            if self.routes[MIPtime].get_customer_quantity_delivered(MIPcustomer) > constants.max_level[MIPcustomer] * (sigma_it - w_it + v_it):
+                return False
+            #Constraint 24: v_it debe ser 0 o 1
+            if not v_it in [0,1]:
+                return False
+            #Constraint 25: w_it debe ser 0 o 1
+            if not w_it in [0,1]:
+                return False
         return True
 
     def B(self, t):
@@ -409,4 +385,12 @@ class Solution():
             b = self.B(t-1)
             return b + constants.production_rate_supplier - self.routes[t-1].get_total_quantity_delivered()
         if (t == 0):
-            return constants.start_level_supplier
+            return constants.start_level_supplier 
+
+    def draw_routes(self):
+        points = []
+        for time in range(constants.horizon_length):
+            x = [constants.coords[customer+1][0] for customer in self.routes[time].clients]
+            y = [constants.coords[customer+1][1] for customer in self.routes[time].clients]
+            points.append([x,y])
+        Graph.draw_routes(constants.coords,points,constants.coords[0])
