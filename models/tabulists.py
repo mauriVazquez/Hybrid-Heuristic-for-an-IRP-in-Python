@@ -18,7 +18,7 @@ class TabuLists():
     def get_ttl(self):
         lambda_ttl = constants.lambda_ttl
         L = constants.taboo_len
-        return L + random.randint(0, math.floor(lambda_ttl * math.sqrt(constants.nb_customers*constants.horizon_length))-1)
+        return L + random.randint(0, math.floor(lambda_ttl * math.sqrt(constants.nb_customers*constants.horizon_length)))
     
     def forbidden_to_append(self, i, t):
         return any(elemento[0] == [i, t] for elemento in self.list_a)

@@ -57,7 +57,10 @@ def hair():
         # beta.unfeasible() if s.supplier_stockout_situation() else beta.feasible()
 
         main_iterator += 1
-        if isMultiple(iterations_without_improvement, 250):
+        if isMultiple(iterations_without_improvement, 3):
+            print(main_iterator)
+            print(tabulists.list_a)
+            print(tabulists.list_r)
             print(f"\n*SIN MEJORA {str(iterations_without_improvement)}. Solución : {s.__str__()}")
     print("MEJOR SOLUCION\n"+sbest.detail())
     sbest.draw_routes()
@@ -98,7 +101,7 @@ def move(solution) -> Solution:
         best_solution = solution.clone()
     else:
         #Se define la best_solution como una solución vacía, cualquiera que se encuentre en el vecindario será mejor.
-        best_solution = Solution.get_empty_solution()  
+        best_solution = solution.clone()
         #Se recorre un vecindario, conformado por soluciones que surjen de pequeñas alteraciones de la solución dada.
         for neighbor in neighborhood_obtained:
             #Se toma el primero siempre como best_solution, en iteraciones posteriores, sólo se almacena si es mejor.

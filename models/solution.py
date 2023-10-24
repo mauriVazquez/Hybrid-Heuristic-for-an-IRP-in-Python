@@ -141,8 +141,7 @@ class Solution():
                     if self.routes[t2].is_visited(customer):
                         quantity = constants.max_level[customer] - \
                             self.customers_inventory_level[customer][t2]
-                        self.routes[t2].add_customer_quantity(
-                            customer, quantity)
+                        self.routes[t2].add_customer_quantity(customer, quantity)
                         break
 
         self.refresh()
@@ -236,7 +235,6 @@ class Solution():
                     solution_copy = self.clone()
                     if (solution_copy.routes[time].is_visited(customer)) and (not tabulists.forbidden_to_remove(customer, time)):
                         solution_copy.remove_visit(customer, time)
-                        solution_copy.refresh()
                         if solution_copy.is_admissible():
                             neighborhood_prima.append(solution_copy)
                             # print("Variant Type 1")
@@ -250,7 +248,6 @@ class Solution():
                 solution_copy = self.clone()
                 if (not solution_copy.routes[time].is_visited(customer)) and (not tabulists.forbidden_to_append(customer, time)):
                     solution_copy.insert_visit(customer, time)
-                    solution_copy.refresh()
                     if solution_copy.is_admissible():
                         neighborhood_prima.append(solution_copy)
                         # print("Variant type 2")
@@ -327,11 +324,14 @@ class Solution():
                 return False
             for i in range(nb_customers):
                 theeta = 1 if self.routes[time].is_visited(i) else 0
+                #Constraint 17: Theeta puede tener el valor 0 o 1
+                if theeta not in [0, 1]:
+                    return False
                 # Constraint 5: La cantidad entregada a un cliente en un tiempo dado es mayor o igual a la capacidad máxima menos el nivel de inventario (si lo visita en el tiempo dado).
                 if constants.replenishment_policy == "OU" and (self.routes[time].get_customer_quantity_delivered(i) < (constants.max_level[i] * theeta) - self.customers_inventory_level[i][time]):
                     return False
                 # Constraint 6: La cantidad entregada a un cliente en un tiempo dado debe ser menor o igual a la capacidad máxima menos el nivel de inventario (Junto con C5, definen OU)
-                if  constants.replenishment_policy == "OU" and self.routes[time].get_customer_quantity_delivered(i) > constants.max_level[i] - self.customers_inventory_level[i][time]:
+                if self.routes[time].get_customer_quantity_delivered(i) > constants.max_level[i] - self.customers_inventory_level[i][time]:
                     return False
                 # Constraint 7: La cantidad entregada a un cliente es menor o igual al nivel máximo de inventario si es que lo visita.
                 if constants.replenishment_policy == "OU" and (self.routes[time].get_customer_quantity_delivered(i) > constants.max_level[i] * theeta):
@@ -352,8 +352,12 @@ class Solution():
                 return False
             for i in range(nb_customers):
                 # # Constraint 4
-                # if self.customers_inventory_level[i][time] != self.customers_inventory_level[i][time-1] + self.routes[time-1].get_customer_quantity_delivered(i) - constants.demand_rate[i]:
-                #     return False
+                if time == 0:
+                    if self.customers_inventory_level[i][time] != constants.start_level[i]:
+                        return False
+                else:
+                    if self.customers_inventory_level[i][time] != self.customers_inventory_level[i][time-1] + self.routes[time-1].get_customer_quantity_delivered(i) - constants.demand_rate[i]:
+                        return False
 
                 # Constraint 15: No puede haber stockout
                 if self.customers_inventory_level[i][time] < 0:
@@ -363,6 +367,9 @@ class Solution():
             v_it = 1 if (operation == "INSERT") else 0
             w_it = 1 if (operation == "REMOVE") else 0
             sigma_it = 1 if self.routes[MIPtime].is_visited(MIPcustomer) else 0
+            #Constraint 18: w_it debe ser 0 o 1
+            if w_it not in [0, 1]:
+                return False
             # Constraint 21: v_it no puede ser 1 y sigma_it 1, implicaría que se insertó y está presente ¿¿??
             if v_it > 1 - sigma_it:
                 return False

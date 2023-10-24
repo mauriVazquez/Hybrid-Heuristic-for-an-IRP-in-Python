@@ -35,7 +35,7 @@ class Alpha():
         self.unfeasible_counter = 0
 
         if (self.feasibles_counter == 10):
-            if self.value <= 1/16:
+            if self.value >= 1/16:
                 self.update(1/2)
             self.feasibles_counter = 0
 
