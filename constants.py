@@ -19,6 +19,7 @@ class Constants():
 
         self.replenishment_policy = config['App']['replenishment_policy']
         self.read_input_irp(config['App']['instance'])
+        self.multiplicador_tolerancia = float(config['App']['multiplicador_tolerancia'])
         self.taboo_len = int(config['Taboo']['list_length'])
         self.lambda_ttl = float(config['Taboo']['lambda_ttl'])
         self.max_iter = 200 * self.nb_customers * self.horizon_length

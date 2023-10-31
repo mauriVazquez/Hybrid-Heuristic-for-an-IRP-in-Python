@@ -35,12 +35,12 @@ class TabuLists():
             if (not (t in ts)) and (not self.forbidden_to_remove(c, t)):
                 self.list_r.append([[c, t], main_iterator + self.get_ttl()])
 
+   
+    
     def update_lists(self, main_iterator) -> None:
-        for index, element in enumerate(self.list_a):
-            if self.list_a[index][1] == main_iterator:
-                self.list_a.pop(index)
-
-        for index, element in enumerate(self.list_r):
-            if self.list_r[index][1] == main_iterator:
-                self.list_r.pop(index)
+        def remove_condition(element):
+            return element[1] > main_iterator
+        self.list_a = list(filter(remove_condition, self.list_a))
+        self.list_r = list(filter(remove_condition, self.list_r))
+        
 tabulists = TabuLists()

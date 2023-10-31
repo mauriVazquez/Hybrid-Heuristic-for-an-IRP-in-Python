@@ -164,13 +164,10 @@ class Solution():
 
         elif constants.replenishment_policy == "ML":
             quantity_delivered = min(
-                constants.max_level[customer] -
-                self.customers_inventory_level[customer][time],
-                constants.vehicle_capacity -
-                self.routes[time].get_total_quantity_delivered(),
+                constants.max_level[customer] - self.customers_inventory_level[customer][time],
+                constants.vehicle_capacity - self.routes[time].get_total_quantity_delivered(),
                 self.supplier_inventory_level[time]
             )
-
             quantity_delivered = quantity_delivered if quantity_delivered > 0 else constants.demand_rate[customer]
             self.routes[time].insert_visit(customer, cheapest_index, quantity_delivered)
 
@@ -233,9 +230,9 @@ class Solution():
             if constants.holding_cost[customer] > constants.holding_cost_supplier:
                 for time in range(constants.horizon_length):
                     solution_copy = self.clone()
-                    if (solution_copy.routes[time].is_visited(customer)) and (not tabulists.forbidden_to_remove(customer, time)):
+                    if (solution_copy.routes[time].is_visited(customer)):
                         solution_copy.remove_visit(customer, time)
-                        if solution_copy.is_admissible():
+                        if solution_copy.is_admissible() and (not tabulists.forbidden_to_remove(customer, time) or solution_copy.cost < constants.multiplicador_tolerancia * self.cost):
                             neighborhood_prima.append(solution_copy)
                             # print("Variant Type 1")
         return neighborhood_prima
@@ -246,9 +243,9 @@ class Solution():
         for customer in range(constants.nb_customers):
             for time in range(constants.horizon_length):
                 solution_copy = self.clone()
-                if (not solution_copy.routes[time].is_visited(customer)) and (not tabulists.forbidden_to_append(customer, time)):
+                if (not solution_copy.routes[time].is_visited(customer)):
                     solution_copy.insert_visit(customer, time)
-                    if solution_copy.is_admissible():
+                    if solution_copy.is_admissible() and (not tabulists.forbidden_to_append(customer, time) or solution_copy.cost < constants.multiplicador_tolerancia * self.cost):
                         neighborhood_prima.append(solution_copy)
                         # print("Variant type 2")
         return neighborhood_prima
@@ -264,14 +261,13 @@ class Solution():
                 new_solution = self.clone()
                 quantity_removed = new_solution.routes[t_visited].remove_visit(customer)
                 for t_not_visited in set_t_not_visited:
-                    if not tabulists.forbidden_to_remove(customer, t_visited) and not tabulists.forbidden_to_append(customer, t_not_visited):
-                        saux = new_solution.clone()
-                        saux_cheapest_index = saux.routes[t_not_visited].get_cheapest_index_to_insert(customer)
-                        saux.routes[t_not_visited].insert_visit(customer, saux_cheapest_index, quantity_removed)
-                        saux.refresh()
-                        if saux.is_admissible():
-                            # print("Variant Type 3")
-                            neighborhood_prima.append(saux)
+                    saux = new_solution.clone()
+                    saux_cheapest_index = saux.routes[t_not_visited].get_cheapest_index_to_insert(customer)
+                    saux.routes[t_not_visited].insert_visit(customer, saux_cheapest_index, quantity_removed)
+                    saux.refresh()
+                    if saux.is_admissible() and ((not tabulists.forbidden_to_remove(customer, t_visited) and not tabulists.forbidden_to_append(customer, t_not_visited)) or saux.cost < constants.multiplicador_tolerancia * self.cost):
+                        # print("Variant Type 3")
+                        neighborhood_prima.append(saux)
         return neighborhood_prima
 
     def variante_intercambiar_visitas(self) -> list[Type["Solution"]]:
@@ -281,7 +277,7 @@ class Solution():
                 for t2 in range(constants.horizon_length):
                     if t1 != t2:
                         for client2 in self.routes[t2].clients:
-                            if not ((self.routes[t1].is_visited(client2)) or (self.routes[t2].is_visited(client1)) or tabulists.forbidden_to_append(client1, t2) or tabulists.forbidden_to_remove(client1, t1) or tabulists.forbidden_to_append(client2, t1) or tabulists.forbidden_to_remove(client2, t2)):
+                            if not(self.routes[t1].is_visited(client2) or self.routes[t2].is_visited(client1)):
                                 saux = self.clone()
                                 saux.routes[t1].insert_visit(client2,
                                                              saux.routes[t1].get_cheapest_index_to_insert(
@@ -292,7 +288,7 @@ class Solution():
                                                                  client1),
                                                              saux.routes[t1].remove_visit(client1))
                                 saux.refresh()
-                                if saux.is_admissible():
+                                if saux.is_admissible() and (not(tabulists.forbidden_to_append(client1, t2) or tabulists.forbidden_to_remove(client1, t1) or tabulists.forbidden_to_append(client2, t1) or tabulists.forbidden_to_remove(client2, t2)) or saux.cost < constants.multiplicador_tolerancia * self.cost):
                                     # print("Solucion admisible en variante 4")
                                     neighborhood_prima.append(saux)
         return neighborhood_prima

@@ -18,6 +18,7 @@ def hair():
     iterations_without_improvement, main_iterator, last_jump = 0, 0, 0
     #Se inicializa una solución s, la cual será admisible pero no necesariamente factible.
     s = initialization()
+    print(s.detail())
     
     #Se inicializa sbest con el valor de s, siendo la primer solución candidata
     sbest = s.clone()
@@ -53,11 +54,11 @@ def hair():
             triplet_manager.remove_triplets_from_solution(s)
 
         # Update alpha and beta (TODO: REVISAR, SON SIEMPRE FEASIBLES)
-        # alpha.unfeasible() if s.is_vehicle_capacity_exceeded() else alpha.feasible()
-        # beta.unfeasible() if s.supplier_stockout_situation() else beta.feasible()
+        alpha.unfeasible() if s.is_vehicle_capacity_exceeded() else alpha.feasible()
+        beta.unfeasible() if s.supplier_stockout_situation() else beta.feasible()
 
         main_iterator += 1
-        if isMultiple(iterations_without_improvement, 3):
+        if isMultiple(iterations_without_improvement, 300):
             print(main_iterator)
             print(tabulists.list_a)
             print(tabulists.list_r)
@@ -81,7 +82,7 @@ def initialization() -> Solution:
         #Se asigna el demand_rate.
         demand_rate = constants.demand_rate[c]
         #Se determina el tiempo en que sucederá el stockout, y la frecuencia del mismo.
-        time_stockout = floor((start_level - min_level) / demand_rate)
+        time_stockout = floor((start_level - min_level) / demand_rate) -1
         stockout_frequency = floor((max_level - min_level) / demand_rate)
         #Se agrega el primer stockout
         solution[time_stockout][0].append(c)
