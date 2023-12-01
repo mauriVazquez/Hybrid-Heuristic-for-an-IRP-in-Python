@@ -1,19 +1,19 @@
 import matplotlib.pyplot as plt
 
 class Graph():
-    def draw_routes(coords,routes, supplier_coords):
+    def draw_rutas(coords,rutas, proveedor_coords):
         colors = ['red','green','blue','purple','orange','yellow','cyan','magenta','pink','brown','black','gray','darkgray']
     
-        for index, route in enumerate(routes):
+        for indice, ruta in enumerate(rutas):
             # # Coordenadas de los puntos
-            x = [supplier_coords[0]]+route[0]+[supplier_coords[0]]
-            y = [supplier_coords[1]]+route[1]+[supplier_coords[1]]
+            x = [proveedor_coords[0]]+ruta[0]+[proveedor_coords[0]]
+            y = [proveedor_coords[1]]+ruta[1]+[proveedor_coords[1]]
             # Graficar los puntos
-            plt.plot(x, y, color=colors[index], linestyle='-', linewidth=1, label='Ruta'+str(index+1), zorder=1)
+            plt.plot(x, y, color=colors[indice], linestyle='-', linewidth=1, label='Ruta'+str(indice+1), zorder=1)
 
-        for index, coord in enumerate(coords):
+        for indice, coord in enumerate(coords):
             # Graficar los puntos
-            plt.scatter(coord[0], coord[1], color=colors[index], marker=('^' if index ==0 else 'o'), label=('Provider' if index ==0 else 'Client'+str(index-1)),zorder=2)
+            plt.scatter(coord[0], coord[1], color=colors[indice], marker=('^' if indice ==0 else 'o'), label=('Proveedor' if indice ==0 else 'Cliente'+str(indice-1)),zorder=2)
         
 
         # Personalizar el gráfico
