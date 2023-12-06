@@ -417,7 +417,7 @@ class Solucion():
             if w_it > sigma_it:
                 return False
             # Constraint 23: La cantidad entregada al cliente i no puede ser mayor a la capacidad máxima
-            if self.rutas[MIPtiempo].obtener_cantidad_entregada(MIPcliente) > constantes.max_nivel[MIPcliente] * (sigma_it - w_it + v_it):
+            if self.rutas[MIPtiempo].obtener_cantidad_entregada(MIPcliente) > MIPcliente.max_nivel * (sigma_it - w_it + v_it):
                 return False
             #Constraint 24: v_it debe ser 0 o 1
             if not v_it in [0,1]:
