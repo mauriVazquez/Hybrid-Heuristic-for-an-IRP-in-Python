@@ -10,33 +10,33 @@ from tsp_local.base import TSP
 from tsp_local.kopt import KOpt
 
 def LK(solucion: Type["Solucion"], solucion_prima: Type["Solucion"]) -> Type["Solucion"]:
-        aux_solucion = solucion.clonar()
-        if solucion != solucion_prima:
-            aux_solucion = solucion_prima.clonar()
-            for tiempo in range(constantes.horizon_length):
-                tamano_matriz = len(solucion_prima.rutas[tiempo].clientes)+1
-                matriz =  [[0] * tamano_matriz for _ in range(tamano_matriz)]
+    aux_solucion = solucion.clonar()
+    if solucion != solucion_prima:
+        aux_solucion = solucion_prima.clonar()
+        for tiempo in range(constantes.horizon_length):
+            tamano_matriz = len(solucion_prima.rutas[tiempo].clientes)+1
+            matriz =  [[0] * tamano_matriz for _ in range(tamano_matriz)]
 
-                # Proveedor distancia
-                for indice, cliente in enumerate(solucion_prima.rutas[tiempo].clientes):
-                    matriz[0][indice+1] = cliente.distancia_proveedor
-                    matriz[indice+1][0] = cliente.distancia_proveedor
+            # Proveedor distancia
+            for indice, cliente in enumerate(solucion_prima.rutas[tiempo].clientes):
+                matriz[0][indice+1] = cliente.distancia_proveedor
+                matriz[indice+1][0] = cliente.distancia_proveedor
 
-                # Clientes distancias
-                for indice, c in enumerate(solucion_prima.rutas[tiempo].clientes):
-                    for indice2, c2 in enumerate(solucion_prima.rutas[tiempo].clientes):
-                        matriz[indice+1][indice2+1] = constantes.matriz_distancia[c.id][c2.id]
+            # Clientes distancias
+            for indice, c in enumerate(solucion_prima.rutas[tiempo].clientes):
+                for indice2, c2 in enumerate(solucion_prima.rutas[tiempo].clientes):
+                    matriz[indice+1][indice2+1] = constantes.matriz_distancia[c.id][c2.id]
 
-                # Make an instance with all nodes
-                TSP.setEdges(matriz)
-                path, costo = KOpt(range(len(matriz))).optimise()
-
-                aux_solucion.rutas[tiempo] = Ruta(
-                    [solucion_prima.rutas[tiempo].clientes[indice - 1] for indice in path[1:]],
-                    [solucion_prima.rutas[tiempo].cantidades[indice - 1] for indice in path[1:]]
-                )
-        aux_solucion.refrescar()
-        return aux_solucion if aux_solucion.costo < solucion_prima.costo else solucion_prima
+            # Make an instance with all nodes
+            TSP.setEdges(matriz)
+            path, costo = KOpt(range(len(matriz))).optimise()
+            
+            aux_solucion.rutas[tiempo] = Ruta(
+                [solucion_prima.rutas[tiempo].clientes[indice - 1] for indice in path[1:]],
+                [solucion_prima.rutas[tiempo].cantidades[indice - 1] for indice in path[1:]]
+            )
+    aux_solucion.refrescar()
+    return aux_solucion if aux_solucion.costo < solucion_prima.costo else solucion_prima
 
 class Solucion():
     @staticmethod
@@ -89,20 +89,18 @@ class Solucion():
         return not (self.cliente_tiene_stockout() or self.cliente_tiene_overstock())
 
     def es_factible(self) -> bool:
-        return self.es_admisible() and not (self.proveedor_tiene_stockout() or self.es_excedida_capacidad_vehiculo())
+        return self.es_admisible() and (not self.proveedor_tiene_stockout()) and (not self.es_excedida_capacidad_vehiculo())
 
     def es_excedida_capacidad_vehiculo(self) -> bool:
         return any(ruta.es_excedida_capacidad_vehiculo() for ruta in self.rutas)
 
     def cliente_tiene_stockout(self) -> bool:
-        nivel_inventario = self.obtener_niveles_inventario_clientes()
-        return any(nivel_inventario[cliente.id][tiempo] < 0
+        return any(self.obtener_niveles_inventario_cliente(cliente)[tiempo] < 0
                    for cliente in constantes.clientes
-                   for tiempo in range(constantes.horizon_length))
+                   for tiempo in range(constantes.horizon_length+1))
 
     def cliente_tiene_overstock(self) -> bool:
-        nivel_inventario = self.obtener_niveles_inventario_clientes()
-        return any(nivel_inventario[cliente.id][tiempo] > cliente.max_nivel
+        return any(self.obtener_niveles_inventario_cliente(cliente)[tiempo] > cliente.max_nivel
                    for cliente in constantes.clientes
                    for tiempo in range(constantes.horizon_length))
     
@@ -269,7 +267,7 @@ class Solucion():
 
     def insertar_visita(self, cliente, tiempo):
         if constantes.politica_reabastecimiento == "OU":
-            cantidad_delivered = constantes.max_nivel[cliente] - self.clientes_nivel_inventario[cliente][tiempo]
+            cantidad_delivered = cliente.max_nivel - self.obtener_niveles_inventario_cliente(cliente)[tiempo]
             self.rutas[tiempo].insertar_visita(cliente, cantidad_delivered, None)
             for t in range(tiempo + 1, constantes.horizon_length):
                 if self.rutas[t].es_visitado(cliente):
@@ -294,8 +292,10 @@ class Solucion():
                     solucion_copy = self.clonar()
                     if (solucion_copy.rutas[tiempo].es_visitado(cliente)):
                         solucion_copy.remover_visita(cliente, tiempo)
-                        if solucion_copy.es_admisible() and (not tabulists.esta_prohibido_quitar(cliente.id, tiempo) or solucion_copy.costo < constantes.multiplicador_tolerancia * self.costo):
-                            neighborhood_prima.append(solucion_copy)
+                        if solucion_copy.es_admisible() and (not tabulists.esta_prohibido_quitar(cliente.id, tiempo)):# or solucion_copy.costo < constantes.multiplicador_tolerancia * self.costo):
+                            solution_append = solucion_copy.clonar()
+                            solution_append.refrescar()
+                            neighborhood_prima.append(solution_append)
         return neighborhood_prima
 
     def variante_insercion(self) -> list[Type["Solucion"]]:
@@ -305,8 +305,10 @@ class Solucion():
                 solucion_copy = self.clonar()
                 if (not solucion_copy.rutas[tiempo].es_visitado(cliente)):
                     solucion_copy.insertar_visita(cliente, tiempo)
-                    if solucion_copy.es_admisible() and (not tabulists.esta_prohibido_agregar(cliente, tiempo) or solucion_copy.costo < constantes.multiplicador_tolerancia * self.costo):
-                        neighborhood_prima.append(solucion_copy)
+                    if solucion_copy.es_admisible() and (not tabulists.esta_prohibido_agregar(cliente, tiempo) ):#or solucion_copy.costo < constantes.multiplicador_tolerancia * self.costo):
+                        solution_append = solucion_copy.clonar()
+                        solution_append.refrescar()
+                        neighborhood_prima.append(solution_append)
         return neighborhood_prima
 
     def variante_mover_visita(self) -> list[Type["Solucion"]]:
@@ -318,11 +320,13 @@ class Solucion():
                 new_solucion = self.clonar()
                 cantidad_eliminado = new_solucion.rutas[t_visitado].remover_visita(cliente)
                 for t_not_visitado in set_t_not_visitado:
-                    saux = new_solucion.clonar()
-                    saux.rutas[t_not_visitado].insertar_visita(cliente, cantidad_eliminado, None)
-                    saux.refrescar()
-                    if saux.es_admisible() and ((not tabulists.esta_prohibido_quitar(cliente, t_visitado) and not tabulists.esta_prohibido_agregar(cliente, t_not_visitado)) or saux.costo < constantes.multiplicador_tolerancia * self.costo):
-                        neighborhood_prima.append(saux)
+                    solucion_copy = new_solucion.clonar()
+                    solucion_copy.rutas[t_not_visitado].insertar_visita(cliente, cantidad_eliminado, None)
+                    solucion_copy.refrescar()
+                    if solucion_copy.es_admisible() and ((not tabulists.esta_prohibido_quitar(cliente, t_visitado) and not tabulists.esta_prohibido_agregar(cliente, t_not_visitado))):# or saux.costo < constantes.multiplicador_tolerancia * self.costo):
+                        solution_append = solucion_copy.clonar()
+                        solution_append.refrescar()
+                        neighborhood_prima.append(solution_append)
         return neighborhood_prima
 
     def variante_intercambiar_visitas(self) -> list[Type["Solucion"]]:
@@ -333,16 +337,19 @@ class Solucion():
                     for cliente1 in self.rutas[t1].clientes:
                         for cliente2 in self.rutas[t2].clientes:
                             if not(self.rutas[t1].es_visitado(cliente2) or self.rutas[t2].es_visitado(cliente1)):
-                                saux = self.clonar()
+                                solucion_copy = self.clonar()
                                 # Mover cliente1 de t1 a t2
-                                cantidad_to_insert = saux.rutas[t1].remover_visita(cliente1)
-                                saux.rutas[t2].insertar_visita(cliente1,cantidad_to_insert,None)
+                                cantidad_to_insert = solucion_copy.rutas[t1].remover_visita(cliente1)
+                                solucion_copy.rutas[t2].insertar_visita(cliente1,cantidad_to_insert,None)
                                # Mover cliente1 de t2 a t1
-                                cantidad_to_insert = saux.rutas[t2].remover_visita(cliente2)
-                                saux.rutas[t1].insertar_visita(cliente2,cantidad_to_insert,None)
-                                saux.refrescar()
-                                if saux.es_admisible() and (not(tabulists.esta_prohibido_agregar(cliente1, t2) or tabulists.esta_prohibido_quitar(cliente1, t1) or tabulists.esta_prohibido_agregar(cliente2, t1) or tabulists.esta_prohibido_quitar(cliente2, t2)) or saux.costo < constantes.multiplicador_tolerancia * self.costo):
-                                    neighborhood_prima.append(saux)
+                                cantidad_to_insert = solucion_copy.rutas[t2].remover_visita(cliente2)
+                                solucion_copy.rutas[t1].insertar_visita(cliente2,cantidad_to_insert,None)
+                                solucion_copy.refrescar()
+                                if solucion_copy.es_admisible() and (not(tabulists.esta_prohibido_agregar(cliente1, t2) or tabulists.esta_prohibido_quitar(cliente1, t1) or tabulists.esta_prohibido_agregar(cliente2, t1) or tabulists.esta_prohibido_quitar(cliente2, t2))):# or solucion_copy.costo < constantes.multiplicador_tolerancia * self.costo):
+                                    solution_append = solucion_copy.clonar()
+                                    solution_append.refrescar()
+                                    neighborhood_prima.append(solution_append)
+                                    neighborhood_prima.append(solucion_copy)
         return neighborhood_prima
 
     def merge_rutas(self, rutabase_indice, rutasecondary_indice) -> None:

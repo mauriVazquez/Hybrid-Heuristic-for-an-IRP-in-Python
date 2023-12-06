@@ -2,7 +2,6 @@ import math
 from constantes import constantes
 from random import randint, seed
 from datetime import datetime
-from typing import List, Union
 
 def obtener_ttl() -> int:
     """
@@ -18,6 +17,15 @@ def obtener_ttl() -> int:
     return constantes.taboo_len + randint(0, math.floor(lambda_ttl * math.sqrt(cant_clientes * horizon_len)))
 
 class TabuLists:
+    @staticmethod
+    def esta_en_lista(mi_lista, sublista_a_buscar):
+        encontrado = False
+        for elemento in mi_lista:
+            if isinstance(elemento, list) and len(elemento) > 0 and elemento[0] == sublista_a_buscar:
+                encontrado = True
+                break
+        return encontrado
+
     """
     Clase que gestiona las listas tabú para movimientos de una solución.
 
@@ -93,7 +101,8 @@ class TabuLists:
         - main_iterator: Iterador principal del algoritmo.
         """
         elementos_a_agregar = set(conjuntoT_s) - set(conjuntoT_sprima)
-        self.lista_a.extend([[[cliente.id, t], main_iterator + obtener_ttl()] for t in elementos_a_agregar])
+        self.lista_a += [[[cliente.id, t], main_iterator + obtener_ttl()] for t in elementos_a_agregar
+                            if not tabulists.esta_en_lista(self.lista_a, [cliente.id, t])]
 
     def _agregar_a_lista_r(self, cliente, conjuntoT_s, conjuntoT_sprima, main_iterator: int) -> None:
         """
@@ -106,7 +115,8 @@ class TabuLists:
         - main_iterator: Iterador principal del algoritmo.
         """
         elementos_a_agregar = set(conjuntoT_sprima) - set(conjuntoT_s)
-        self.lista_r.extend([[[cliente.id, t], main_iterator + obtener_ttl()] for t in elementos_a_agregar])
+        self.lista_r += [[[cliente.id, t], main_iterator + obtener_ttl()] for t in elementos_a_agregar
+                         if not tabulists.esta_en_lista(self.lista_r, [cliente.id, t])]
 
     def esta_prohibido_agregar(self, i: int, t: int) -> bool:
         """

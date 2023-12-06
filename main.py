@@ -17,22 +17,22 @@ if __name__ == '__main__':
     while it_sinmejora <= constantes.max_iter:
         #Se aplica el procedimiento mover sobre solucion, para obtener una solución vecina sprima
         solucion_prima = solucion.mover()
-
+        tabulists.actualizar(solucion, solucion_prima, main_iterator)
+       
         #Si solucion_prima tiene un costo menor a la mejor_solución
         if solucion_prima.costo < mejor_solucion.costo:
             #Se aplica el procedimiento Mejorar sobre solucion_prima para encontrar una posible mejora sobre solucion_prima
-            solucion_prima = Solucion.mejorar(solucion_prima)
+            solucion_prima.mejorar()
             #Se almacena solucion_prima como nueva mejor solución
             mejor_solucion = solucion_prima.clonar()
-            print(mejor_solucion)
+            print(f"MEJORA! ({main_iterator}) {solucion_prima}")
         else:
             #Se incrementa la cantidad de iteraciones sin mejora en una unidad
             it_sinmejora += 1
         
         #Se incrementa el main iterator en una unidad, y se actualiza la lista tabú
         main_iterator += 1
-        tabulists.actualizar(solucion, solucion_prima, main_iterator)
-        
+
         #Se asigna a solucion el contenido de solucion_prima
         solucion = solucion_prima.clonar()
 
@@ -46,6 +46,7 @@ if __name__ == '__main__':
                     solucion = solucion_jump.clonar()
             #Cuando no se puedan hacer mas saltos, se ejecuta el MIP2 sobre la solución encontrada.
             solucion = Mip2.ejecutar(solucion)
+            print(f"SALTO! ({main_iterator}) {solucion}")
         
     print(mejor_solucion.detail())
 
