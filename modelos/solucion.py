@@ -71,7 +71,7 @@ class Solucion():
         return "".join("T"+str(i+1)+"= "+ruta.__str__()+"    " for i, ruta in enumerate(self.rutas)) + 'Costo:' + str(self.costo)
 
     def  detail(self) -> str:
-        resp = "Rutas:"+" ".join("T"+str(i+1)+"= "+ruta.__str__()+"\t" for i, ruta in enumerate(self.rutas))
+        resp = "Clientes visitados:"+" ".join("T"+str(i+1)+"= "+ruta.__str__()+"\t" for i, ruta in enumerate(self.rutas))
         resp += '\nObjective function: ' + str(self.costo) + "\n"
         resp += 'Proveedor inventario: ' + str(self.obtener_niveles_inventario_proveedor()) + "\n"
         resp += 'Clientes inventario: ' + str(self.obtener_niveles_inventario_clientes()) + "\n"

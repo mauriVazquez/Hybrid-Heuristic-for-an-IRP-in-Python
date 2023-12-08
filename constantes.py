@@ -34,7 +34,7 @@ class Constantes():
         costo_almacenamiento_proveedor = float(next(file_it))
         self.proveedor = Proveedor(0,coord_x_proveedor,coord_y_proveedor,nivel_inicial_proveedor,nivel_produccion_proveedor, costo_almacenamiento_proveedor)
         self.clientes = []
-        for i in range(nb_clientes):
+        for i in range(1,nb_clientes+1):
             next(file_it)
             coord_x = float(next(file_it))
             coord_y = float(next(file_it))
@@ -51,15 +51,10 @@ class Constantes():
 
     # Compute the distancia matriz
     def compute_matriz_distancia(self):
-        nb_clientes = len(self.clientes)
-        matriz_distancia = [[None for i in range(nb_clientes)] for j in range(nb_clientes)]
-        for i, cliente in enumerate(self.clientes):
-            matriz_distancia[i][i] = 0
-            for j, cliente2 in enumerate(self.clientes):
-                dist = self.compute_dist(cliente.coord_x, cliente2.coord_x,cliente.coord_y,cliente2.coord_y)
-                matriz_distancia[i][j] = dist
-                matriz_distancia[j][i] = dist
-        return matriz_distancia
+        return {c.id: {c2.id: self.compute_dist(c.coord_x, c2.coord_x,c.coord_y,c2.coord_y) 
+                       for c2 in self.clientes} 
+                for c in self.clientes}
+       
 
     # Compute the distancias to the proveedor
     def compute_distancia_proveedor(self, coord_x, coord_y):

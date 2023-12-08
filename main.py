@@ -47,7 +47,8 @@ if __name__ == '__main__':
             #Cuando no se puedan hacer mas saltos, se ejecuta el MIP2 sobre la solución encontrada.
             solucion = Mip2.ejecutar(solucion)
             print(f"SALTO! ({main_iterator}) {solucion}")
-        
+    
+    print("\n-------------------------------MEJOR SOLUCIÓN-------------------------------\n")
     print(mejor_solucion.detail())
 
 # Update alpha and beta (TODO: REVISAR, SON SIEMPRE FEASIBLES)
