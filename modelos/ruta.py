@@ -33,7 +33,7 @@ class Ruta():
         Parameters:
         - clientes: Lista de clientes en la ruta.
 
-        Returns:
+        Retorna:
         - float: Costo total de recorrido.
         """
         return 0 if not clientes else (
@@ -58,7 +58,7 @@ class Ruta():
         """
         Retorna una representación en cadena del objeto Ruta.
 
-        Returns:
+        Retorna:
         - str: Representación en cadena de la ruta.
         """
         clientes_ids = [cliente.id for cliente in self.clientes]
@@ -68,7 +68,7 @@ class Ruta():
         """
         Crea y devuelve una copia de la instancia actual de la clase Ruta, manteniendo referencias a Clientes y Cantidades.
 
-        Returns:
+        Retorna:
             Ruta: Una nueva instancia de la clase Ruta que es una copia de la ruta actual.
         """
         clientes = [clientes for clientes in self.clientes]
@@ -79,7 +79,7 @@ class Ruta():
         """
         Obtiene el costo total de la ruta.
 
-        Returns:
+        Retorna:
         - float: Costo total de la ruta.
         """
         return self.obtener_costo_recorrido(self.clientes)
@@ -88,7 +88,7 @@ class Ruta():
         """
         Obtiene la cantidad total entregada en la ruta.
 
-        Returns:
+        Retorna:
         - int: Cantidad total entregada.
         """
         return sum(self.cantidades)
@@ -100,7 +100,7 @@ class Ruta():
         Parameters:
         - cliente: Cliente para el que se desea obtener la cantidad entregada.
 
-        Returns:
+        Retorna:
         - int: Cantidad entregada al cliente.
         """
         return next((self.cantidades[i] for i, it_cliente in enumerate(self.clientes) if it_cliente == cliente), 0)
@@ -109,7 +109,7 @@ class Ruta():
         """
         Verifica si la capacidad del vehículo está excedida.
 
-        Returns:
+        Retorna:
         - bool: True si la capacidad está excedida, False en caso contrario.
         """
         return constantes.vehicle_capacity < self.obtener_total_entregado()
@@ -121,7 +121,7 @@ class Ruta():
         Parameters:
         - cliente: Cliente a verificar.
 
-        Returns:
+        Retorna:
         - bool: True si el cliente ha sido visitado, False en caso contrario.
         """
         return cliente in self.clientes
@@ -133,7 +133,7 @@ class Ruta():
         Parameters:
         - cliente: Cliente que se desea insertar.
 
-        Returns:
+        Retorna:
         - int: Índice de la mejor posición de inserción.
         """
         min_costo = float("inf")
@@ -167,7 +167,7 @@ class Ruta():
         Parameters:
         - cliente: Cliente que se desea eliminar.
 
-        Returns:
+        Retorna:
         - int: Cantidad removida.
         """
         indice = next((i for i, c in enumerate(self.clientes) if c == cliente), None)

@@ -126,7 +126,7 @@ class Solucion():
     def obtener_niveles_inventario_clientes(self):
         return {cliente.id:self.obtener_niveles_inventario_cliente(cliente) for cliente in constantes.clientes}
 
-    # Returns the set of tiempos when is visitado a cliente in a given solucion.
+    # Retorna the set of tiempos when is visitado a cliente in a given solucion.
     def T(self, cliente):
         return [tiempo for tiempo in range(constantes.horizon_length) if self.rutas[tiempo].es_visitado(cliente)]
     
@@ -207,11 +207,11 @@ class Solucion():
 
     def saltar(self, triplet) -> Type["Solucion"]:
         new_solucion = self.clonar()
-        cliente_id, tiempo_visitado, tiempo_not_visitado = triplet
-        cliente = next((cliente for cliente in constantes.clientes if cliente.id == cliente_id), None)      
+        cliente, tiempo_visitado, tiempo_not_visitado = triplet  
         if self.rutas[tiempo_visitado].es_visitado(cliente) and (not self.rutas[tiempo_not_visitado].es_visitado(cliente)):    
             cantidad_eliminado = new_solucion.rutas[tiempo_visitado].remover_visita(cliente)
             new_solucion.rutas[tiempo_not_visitado].insertar_visita(cliente, cantidad_eliminado, None)
+       
         new_solucion.refrescar()
         return new_solucion
     

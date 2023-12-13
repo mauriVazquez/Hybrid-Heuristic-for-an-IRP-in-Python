@@ -31,7 +31,7 @@ class Entidad():
         """
         Retorna una representación en cadena del objeto Entidad.
 
-        Returns:
+        Retorna:
         - str: Representación en cadena del ID de la entidad.
         """
         return str(self.id)

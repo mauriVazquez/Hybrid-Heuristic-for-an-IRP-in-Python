@@ -1,16 +1,15 @@
 import math
 from constantes import constantes
-from random import randint, seed
-from datetime import datetime
+from random import randint
 
 def obtener_ttl() -> int:
     """
     Genera un valor aleatorio para el tiempo de vida de un movimiento tabú.
 
-    Returns:
+    Retorna:
     - int: Tiempo de vida aleatorio.
     """
-    seed(datetime.now().microsecond)
+   
     lambda_ttl = constantes.lambda_ttl
     cant_clientes = len(constantes.clientes)
     horizon_len = constantes.horizon_length
@@ -126,7 +125,7 @@ class TabuLists:
         - i: Identificador del cliente.
         - t: Tiempo del movimiento.
 
-        Returns:
+        Retorna:
         - bool: True si el movimiento está prohibido, False en caso contrario.
         """
         return any(elemento[0] == [i, t] for elemento in self.lista_a)
@@ -139,7 +138,7 @@ class TabuLists:
         - i: Identificador del cliente.
         - t: Tiempo del movimiento.
 
-        Returns:
+        Retorna:
         - bool: True si el movimiento está prohibido, False en caso contrario.
         """
         return any(elemento[0] == [i, t] for elemento in self.lista_r)

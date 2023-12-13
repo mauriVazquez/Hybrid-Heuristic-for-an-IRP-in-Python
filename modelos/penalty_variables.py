@@ -62,7 +62,7 @@ class BaseAlphaBeta:
         """
         Obtiene el valor actual de la instancia.
 
-        Returns:
+        Retorna:
         - float: Valor actual.
         """
         return self.value

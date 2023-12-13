@@ -21,7 +21,7 @@ class Mip1():
         Args:
             solucion_original (TipoDeSolucion): La solución original a mejorar.
 
-        Returns:
+        Retorna:
             TipoDeSolucion: La solución mejorada obtenida mediante el algoritmo MIP1.
         """
         costo_minimo = float("inf")
@@ -62,7 +62,7 @@ class Mip1():
             cliente_eliminado (Cliente, optional): Cliente eliminado de la solución.
             eliminado_tiempo (int, optional): Tiempo en el cual se eliminó el cliente.
 
-        Returns:
+        Retorna:
             float: El costo total asociado a la solución.
         """
         solucion.refrescar()

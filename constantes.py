@@ -16,8 +16,8 @@ class Constantes():
         self.lambda_ttl = float(config['Taboo']['lambda_ttl'])
         self.penalty_factor_min = float(config['Penalty_factor']['min_limit'])
         self.penalty_factor_max = float(config['Penalty_factor']['max_limit'])
-        self.max_iter = 200 * len(self.clientes) * self.horizon_length
-        self.jump_iter = self.max_iter // 2
+        self.max_iter = 10 * len(self.clientes) * len(self.clientes) * self.horizon_length * self.horizon_length
+        self.jump_iter = 10 * len(self.clientes) * self.horizon_length
 
     def read_input_irp(self, filename):
         file_it = iter(self.read_elem(filename))

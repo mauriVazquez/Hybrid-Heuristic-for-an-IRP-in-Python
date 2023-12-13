@@ -4,8 +4,11 @@ from modelos.mip2 import Mip2
 from modelos.tripletManager import triplet_manager
 from modelos.tabulists import tabulists
 from constantes import constantes
+from random import seed
+from datetime import datetime
 
 if __name__ == '__main__':
+    seed(datetime.now().microsecond)
     #Se inicializan los iteradores
     main_iterator, it_sinmejora = 0, 0
     #Se ejecuta el procedimiento inicialización, devolviendo una primera solución candidata
@@ -26,6 +29,8 @@ if __name__ == '__main__':
             #Se almacena solucion_prima como nueva mejor solución
             mejor_solucion = solucion_prima.clonar()
             print(f"MEJORA! ({main_iterator}) {solucion_prima}")
+            triplet_manager.__init__()
+            it_sinmejora = 0
         else:
             #Se incrementa la cantidad de iteraciones sin mejora en una unidad
             it_sinmejora += 1
@@ -44,9 +49,12 @@ if __name__ == '__main__':
                 solucion_jump = solucion.saltar(triplet_manager.obtener_triplet_aleatorio())
                 if not solucion_jump.cliente_tiene_stockout():
                     solucion = solucion_jump.clonar()
+            triplet_manager.__init__()
             #Cuando no se puedan hacer mas saltos, se ejecuta el MIP2 sobre la solución encontrada.
             solucion = Mip2.ejecutar(solucion)
             print(f"SALTO! ({main_iterator}) {solucion}")
+        elif(it_sinmejora % constantes.jump_iter) > (constantes.jump_iter / 2):
+            triplet_manager.eliminar_triplets_solucion(solucion)
     
     print("\n-------------------------------MEJOR SOLUCIÓN-------------------------------\n")
     print(mejor_solucion.detail())

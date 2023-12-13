@@ -19,7 +19,7 @@ class Mip2():
         Args:
             solucion (TipoDeSolucion): La solución original a mejorar.
 
-        Returns:
+        Retorna:
             TipoDeSolucion: La solución mejorada obtenida mediante el algoritmo MIP2.
         """
         costo_minimo = float("inf")
@@ -53,7 +53,7 @@ class Mip2():
             tiempo (int): El tiempo en el cual se realiza la operación.
             operation (str): Tipo de operación, "INSERT" o "REMOVE".
 
-        Returns:
+        Retorna:
             float: El costo total asociado a la solución después de realizar la operación.
         """
         solucion.refrescar()
