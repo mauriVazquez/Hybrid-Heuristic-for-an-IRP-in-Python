@@ -1,0 +1,90 @@
+{% extends "admin/base.html" %}
+{% block title %}Proyecto Final{% endblock %}
+
+{% block branding %}
+<div id="site-name"><a href="{% url 'admin:index' %}">Transporte HAIR</a></div>
+{% if user.is_anonymous %}
+  {% include "admin/color_theme_toggle.html" %}
+{% endif %}
+{% endblock %}
+
+{% block nav-global %}{% endblock %}
+
+{%block content%}
+    <form action="/admin/hair/results" method="get">
+        {% csrf_token %}
+        
+        <div style="display:flex; width:100%">
+            <div style="width:50%">
+                <label for="PoliticaReabastecimiento"><h1 style="padding:0;margin:0">Política de Reabastecimiento</h1></label><br/>
+                <select id="PoliticaReabastecimiento" name="PoliticaReabastecimiento" style="width:300px">
+                    <option value="ML" selected>Max Limit</option>
+                    <option value="OU">Order up to level</option>
+                </select>
+            </div>
+            <div style="width:50%">
+                <label for="HorizonLength"><h1 style="padding:0;margin:0">Horizonte de Tiempo</h1></label><br/>
+                <input type="number" id="HorizonLength" name="HorizonLength" min="1" max="30" style="width:300px" required/>
+            </div>
+        </div>
+
+        <input type="text" id="ProveedorId" name="ProveedorId" value="{{proveedor.id}}" hidden=True/>
+
+        <div class="results row" style="padding:5vh 0;">
+            <table class="result_list" style="width:100%">
+                <h1 style="text-align:center">PROVEEDOR</h1>
+                <thead>
+                    <tr>    
+                        <th style="text-align:center"  scope="col" class="column-nombre"> Nombre </th>
+                        <th style="text-align:center"  scope="col" class="column-nombre"> Dirección </th>
+                        <th style="text-align:center"  scope="col" class="column-nombre"> Localidad </th>
+                        <th style="text-align:center"  scope="col" class="column-nombre"> Cantidad actual </th>
+                        <th style="text-align:center"  scope="col" class="column-nombre"> Cantidad máxima </th>
+                        <th style="text-align:center"  scope="col" class="column-nombre"> Nivel de produccion </th>
+                    </tr>
+                    <tr>
+                        <tr>
+                            <td style="text-align:center">{{proveedor.nombre}}</td>
+                            <td style="text-align:center">{{proveedor.direccion}}</td>
+                            <td style="text-align:center">{{proveedor.localidad}}</td>
+                            <td style="text-align:center">{{proveedor.nivel_almacenamiento}}</td>
+                            <td style="text-align:center">{{proveedor.nivel_maximo}}</td>
+                            <td style="text-align:center">{{proveedor.nivel_produccion}}</td>
+                        </tr>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+
+        <div class="results row" style="padding:5vh 0;">
+            <table class="result_list" style="width:100%">
+                <h1 style="text-align:center">CLIENTES</h1>
+                <thead>
+                    <tr>
+                        <th style="text-align:center"  scope="col" class="action-checkbox-column"> </th>
+                        <th style="text-align:center"  scope="col" class="column-nombre"> Nombre </th>
+                        <th style="text-align:center"  scope="col" class="column-nombre"> Dirección </th>
+                        <th style="text-align:center"  scope="col" class="column-nombre"> Localidad </th>
+                        <th style="text-align:center"  scope="col" class="column-nombre"> Cantidad actual </th>
+                        <th style="text-align:center"  scope="col" class="column-nombre"> Cantidad máxima </th>
+                        <th style="text-align:center"  scope="col" class="column-nombre"> Nivel de demanda </th>
+                    </tr>
+                    <tr>
+                        {% for cliente in clientes %}
+                            <tr>
+                                <td style="text-align:center"><input type="checkbox" name="clientes" value="{{ cliente.id }}" checked=True></td>
+                                <td style="text-align:center">{{cliente.nombre}}</td>
+                                <td style="text-align:center">{{cliente.direccion}}</td>
+                                <td style="text-align:center">{{cliente.localidad}}</td>
+                                <td style="text-align:center">{{cliente.nivel_almacenamiento}}</td>
+                                <td style="text-align:center">{{cliente.nivel_maximo}}</td>
+                                <td style="text-align:center">{{cliente.nivel_demanda}}</td>
+                            </tr>
+                        {% endfor %}
+                    </tr>
+                </thead>
+            </table>
+        </div>
+        <input type="submit" value="Submit">
+    </form>
+{% endblock %}

@@ -1,0 +1,898 @@
+{
+    "cantidad":89,
+    "inicio":0,
+    "localidades":[
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-37.1665794947261,"lon":-63.415025085628},
+            "departamento":{"id":"42007","nombre":"Atreucó"},
+            "id":"42007040",
+            "localidad_censal":{"id":"42007040","nombre":"Rolón"},
+            "municipio":{"id":"420322","nombre":"Rolón"},
+            "nombre":"Rolón",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-37.1504702596751,"lon":-64.0115253755499},
+            "departamento":{"id":"42007","nombre":"Atreucó"},
+            "id":"42007010",
+            "localidad_censal":{"id":"42007010","nombre":"Doblas"},
+            "municipio":{"id":"420112","nombre":"Doblas"},
+            "nombre":"Doblas",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-37.1369791302669,"lon":-63.6667388462847},
+            "departamento":{"id":"42007","nombre":"Atreucó"},
+            "id":"42007020",
+            "localidad_censal":{"id":"42007020","nombre":"Macachín"},
+            "municipio":{"id":"420231","nombre":"Macachín"},
+            "nombre":"Macachín",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-36.8563949352294,"lon":-63.6878256059741},
+            "departamento":{"id":"42007","nombre":"Atreucó"},
+            "id":"42007030",
+            "localidad_censal":{"id":"42007030","nombre":"Miguel Riglos"},
+            "municipio":{"id":"420259","nombre":"Miguel Riglos"},
+            "nombre":"Miguel Riglos",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-36.8403408637171,"lon":-63.5248220159942},
+            "departamento":{"id":"42007","nombre":"Atreucó"},
+            "id":"42007050",
+            "localidad_censal":{"id":"42007050","nombre":"Tomás M. Anchorena"},
+            "municipio":{"id":"420364","nombre":"Tomás M. Anchorena"},
+            "nombre":"Tomás M. Anchorena",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-38.963052676569,"lon":-63.8608882456791},
+            "departamento":{"id":"42014","nombre":"Caleu Caleu"},
+            "id":"42014010",
+            "localidad_censal":{"id":"42014010","nombre":"Anzoátegui"},
+            "municipio":{"id":"420189","nombre":"La Adela"},
+            "nombre":"Anzoátegui",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Componente de localidad compuesta",
+            "centroide":{"lat":-38.9853302670111,"lon":
+            -64.0905343177588},"departamento":{"id":"42014","nombre":"Caleu Caleu"},
+            "id":"42014020",
+            "localidad_censal":{"id":"42014020","nombre":"La Adela"},
+            "municipio":{"id":"420189","nombre":"La Adela"},
+            "nombre":"La Adela",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-36.5268380400041,"lon":-64.0117028433626},
+            "departamento":{"id":"42021","nombre":"Capital"},
+            "id":"42021010",
+            "localidad_censal":{"id":"42021010","nombre":"Anguil"},
+            "municipio":{"id":"420028","nombre":"Anguil"},
+            "nombre":"Anguil",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Componente de localidad compuesta",
+            "centroide":{"lat":-36.6204011947334,"lon":-64.2906300356297},
+            "departamento":{"id":"42021","nombre":"Capital"},
+            "id":"42021020",
+            "localidad_censal":{"id":"42021020","nombre":"Santa Rosa"},
+            "municipio":{"id":"420336","nombre":"Santa Rosa"},
+            "nombre":"Santa Rosa",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-36.5063202439509,"lon":-63.8601089739274},
+            "departamento":{"id":"42028","nombre":"Catriló"},
+            "id":"42028040",
+            "localidad_censal":{"id":"42028040","nombre":"Uriburu"},
+            "municipio":{"id":"420378","nombre":"Uriburu"},
+            "nombre":"Uriburu",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-36.4066777741887,"lon":-63.4233370953164},
+            "departamento":{"id":"42028","nombre":"Catriló"},
+            "id":"42028010",
+            "localidad_censal":{"id":"42028010","nombre":"Catriló"},
+            "municipio":{"id":"420077","nombre":"Catriló"},
+            "nombre":"Catriló",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-36.5083841391324,"lon":-63.7431085297245},
+            "departamento":{"id":"42028","nombre":"Catriló"},
+            "id":"42028020",
+            "localidad_censal":{"id":"42028020","nombre":"La Gloria"},
+            "municipio":{"id":"420378","nombre":"Uriburu"},
+            "nombre":"La Gloria",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-36.4664079334238,"lon":-63.6236145467141},
+            "departamento":{"id":"42028","nombre":"Catriló"},
+            "id":"42028030",
+            "localidad_censal":{"id":"42028030","nombre":"Lonquimay"},
+            "municipio":{"id":"420217","nombre":"Lonquimay"},
+            "nombre":"Lonquimay",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-35.9160630841589,"lon":-64.2955757480516},
+            "departamento":{"id":"42035","nombre":"Conhelo"},
+            "id":"42035020",
+            "localidad_censal":{"id":"42035020","nombre":"Eduardo Castex"},
+            "municipio":{"id":"420119","nombre":"Eduardo Castex"},
+            "nombre":"Eduardo Castex",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-36.2274656752379,"lon":-64.2335073428745},
+            "departamento":{"id":"42035","nombre":"Conhelo"},
+            "id":"42035060",
+            "localidad_censal":{"id":"42035060","nombre":"Winifreda"},
+            "municipio":{"id":"420413","nombre":"Winifreda"},
+            "nombre":"Winifreda",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-36.0005318724578,"lon":-64.5985082000058},
+            "departamento":{"id":"42035","nombre":"Conhelo"},
+            "id":"42035010",
+            "localidad_censal":{"id":"42035010","nombre":"Conhelo"},
+            "municipio":{"id":"420098","nombre":"Conhelo"},
+            "nombre":"Conhelo",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-36.2115350135006,"lon":-64.0331358077792},
+            "departamento":{"id":"42035","nombre":"Conhelo"},
+            "id":"42035030",
+            "localidad_censal":{"id":"42035030","nombre":"Mauricio Mayer"},
+            "municipio":{"id":"420238","nombre":"Mauricio Mayer"},
+            "nombre":"Mauricio Mayer",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-35.861584511751,"lon":-64.1531743254991},
+            "departamento":{"id":"42035","nombre":"Conhelo"},
+            "id":"42035040",
+            "localidad_censal":{"id":"42035040","nombre":"Monte Nievas"},
+            "municipio":{"id":"420266","nombre":"Monte Nievas"},
+            "nombre":"Monte Nievas",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-36.0417970740766,"lon":-64.8357210916463},
+            "departamento":{"id":"42035","nombre":"Conhelo"},
+            "id":"42035050",
+            "localidad_censal":{"id":"42035050","nombre":"Rucanelo"},
+            "municipio":{"id":"425133","nombre":"Rucanelo"},
+            "nombre":"Rucanelo",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-38.74294207858,"lon":-66.4354280736932},
+            "departamento":{"id":"42042","nombre":"Curacó"},
+            "id":"42042010",
+            "localidad_censal":{"id":"42042010","nombre":"Gobernador Duval"},
+            "municipio":{"id":"420158","nombre":"Gobernador Duval"},
+            "nombre":"Gobernador Duval",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-38.1463020880227,"lon":-65.9140406261922},
+            "departamento":{"id":"42042","nombre":"Curacó"},
+            "id":"42042020",
+            "localidad_censal":{"id":"42042020","nombre":"Puelches"},
+            "municipio":{"id":"420280","nombre":"Puelches"},
+            "nombre":"Puelches",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-36.2301951511864,"lon":-66.938973642145},
+            "departamento":{"id":"42049","nombre":"Chalileo"},
+            "id":"42049010",
+            "localidad_censal":{"id":"42049010","nombre":"Santa Isabel"},
+            "municipio":{"id":"420329","nombre":"Santa Isabel"},
+            "nombre":"Santa Isabel",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-35.2907850630244,"lon":-63.7769872104681},
+            "departamento":{"id":"42056","nombre":"Chapaleufú"},
+            "id":"42056020",
+            "localidad_censal":{"id":"42056020","nombre":"Ceballos"},
+            "municipio":{"id":"420084","nombre":"Ceballos"},
+            "nombre":"Ceballos",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-35.0259493098283,"lon":-63.582754454385},
+            "departamento":{"id":"42056","nombre":"Chapaleufú"},
+            "id":"42056010",
+            "localidad_censal":{"id":"42056010","nombre":"Bernardo Larroude"},
+            "municipio":{"id":"420049","nombre":"Bernardo Larroudé"},
+            "nombre":"Bernardo Larroude",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-35.0241215550401,"lon":-63.9120713203455},
+            "departamento":{"id":"42056","nombre":"Chapaleufú"},
+            "id":"42056030",
+            "localidad_censal":{"id":"42056030","nombre":"Coronel Hilario Lagos"},
+            "municipio":{"id":"420105","nombre":"Coronel Hilario Lagos"},
+            "nombre":"Coronel Hilario Lagos",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-35.2346794397986,"lon":-63.5920874357151},
+            "departamento":{"id":"42056","nombre":"Chapaleufú"},
+            "id":"42056040",
+            "localidad_censal":{"id":"42056040","nombre":"Intendente Alvear"},
+            "municipio":{"id":"420175","nombre":"Intendente Alvear"},
+            "nombre":"Intendente Alvear",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-35.0280789306098,"lon":-63.6859330160218},
+            "departamento":{"id":"42056","nombre":"Chapaleufú"},
+            "id":"42056050",
+            "localidad_censal":{"id":"42056050","nombre":"Sarah"},
+            "municipio":{"id":"425140","nombre":"Sarah"},
+            "nombre":"Sarah",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-35.4274437817854,"lon":-63.9099859200885},
+            "departamento":{"id":"42056","nombre":"Chapaleufú"},
+            "id":"42056060",
+            "localidad_censal":{"id":"42056060","nombre":"Vértiz"},
+            "municipio":{"id":"420392","nombre":"Vértiz"},
+            "nombre":"Vértiz",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-36.3980844050316,"lon":-67.1444914624205},
+            "departamento":{"id":"42063","nombre":"Chical Co"},
+            "id":"42063010",
+            "localidad_censal":{"id":"42063010","nombre":"Algarrobo del Águila"},
+            "municipio":{"id":"420011","nombre":"Algarrobo del Águila"},
+            "nombre":"Algarrobo del Águila",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-36.3490388802789,"lon":-68.0135207257269},
+            "departamento":{"id":"42063","nombre":"Chical Co"},
+            "id":"42063020",
+            "localidad_censal":{"id":"42063020","nombre":"La Humada"},
+            "municipio":{"id":"420196","nombre":"La Humada"},
+            "nombre":"La Humada",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-37.6612081792483,"lon":-64.1392460132253},
+            "departamento":{"id":"42070","nombre":"Guatraché"},
+            "id":"42070040",
+            "localidad_censal":{"id":"42070040","nombre":"Perú"},
+            "municipio":{"id":"425105","nombre":"Perú"},
+            "nombre":"Perú",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-37.3768330319597,"lon":-63.7732330615973},
+            "departamento":{"id":"42070","nombre":"Guatraché"},
+            "id":"42070010",
+            "localidad_censal":{"id":"42070010","nombre":"Alpachiri"},
+            "municipio":{"id":"420014","nombre":"Alpachiri"},
+            "nombre":"Alpachiri",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-37.4614543432233,"lon":-63.5857575194871},
+            "departamento":{"id":"42070","nombre":"Guatraché"},
+            "id":"42070020",
+            "localidad_censal":{"id":"42070020","nombre":"General Manuel J. Campos"},
+            "municipio":{"id":"420140","nombre":"General Campos"},
+            "nombre":"General Manuel J. Campos",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-37.6707269295659,"lon":-63.5357606533356},
+            "departamento":{"id":"42070","nombre":"Guatraché"},
+            "id":"42070030",
+            "localidad_censal":{"id":"42070030","nombre":"Guatraché"},
+            "municipio":{"id":"420161","nombre":"Guatraché"},
+            "nombre":"Guatraché",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-37.5747871786212,"lon":-63.4313184018927},
+            "departamento":{"id":"42070","nombre":"Guatraché"},
+            "id":"42070050",
+            "localidad_censal":{"id":"42070050","nombre":"Santa Teresa"},
+            "municipio":{"id":"420343","nombre":"Colonia Santa Teresa"},
+            "nombre":"Santa Teresa",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-37.9022526201872,"lon":-63.742953580131},
+            "departamento":{"id":"42077","nombre":"Hucal"},
+            "id":"42077020",
+            "localidad_censal":{"id":"42077020","nombre":"Bernasconi"},
+            "municipio":{"id":"420056","nombre":"Bernasconi"},
+            "nombre":"Bernasconi",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-37.8965637921854,"lon":-63.8504345021239},
+            "departamento":{"id":"42077","nombre":"Hucal"},
+            "id":"42077010",
+            "localidad_censal":{"id":"42077010","nombre":"Abramo"},
+            "municipio":{"id":"420007","nombre":"Abramo"},
+            "nombre":"Abramo",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-37.9788814738432,"lon":-63.6034930057397},
+            "departamento":{"id":"42077","nombre":"Hucal"},
+            "id":"42077030",
+            "localidad_censal":{"id":"42077030","nombre":"General San Martín"},
+            "municipio":{"id":"420154","nombre":"General San Martín"},
+            "nombre":"General San Martín",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-37.791142027803,"lon":-64.0252536594731},
+            "departamento":{"id":"42077","nombre":"Hucal"},
+            "id":"42077040",
+            "localidad_censal":{"id":"42077040","nombre":"Hucal"},
+            "municipio":{"id":"420007","nombre":"Abramo"},
+            "nombre":"Hucal",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-38.0828745548526,"lon":-63.4294378309598},
+            "departamento":{"id":"42077","nombre":"Hucal"},
+            "id":"42077050",
+            "localidad_censal":{"id":"42077050","nombre":"Jacinto Aráuz"},
+            "municipio":{"id":"420182","nombre":"Jacinto Aráuz"},
+            "nombre":"Jacinto Aráuz",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-38.3336784745407,"lon":-64.6422526958764},
+            "departamento":{"id":"42084","nombre":"Lihuel Calel"},
+            "id":"42084010",
+            "localidad_censal":{"id":"42084010","nombre":"Cuchillo Co"},
+            "municipio":{"id":"425042","nombre":"Cuchillo Co"},
+            "nombre":"Cuchillo Co",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-37.5511845454801,"lon":-66.2271088648992},
+            "departamento":{"id":"42091","nombre":"Limay Mahuida"},
+            "id":"42091010",
+            "localidad_censal":{"id":"42091010","nombre":"La Reforma"},
+            "municipio":{"id":"425077","nombre":"La Reforma"},
+            "nombre":"La Reforma",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-37.1598303700809,"lon":-66.6751236820745},
+            "departamento":{"id":"42091","nombre":"Limay Mahuida"},
+            "id":"42091020",
+            "localidad_censal":{"id":"42091020","nombre":"Limay Mahuida"},
+            "municipio":{"id":"425084","nombre":"Limay Mahuida"},
+            "nombre":"Limay Mahuida",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-36.2642784211513,"lon":-65.5111739287674},
+            "departamento":{"id":"42098","nombre":"Loventué"},
+            "id":"42098040",
+            "localidad_censal":{"id":"42098040","nombre":"Telén"},
+            "municipio":{"id":"420350","nombre":"Telén"},
+            "nombre":"Telén",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-36.4749257307713,"lon":-65.3446564920527},
+            "departamento":{"id":"42098","nombre":"Loventué"},
+            "id":"42098010",
+            "localidad_censal":{"id":"42098010","nombre":"Carro Quemado"},
+            "municipio":{"id":"420070","nombre":"Carro Quemado"},
+            "nombre":"Carro Quemado",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-36.1888953927316,"lon":-65.289332461436},
+            "departamento":{"id":"42098","nombre":"Loventué"},
+            "id":"42098020",
+            "localidad_censal":{"id":"42098020","nombre":"Loventué"},
+            "municipio":{"id":"425091","nombre":"Loventué"},
+            "nombre":"Loventué",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-36.2039526749804,"lon":-65.0996511363574},
+            "departamento":{"id":"42098","nombre":"Loventué"},
+            "id":"42098030",
+            "localidad_censal":{"id":"42098030","nombre":"Luan Toro"},
+            "municipio":{"id":"420224","nombre":"Luan Toro"},
+            "nombre":"Luan Toro",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-36.2165368686585,"lon":-65.4370864153489},
+            "departamento":{"id":"42098","nombre":"Loventué"},
+            "id":"42098050",
+            "localidad_censal":{"id":"42098050","nombre":"Victorica"},
+            "municipio":{"id":"420399","nombre":"Victorica"},
+            "nombre":"Victorica",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-35.7763229509013,"lon":-63.716840693317},
+            "departamento":{"id":"42105","nombre":"Maracó"},
+            "id":"42105020",
+            "localidad_censal":{"id":"42105020","nombre":"Dorila"},
+            "municipio":{"id":"420116","nombre":"Dorila"},
+            "nombre":"Dorila",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-35.7820709830868,"lon":-63.3916144304609},
+            "departamento":{"id":"42105","nombre":"Maracó"},
+            "id":"42105010",
+            "localidad_censal":{"id":"42105010","nombre":"Agustoni"},
+            "municipio":{"id":"425014","nombre":"Agustoni"},
+            "nombre":"Agustoni",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-35.6593004344736,"lon":-63.7578717289548},
+            "departamento":{"id":"42105","nombre":"Maracó"},
+            "id":"42105030",
+            "localidad_censal":{"id":"42105030","nombre":"General Pico"},
+            "municipio":{"id":"420147","nombre":"General Pico"},
+            "nombre":"General Pico",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-35.5497080167874,"lon":-63.8205097114007},
+            "departamento":{"id":"42105","nombre":"Maracó"},
+            "id":"42105040",
+            "localidad_censal":{"id":"42105040","nombre":"Speluzzi"},
+            "municipio":{"id":"425147","nombre":"Speluzzi"},
+            "nombre":"Speluzzi",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-35.5844688283462,"lon":-63.5890778943806},
+            "departamento":{"id":"42105","nombre":"Maracó"},
+            "id":"42105050",
+            "localidad_censal":{"id":"42105050","nombre":"Trebolares"},
+            "municipio":{"id":"420147","nombre":"General Pico"},
+            "nombre":"Trebolares",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-37.3441736915125,"lon":-67.6195574260177},
+            "departamento":{"id":"42112","nombre":"Puelén"},
+            "id":"42112010",
+            "localidad_censal":{"id":"42112010","nombre":"Puelén"},
+            "municipio":{"id":"420287","nombre":"Puelén"},
+            "nombre":"Puelén",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-38.1545525945666,"lon":-67.152497411086},
+            "departamento":{"id":"42112","nombre":"Puelén"},
+            "id":"42112005",
+            "localidad_censal":{"id":"42112005","nombre":"Casa de Piedra"},
+            "municipio":{"id":"422007","nombre":"Casa de Piedra"},
+            "nombre":"Casa de Piedra",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-37.774908489351,"lon":-67.7135403757323},
+            "departamento":{"id":"42112","nombre":"Puelén"},
+            "id":"42112020",
+            "localidad_censal":{"id":"42112020","nombre":"25 de Mayo"},
+            "municipio":{"id":"420385","nombre":"Colonia 25 de Mayo"},
+            "nombre":"25 de Mayo",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-36.1571837349487,"lon":-63.5125978526535},
+            "departamento":{"id":"42119","nombre":"Quemú Quemú"},
+            "id":"42119030",
+            "localidad_censal":{"id":"42119030","nombre":"Miguel Cané"},
+            "municipio":{"id":"420252","nombre":"Miguel Cané"},
+            "nombre":"Miguel Cané",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-36.1536100297405,"lon":-63.8552047195573},
+            "departamento":{"id":"42119","nombre":"Quemú Quemú"},
+            "id":"42119010",
+            "localidad_censal":{"id":"42119010","nombre":"Colonia Barón"},
+            "municipio":{"id":"420091","nombre":"Colonia Barón"},
+            "nombre":"Colonia Barón",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-36.1170514464671,"lon":-63.9040708614432},
+            "departamento":{"id":"42119","nombre":"Quemú Quemú"},
+            "id":"42119020",
+            "localidad_censal":{"id":"42119020","nombre":"Colonia San José"},
+            "municipio":{"id":"420091","nombre":"Colonia Barón"},
+            "nombre":"Colonia San José",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-36.0548269805947,"lon":-63.5659401087111},
+            "departamento":{"id":"42119","nombre":"Quemú Quemú"},
+            "id":"42119040",
+            "localidad_censal":{"id":"42119040","nombre":"Quemú Quemú"},
+            "municipio":{"id":"420301","nombre":"Quemú Quemú"},
+            "nombre":"Quemú Quemú",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-36.2565045123829,"lon":-63.4480892950842},
+            "departamento":{"id":"42119","nombre":"Quemú Quemú"},
+            "id":"42119050",
+            "localidad_censal":{"id":"42119050","nombre":"Relmo"},
+            "municipio":{"id":"425126","nombre":"Relmo"},
+            "nombre":"Relmo",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-36.0763688619907,"lon":-63.8863241480268},
+            "departamento":{"id":"42119","nombre":"Quemú Quemú"},
+            "id":"42119060",
+            "localidad_censal":{"id":"42119060","nombre":"Villa Mirasol"},
+            "municipio":{"id":"420406","nombre":"Villa Mirasol"},
+            "nombre":"Villa Mirasol",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-35.0570468624299,"lon":-64.5231627938074},
+            "departamento":{"id":"42126","nombre":"Rancul"},
+            "id":"42126060",
+            "localidad_censal":{"id":"42126060","nombre":"Quetrequén"},
+            "municipio":{"id":"425119","nombre":"Quetrequén"},
+            "nombre":"Quetrequén",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-35.5944912182792,"lon":-64.5586771612487},
+            "departamento":{"id":"42126","nombre":"Rancul"},
+            "id":"42126010",
+            "localidad_censal":{"id":"42126010","nombre":"Caleufú"},
+            "municipio":{"id":"420063","nombre":"Caleufú"},
+            "nombre":"Caleufú",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-35.7034612221329,"lon":-65.1029678622192},
+            "departamento":{"id":"42126","nombre":"Rancul"},
+            "id":"42126020",
+            "localidad_censal":{"id":"42126020","nombre":"Ingeniero Foster"},
+            "municipio":{"id":"420210","nombre":"La Maruja"},
+            "nombre":"Ingeniero Foster",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-35.673878960176,"lon":-64.942139647443},
+            "departamento":{"id":"42126","nombre":"Rancul"},
+            "id":"42126030",
+            "localidad_censal":{"id":"42126030","nombre":"La Maruja"},
+            "municipio":{"id":"420210","nombre":"La Maruja"},
+            "nombre":"La Maruja",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-35.1467597216817,"lon":-64.5023084091661},
+            "departamento":{"id":"42126","nombre":"Rancul"},
+            "id":"42126040",
+            "localidad_censal":{"id":"42126040","nombre":"Parera"},
+            "municipio":{"id":"420273","nombre":"Parera"},
+            "nombre":"Parera",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-35.648606694329,"lon":-64.7697819492676},
+            "departamento":{"id":"42126","nombre":"Rancul"},
+            "id":"42126050",
+            "localidad_censal":{"id":"42126050","nombre":"Pichi Huinca"},
+            "municipio":{"id":"425112","nombre":"Pichi Huinca"},
+            "nombre":"Pichi Huinca",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-35.0677697430794,"lon":-64.6842161304454},
+            "departamento":{"id":"42126","nombre":"Rancul"},
+            "id":"42126070",
+            "localidad_censal":{"id":"42126070","nombre":"Rancul"},
+            "municipio":{"id":"420308","nombre":"Rancul"},
+            "nombre":"Rancul",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-35.0166726511379,"lon":-64.0353200737961},
+            "departamento":{"id":"42133","nombre":"Realicó"},
+            "id":"42133010",
+            "localidad_censal":{"id":"42133010","nombre":"Adolfo Van Praet"},
+            "municipio":{"id":"425007","nombre":"Adolfo Van Praet"},
+            "nombre":"Adolfo Van Praet",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-35.3344236924485,"lon":-64.1171414735618},
+            "departamento":{"id":"42133","nombre":"Realicó"},
+            "id":"42133020",
+            "localidad_censal":{"id":"42133020","nombre":"Alta Italia"},
+            "municipio":{"id":"420021","nombre":"Alta Italia"},
+            "nombre":"Alta Italia",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-35.0414276195447,"lon":-64.3859123352225},
+            "departamento":{"id":"42133","nombre":"Realicó"},
+            "id":"42133030",
+            "localidad_censal":{"id":"42133030","nombre":"Damián Maisonave"},
+            "municipio":{"id":"425098","nombre":"Maisonave"},
+            "nombre":"Damián Maisonave",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-35.3873484763632,"lon":-64.2827669425504},
+            "departamento":{"id":"42133","nombre":"Realicó"},
+            "id":"42133040",
+            "localidad_censal":{"id":"42133040","nombre":"Embajador Martini"},
+            "municipio":{"id":"420126","nombre":"Embajador Martini"},
+            "nombre":"Embajador Martini",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-35.1907264970461,"lon":-64.1070652191117},
+            "departamento":{"id":"42133","nombre":"Realicó"},
+            "id":"42133050",
+            "localidad_censal":{"id":"42133050","nombre":"Falucho"},
+            "municipio":{"id":"425063","nombre":"Falucho"},
+            "nombre":"Falucho",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-35.3884711486406,"lon":-64.4673705684362},
+            "departamento":{"id":"42133","nombre":"Realicó"},
+            "id":"42133060",
+            "localidad_censal":{"id":"42133060","nombre":"Ingeniero Luiggi"},
+            "municipio":{"id":"420168","nombre":"Ingeniero Luiggi"},
+            "nombre":"Ingeniero Luiggi",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-35.3069414204845,"lon":-64.0060798931943},
+            "departamento":{"id":"42133","nombre":"Realicó"},
+            "id":"42133070",
+            "localidad_censal":{"id":"42133070","nombre":"Ojeda"},
+            "municipio":{"id":"420021","nombre":"Alta Italia"},
+            "nombre":"Ojeda",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-35.0382143738346,"lon":-64.2463075218814},
+            "departamento":{"id":"42133","nombre":"Realicó"},
+            "id":"42133080",
+            "localidad_censal":{"id":"42133080","nombre":"Realicó"},
+            "municipio":{"id":"420315","nombre":"Realicó"},
+            "nombre":"Realicó",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-36.7473961516096,"lon":-64.3673907018325},
+            "departamento":{"id":"42140","nombre":"Toay"},
+            "id":"42140005",
+            "localidad_censal":{"id":"42140005","nombre":"Cachirulo"},
+            "municipio":{"id":"420357","nombre":"Toay"},
+            "nombre":"Cachirulo",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-36.925725758829,"lon":-64.4050728875869},
+            "departamento":{"id":"42140","nombre":"Toay"},
+            "id":"42140010",
+            "localidad_censal":{"id":"42140010","nombre":"Naicó"},
+            "municipio":{"id":"420042","nombre":"Ataliva Roca"},
+            "nombre":"Naicó",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Componente de localidad compuesta",
+            "centroide":{"lat":-36.673898048391,"lon":-64.3797897154644},
+            "departamento":{"id":"42140","nombre":"Toay"},
+            "id":"42140020",
+            "localidad_censal":{"id":"42140020","nombre":"Toay"},
+            "municipio":{"id":"420357","nombre":"Toay"},
+            "nombre":"Toay",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-35.6390821337794,"lon":-64.3563635138327},
+            "departamento":{"id":"42147","nombre":"Trenel"},
+            "id":"42147010",
+            "localidad_censal":{"id":"42147010","nombre":"Arata"},
+            "municipio":{"id":"420035","nombre":"Arata"},
+            "nombre":"Arata",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-35.7741568643325,"lon":-63.9406318565629},
+            "departamento":{"id":"42147","nombre":"Trenel"},
+            "id":"42147020",
+            "localidad_censal":{"id":"42147020","nombre":"Metileo"},
+            "municipio":{"id":"420245","nombre":"Metileo"},
+            "nombre":"Metileo",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-35.6983285275212,"lon":-64.1332845095521},
+            "departamento":{"id":"42147","nombre":"Trenel"},
+            "id":"42147030",
+            "localidad_censal":{"id":"42147030","nombre":"Trenel"},
+            "municipio":{"id":"420371","nombre":"Trenel"},
+            "nombre":"Trenel",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-37.1218223497211,"lon":-64.5151767302443},
+            "departamento":{"id":"42154","nombre":"Utracán"},
+            "id":"42154050",
+            "localidad_censal":{"id":"42154050","nombre":"Quehué"},
+            "municipio":{"id":"420294","nombre":"Quehué"},
+            "nombre":"Quehué",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-37.0318092184739,"lon":-64.2853395982042},
+            "departamento":{"id":"42154","nombre":"Utracán"},
+            "id":"42154010",
+            "localidad_censal":{"id":"42154010","nombre":"Ataliva Roca"},
+            "municipio":{"id":"420042","nombre":"Ataliva Roca"},
+            "nombre":"Ataliva Roca",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-37.3320425414131,"lon":-65.6516236582345},
+            "departamento":{"id":"42154","nombre":"Utracán"},
+            "id":"42154020",
+            "localidad_censal":{"id":"42154020","nombre":"Chacharramendi"},
+            "municipio":{"id":"425049","nombre":"Chacharramendi"},
+            "nombre":"Chacharramendi",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-37.4947906576689,"lon":-64.2241167586505},
+            "departamento":{"id":"42154","nombre":"Utracán"},
+            "id":"42154030",
+            "localidad_censal":{"id":"42154030","nombre":"Colonia Santa María"},
+            "municipio":{"id":"425028","nombre":"Colonia Santa María"},
+            "nombre":"Colonia Santa María",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-37.3782127768943,"lon":-64.6042187341506},
+            "departamento":{"id":"42154","nombre":"Utracán"},
+            "id":"42154040",
+            "localidad_censal":{"id":"42154040","nombre":"General Acha"},
+            "municipio":{"id":"420133","nombre":"General Acha"},
+            "nombre":"General Acha",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "categoria":"Localidad simple",
+            "centroide":{"lat":-37.5441522761958,"lon":-64.3512561221003},
+            "departamento":{"id":"42154","nombre":"Utracán"},
+            "id":"42154060",
+            "localidad_censal":{"id":"42154060","nombre":"Unanué"},
+            "municipio":{"id":"425154","nombre":"Unanué"},
+            "nombre":"Unanué",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        }
+    ],
+    "parametros":{"max":100,"provincia":["42"]},
+    "total":89
+}

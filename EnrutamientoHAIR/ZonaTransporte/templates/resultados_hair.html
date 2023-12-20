@@ -1,0 +1,57 @@
+{% extends "admin/base.html" %}
+{% block title %}Proyecto Final{% endblock %}
+
+{% block branding %}
+<div id="site-name"><a href="{% url 'admin:index' %}">Transporte HAIR</a></div>
+{% if user.is_anonymous %}
+  {% include "admin/color_theme_toggle.html" %}
+{% endif %}
+{% endblock %}
+
+{% block nav-global %}{% endblock %}
+
+{%block content%}
+{% csrf_token %}
+<div class="results row" style="padding:5vh 0;">
+    <h1 style="text-align:center">Soluciones</h1>
+    <table class="result_list" style="width:100%">
+        <thead>
+            <tr>
+                <th style="text-align:center"  scope="col" class="column-nombre"> Cód. </th>
+                <th style="text-align:center"  scope="col" class="column-nombre"> Tag </th>
+                <th style="text-align:center"  scope="col" class="column-nombre"> Iteracion </th>
+                {% comment %} <th style="text-align:center"  scope="col" class="column-nombre"> Visualización </th> {% endcomment %}
+                <th style="text-align:center"  scope="col" class="column-nombre"> ¿Cliente tiene Overstock? </th>
+                <th style="text-align:center"  scope="col" class="column-nombre"> ¿Cliente tiene Stockout? </th>
+                <th style="text-align:center"  scope="col" class="column-nombre"> ¿Proveedor tiene Stockout? </th>
+                <th style="text-align:center"  scope="col" class="column-nombre"> Costo </th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for solucion in soluciones %}
+            <tr class="fila-clickeable" data-id="{{solucion.Id}}" data-content="{{solucion.Solucion}}">
+                <td style="text-align:center">{{solucion.Id}}</td>
+                <td style="text-align:center">{{solucion.Tag}}</td>
+                <td style="text-align:center">{{solucion.iteracion}}</td>
+                {% comment %} <td style="text-align:center"><a class="button"href="{% url 'versolucion' solucion.Solucion %}">Ver ruta</a></td> {% endcomment %}
+                <td style="text-align:center">{{solucion.ClienteOverstock}}</td>
+                <td style="text-align:center">{{solucion.ClienteStockout}}</td>
+                <td style="text-align:center">{{solucion.ProveedorStockout}}</td>
+                <td style="text-align:center">{{solucion.Costo}}</td>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.fila-clickeable').forEach(function(fila) {
+            fila.addEventListener('click', function() {
+                var solucion = this.getAttribute('data-content');
+                document.cookie = 'solucion=' + solucion;
+                window.location.href = "{% url 'versolucion' %}";
+            });
+        });
+    });
+</script>
+</script>
+{%endblock%}
