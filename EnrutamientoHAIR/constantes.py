@@ -26,7 +26,6 @@ class Constantes():
         self.horizon_length = 1
         self.max_iter = 10 * len(self.clientes) * len(self.clientes) * self.horizon_length * self.horizon_length + 100
         self.jump_iter = 10 * len(self.clientes) * self.horizon_length + 100
-        self.vehicle_capacity = 300
                 
     # Compute the distancia matriz
     def compute_matriz_distancia(self):
@@ -43,8 +42,9 @@ class Constantes():
     def compute_dist(self, xi, xj, yi, yj):
         return round(math.sqrt(math.pow(xi - xj, 2) + math.pow(yi - yj, 2)))
         
-    def inicializar_valores(self, horizon_length, politica_reabastecimiento, proveedor_id, clientes):
+    def inicializar_valores(self, horizon_length, politica_reabastecimiento, proveedor_id, clientes, vehiculo_cantidad):
         from entidades.models import Cliente, Proveedor
+        self.vehicle_capacity = vehiculo_cantidad
         self.horizon_length = horizon_length
         self.politica_reabastecimiento = politica_reabastecimiento
         proveedor =  Proveedor.objects.get(id = proveedor_id)
@@ -76,8 +76,7 @@ class Constantes():
         self.max_iter = 10 * len(self.clientes) * len(self.clientes) * self.horizon_length * self.horizon_length
         self.jump_iter = 10 * len(self.clientes) * self.horizon_length
         self.matriz_distancia = self.compute_matriz_distancia()
-        self.distancia_proveedor = [{c.id : self.compute_distancia_proveedor(c.coord_x,
-        c.coord_y)} for c in self.clientes]
+        self.distancia_proveedor = [{c.id : self.compute_distancia_proveedor(c.coord_x, c.coord_y)} for c in self.clientes]
 
 # Establecer la configuración de Django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "EnrutamientoHAIR.settings")

@@ -22,9 +22,20 @@
                     <option value="OU">Order up to level</option>
                 </select>
             </div>
+
             <div style="width:50%">
                 <label for="HorizonLength"><h1 style="padding:0;margin:0">Horizonte de Tiempo</h1></label><br/>
                 <input type="number" id="HorizonLength" name="HorizonLength" min="1" max="30" style="width:300px" required/>
+            </div>
+
+            <div style="width:50%">
+                <label for="vehiculo_patente"><h1 style="padding:0;margin:0">Vehículo</h1></label><br/>
+                <select id="vehiculo_patente" name="vehiculo_patente" style="width:300px" required/>
+                    <option value="" selected>-- Seleccione una opción --</option>
+                    {% for vehiculo in vehiculos %}
+                        <option value="{{vehiculo.patente}}">{{vehiculo.patente}} ({{vehiculo.capacidad}})</option>
+                    {% endfor %}
+                </select>
             </div>
         </div>
 
@@ -72,7 +83,7 @@
                     <tr>
                         {% for cliente in clientes %}
                             <tr>
-                                <td style="text-align:center"><input type="checkbox" name="clientes" value="{{ cliente.id }}" checked=True></td>
+                                <td style="text-align:center"><input type="checkbox" name="clientes" value="{{ cliente.id }}"></td>
                                 <td style="text-align:center">{{cliente.nombre}}</td>
                                 <td style="text-align:center">{{cliente.direccion}}</td>
                                 <td style="text-align:center">{{cliente.localidad}}</td>

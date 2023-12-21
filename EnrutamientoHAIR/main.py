@@ -9,10 +9,10 @@ from HAIR.modelos.tabulists import tabulists
 from constantes import constantes
 
 
-def main(horizon_length, politica_reabastecimiento, proveedor_id, clientes):
+def main(horizon_length, politica_reabastecimiento, proveedor_id, clientes, vehiculo_cantidad):
     soluciones = []
     seed(datetime.now().microsecond)
-    constantes.inicializar_valores(horizon_length, politica_reabastecimiento, proveedor_id, clientes)
+    constantes.inicializar_valores(horizon_length, politica_reabastecimiento, proveedor_id, clientes, vehiculo_cantidad)
     #Se inicializan los iteradores
     main_iterator, it_sinmejora = 0, 0
     #Se ejecuta el procedimiento inicialización, devolviendo una primera solución candidata

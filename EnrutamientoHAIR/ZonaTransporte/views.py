@@ -8,23 +8,27 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from main import main
 from entidades.models import Cliente, Proveedor
+from ZonaTransporte.models import Vehiculo
 import json
 from uuid import UUID
 
 def hair_form(request,id):
     clientes = Cliente.objects.filter(zona=id)
+    vehiculos = Vehiculo.objects.all()
     proveedor = Proveedor.objects.get(zona=id)
     request.session.pop('soluciones', None)
-    return render(request, "iniciar_hair.html", {"clientes": clientes, "proveedor":proveedor})
+    return render(request, "iniciar_hair.html", {"clientes": clientes, "proveedor":proveedor, "vehiculos":vehiculos})
 
 def resultados_hair(request):
     soluciones = request.session.get('soluciones', '{}')
+    vehiculo = Vehiculo.objects.get(patente = request.GET['vehiculo_patente'])
     if soluciones == '{}':
         soluciones = main(
             int(request.GET['HorizonLength']), 
             request.GET['PoliticaReabastecimiento'], 
             request.GET['ProveedorId'], 
-            str(request.GET.getlist('clientes'))
+            str(request.GET.getlist('clientes')),
+            int(vehiculo.capacidad)
         ) 
         request.session['soluciones'] = str(soluciones)
     else:

@@ -13,11 +13,8 @@ class Vehiculo(models.Model):
     modelo = models.CharField(max_length=50, help_text="Nombre del modelo")
     color = models.CharField(max_length=50, help_text="Color")
     capacidad = models.IntegerField(help_text="Capacidad del vehículo")
-    zona = models.ForeignKey(Zona, help_text="Asignado a Zona", on_delete=models.SET_NULL, null=True, blank=True)
     def __str__(self):
         return self.patente
-    class Meta:
-        unique_together = ('zona',)
 
 class VehiculoXZona(models.Model):
     vehiculo_id = models.ForeignKey(Vehiculo, on_delete=models.CASCADE)

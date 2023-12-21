@@ -17,15 +17,12 @@ class ZonasAdmin(admin.ModelAdmin):
     @admin.display(description= "Cantidad de clientes")
     def cant_clientes(self, zona):
         return len(Cliente.objects.filter(zona_id=zona.id))
-    @admin.display(description= "¿Tiene vehículo asignado?")
-    def tiene_vehiculo(self, zona):
-        return ('NO' if len(Vehiculo.objects.filter(zona_id=zona.id)) == 0 else 'SI') 
     search_fields = ('nombre',)
-    list_display = ['nombre','cant_clientes','cant_proveedores','tiene_vehiculo',crear_producto_individual]
+    list_display = ['nombre','cant_clientes','cant_proveedores',crear_producto_individual]
 
 class VehiculosAdmin(admin.ModelAdmin):
     search_fields = ('nombre',)
-    list_display = ['patente','marca','modelo','zona']
+    list_display = ['patente','marca','modelo']
 
 admin.site.register(Vehiculo, VehiculosAdmin)
 admin.site.register(Zona, ZonasAdmin)
