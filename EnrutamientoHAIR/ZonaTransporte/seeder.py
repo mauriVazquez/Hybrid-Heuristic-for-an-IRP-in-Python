@@ -1,6 +1,7 @@
 import os
 from random import randint
 from ZonaTransporte.models import Zona, Vehiculo
+from datetime import datetime
 from entidades.models import Cliente, Proveedor
 from faker import Faker
 
@@ -18,12 +19,6 @@ def seeder():
         nb_clientes = int(next(file_it)) - 1
         horizon_length = int(next(file_it))
         vehicle_capacity = int(next(file_it))
-        next(file_it)
-        coord_x_proveedor = float(next(file_it))
-        coord_y_proveedor = float(next(file_it))
-        nivel_almacenamiento_proveedor = int(next(file_it))
-        nivel_produccion_proveedor = int(next(file_it))
-        costo_almacenamiento_proveedor = float(next(file_it))
 
         zonas = Zona.objects.filter(nombre=archivo)
         if not zonas.exists():
@@ -34,13 +29,16 @@ def seeder():
        
         vehiculo = Vehiculo.objects.filter(capacidad = vehicle_capacity)
         if not vehiculo.exists():
+            #Almaceno el año para su posterior uso
             random_selected = randint(0,len(marcamodelo)-1)
             Vehiculo.objects.create(
-                patente = 'AG'+str(randint(100,999))+'PY',
+                patente = archivo,
                 marca = marcamodelo[random_selected][0],
-                modelo = marcamodelo[random_selected][1],
+                nombre_modelo = marcamodelo[random_selected][1],
+                anio = datetime.now().year,
                 color = 'Blanco',
-                capacidad = vehicle_capacity
+                capacidad = vehicle_capacity,
+                zona = zona
             )
         # # Verificar si la ruta corresponde a un archivo
         # if os.path.isfile(ruta_completa):
