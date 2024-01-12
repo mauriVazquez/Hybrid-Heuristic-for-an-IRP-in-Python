@@ -1,4 +1,4 @@
-{% extends "admin/base.html" %}
+{% extends "admin/base_site.html" %}
 {% block title %}Proyecto Final{% endblock %}
 
 {% block branding %}
@@ -13,6 +13,13 @@
 {%block content%}
 <h1>Mi Página con Gráfico</h1>
 {% for imagen_base64 in imagenes_base64 %}
-  <img width="33%" src="data:image/png;base64,{{ imagen_base64 }}" alt="T">
+  <img width="100%" src="data:image/png;base64,{{ imagen_base64 }}" alt="T">
 {%endfor%}
+{%block actions%}
+  <form method="post" action="{% url 'guardar_ruta' %}">
+    {% csrf_token %}
+    <input name="solucion" id="solucion">{{solucion}}</input>
+    <button type="submit">Guardar Solución</button>
+  </form>
+{%endblock%}
 {%endblock%}

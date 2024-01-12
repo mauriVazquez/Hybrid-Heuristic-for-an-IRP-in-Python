@@ -40,7 +40,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'entidades',
     'ZonaTransporte',
-    'localidades'
+    'localidades',
+    'soluciones'
 ]
 
 MIDDLEWARE = [

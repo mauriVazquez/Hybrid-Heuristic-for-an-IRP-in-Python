@@ -24,8 +24,8 @@ class Constantes():
         self.proveedor = []
         self.clientes = []
         self.horizon_length = 1
-        self.max_iter = 10 * len(self.clientes) * len(self.clientes) * self.horizon_length * self.horizon_length + 100
-        self.jump_iter = 10 * len(self.clientes) * self.horizon_length + 100
+        self.max_iter = 200 * len(self.clientes) 
+        self.jump_iter = 100 * len(self.clientes)
                 
     # Compute the distancia matriz
     def compute_matriz_distancia(self):

@@ -16,11 +16,12 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from ZonaTransporte import views
+from . import views
+
 urlpatterns = [
     path('admin/hair/results', views.resultados_hair, name='resultados_hair'),
     path('admin/hair/results/solucion', views.solucion_viewer, name='versolucion'),
     path('admin/hair/<str:id>/execute', views.hair_form, name='hair_form'),
+    path('admin/hair/guardar_ruta', views.guardar_ruta, name='guardar_ruta'),
     path('admin/', admin.site.urls),
-
 ]
