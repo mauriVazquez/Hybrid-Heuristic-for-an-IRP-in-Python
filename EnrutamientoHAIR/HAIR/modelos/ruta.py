@@ -208,4 +208,4 @@ class Ruta():
         Retorna
         - str: json con información de la ruta.
         """
-        return {"clientes":{str(c.id) for c in self.clientes},"cantidades":{c for c in self.cantidades}}
+        return {"clientes":{str(c.id) for c in self.clientes},"cantidades":{c for c in self.cantidades},"costo":self.obtener_costo()}

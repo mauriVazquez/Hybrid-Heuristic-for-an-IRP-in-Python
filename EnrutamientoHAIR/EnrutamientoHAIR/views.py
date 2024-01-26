@@ -5,8 +5,10 @@ from io import BytesIO
 from django.shortcuts import render
 from main import main
 from entidades.models import Cliente, Proveedor
+from soluciones.models import Solucion, Ruta, Visita
 from ZonaTransporte.models import Vehiculo
 from django.http import JsonResponse
+from datetime import datetime
 matplotlib.use('agg')
 
 def hair_form(request,id):
@@ -19,61 +21,119 @@ def hair_form(request,id):
 def resultados_hair(request):
     soluciones = request.session.get('soluciones', '{}')
     vehiculo = Vehiculo.objects.get(patente = request.GET['vehiculo_patente'])
+    horizon_length = int(request.GET['HorizonLength'])
+    politica_reabastecimiento = request.GET['PoliticaReabastecimiento']
+    proveedor_id = request.GET['ProveedorId']
     if soluciones == '{}':
         soluciones = main(
-            int(request.GET['HorizonLength']), 
-            request.GET['PoliticaReabastecimiento'], 
-            request.GET['ProveedorId'], 
+            horizon_length, 
+            politica_reabastecimiento,
+            proveedor_id,
             str(request.GET.getlist('clientes')),
             int(vehiculo.capacidad)
         ) 
         request.session['soluciones'] = str(soluciones)
     else:
         soluciones = eval(soluciones)
-    return render(request, "resultados_hair.html", {"soluciones":soluciones})
+    return render(request, "resultados_hair.html", 
+        {
+            "soluciones":soluciones, 
+            "politica_reabastecimiento":politica_reabastecimiento,
+            "horizon_length":horizon_length, 
+            "patente_vehiculo":vehiculo.patente
+        }
+    )
 
 
 def solucion_viewer(request):
     solucion = request.POST['solucion']
     solucion_dict = eval(solucion)
     solucion = solucion_dict['Solucion']
-    
-    # descripcion = []
-    descripcion = " <table class=' w-full'>"
-    descripcion +="     <tr class='bg-white'><td class='font-mono font-medium text-xs leading-6 text-sky-500'>Cliente Stockout</td><td class='font-mono text-xs leading-6 text-indigo-600 whitespace-pre text-center'>" + ("SI" if solucion_dict['ClienteStockout'] else "NO") +"</td></tr>"
-    descripcion +="     <tr class='bg-white'><td class='font-mono font-medium text-xs leading-6 text-sky-500'>Cliente Overstock</td><td class='font-mono text-xs leading-6 text-indigo-600 whitespace-pre text-center'>" + ("SI" if solucion_dict['ClienteOverstock'] else "NO") +"</td></tr>"
-    descripcion +="     <tr class='bg-white'><td class='font-mono font-medium text-xs leading-6 text-sky-500'>Proveedor Stockout</td><td class='font-mono text-xs leading-6 text-indigo-600 whitespace-pre text-center'>" + ("SI" if solucion_dict['ProveedorStockout'] else "NO") +"</td></tr>"
-    descripcion +="     <tr class='bg-white'><td class='font-mono font-medium text-xs leading-6 text-sky-500'>Costo de Solución</td><td class='font-mono text-xs leading-6 text-indigo-600 whitespace-pre text-center'>"+str(solucion_dict['Costo'])+"</td></tr>"
-    descripcion +="     <tr class='bg-white'><td class='font-mono font-medium text-xs leading-6 text-sky-500'>Etiqueta</td><td class='font-mono text-xs leading-6 text-indigo-600 whitespace-pre text-center'>"+str(solucion_dict['Tag'])+"</td></tr>"
-    descripcion +="     <tr class='bg-white'><td class='font-mono font-medium text-xs leading-6 text-sky-500'>Iteración</td><td class='font-mono text-xs leading-6 text-indigo-600 whitespace-pre text-center'>"+str(solucion_dict['iteracion'])+"</td></tr>"
-    descripcion += "</table>"
-    # descripcion += solucion.Solucion
-
-
-    proveedor_id = solucion['proveedor_id']
     rutas = solucion['rutas']
+    print(rutas)
     imagenes_base64 = []
-    proveedor = Proveedor.objects.get(id = proveedor_id)
-    for i in range(len(rutas)):
-        x = [proveedor.coord_x]+[Cliente.objects.get(id = cliente).coord_x for cliente in rutas[i]['clientes']] + [proveedor.coord_x]
-        y = [proveedor.coord_y]+[Cliente.objects.get(id = cliente).coord_y for cliente in rutas[i]['clientes']] + [proveedor.coord_y]
-        
+    bbox_props = dict(boxstyle='round', facecolor='lightgray', alpha=0.95)
+
+    #Descripcion tabular
+    linea = "<tr class='bg-white'><td class='font-mono font-medium text-xs leading-6 text-sky-500'>{}</td><td class='font-mono text-xs leading-6 text-indigo-600 whitespace-pre text-center'>{}</td></tr>"
+    descripcion = " <table class='w-full'>"
+    descripcion += linea.format("Cliente Stockout", ("SI" if solucion_dict['ClienteStockout'] else "NO") )
+    descripcion += linea.format("Cliente Overstock", ("SI" if solucion_dict['ClienteOverstock'] else "NO") )
+    descripcion += linea.format("Proveedor Stockout", ("SI" if solucion_dict['ProveedorStockout'] else "NO") )
+    descripcion += linea.format("Costo de Solución", str(solucion_dict['Costo']))
+    descripcion += linea.format("Etiqueta", str(solucion_dict['Tag']))
+    descripcion += linea.format("Iteración", str(solucion_dict['iteracion']))
+    descripcion += "</table>"
+
+
+    # Defino un conjunto de todos clientes presentes en la solución, sin duplicar
+    todos_los_clientes = []
+    for datos in solucion['rutas'].values():
+        if datos['clientes'] not in todos_los_clientes:
+            todos_los_clientes += datos['clientes']
+    
+    #Leo el proveedor 
+    proveedor = Proveedor.objects.get(id = solucion['proveedor_id'])
+
+    for t in range(len(rutas)):
+        info = ""
+        x,y = [],[]
+        # Marco el proveedor
+        plt.plot(proveedor.coord_x, proveedor.coord_y, color='green', linewidth = 3, marker='*', markersize=24)
+
+        #Marco los clientes
+        for index, cliente_id in enumerate(rutas[t]['clientes']):
+            cliente = Cliente.objects.get(id = cliente_id)
+            print(rutas[t]['cantidades'])
+            plt.text(cliente.coord_x, cliente.coord_y, "{}".format(index+1), fontsize=16, bbox=bbox_props, color='red', ha='center', va='center')
+            x += [cliente.coord_x]
+            y += [cliente.coord_y]
+            info += '<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>'.format(index+1, cliente.nombre,cliente.direccion, list(rutas[t]['cantidades'])[index])
+
+        x = [proveedor.coord_x] + x + [proveedor.coord_x] 
+        y = [proveedor.coord_y] + y + [proveedor.coord_y]
+    
+    
         plt.plot(x, y)
-        plt.title('Tiempo {}'.format(i+1))
+        plt.title('Tiempo {}'.format(t+1))
         plt.xticks([])
         plt.yticks([])
-
+        margen = 25
+        plt.xlim(min(x) - margen, max(x) + margen)
+        plt.ylim(min(y) - margen, max(y) + margen)
         # Guardar el gráfico en un BytesIO para luego convertirlo a base64 
         buffer = BytesIO()
         plt.savefig(buffer, format='jpg')
         plt.close()
 
         # Convertir el gráfico a base64 
-        imagen = '<img width="100%" src="data:image/png;base64,'+base64.b64encode(buffer.getvalue()).decode('utf-8')+'" alt="T">'
+        imagen = '<div class="flex flex-wrap w-1/2">'
+        imagen += ' <div class="border-solid border-2 border-sky-200">'
+        imagen += '     <img class="w-full" src="data:image/png;base64,'+base64.b64encode(buffer.getvalue()).decode('utf-8')+'" alt="T">'
+        imagen += '     <table class="w-full"><thead><th>Ref</th><th class="w-5/12">Cliente</th><th class="w-5/12">Direccion</th><th>Cantidad</th></thead><tbody>{}</tbody></table>'.format(info)
+        imagen += ' </div>'
+        imagen += '</div>'
         imagenes_base64.append(imagen)
     return JsonResponse({'descripcion': descripcion, 'imagenes': imagenes_base64}, status=200)
 
 
 def guardar_ruta(request):
-    solucion = request.POST['solucion'].proveedor_id
-    return render(request, 'ruta_guardada.html', {'solucion':solucion})
+    solucion = request.POST['selected_solution']
+    solucion_dict = eval(solucion)
+    politica_reabastecimiento = request.POST['politica_reabastecimiento']
+    vehiculo = Vehiculo.objects.get(patente = request.POST['patente_vehiculo'])
+    solucion_nueva = Solucion.objects.create(
+        vehiculo = vehiculo,
+        politica_reabastecimiento = politica_reabastecimiento,
+        estado = 0,
+        costo = solucion_dict['Costo']
+    )
+    
+    rutas = solucion_dict['Solucion']['rutas']
+    for index, ruta in rutas.items(): 
+        Ruta.objects.create(
+            fecha = datetime.now(),
+            costo = ruta['costo'],
+            solucion = solucion_nueva
+        )
+    return render(request, 'ruta_guardada.html')

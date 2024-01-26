@@ -10,36 +10,47 @@
 
 {% block nav-global %}{% endblock %}
 {%block content%}
-    <div class="flex w-screen">
-        <div class="w-8/12">
-            <h1 class="w-full text-center pb-1.5">Soluciones</h1>
-            <table class="w-full" id="miTabla">
-                <thead>
-                    <tr>
-                        <th style="text-align:center"  scope="col" class="column-nombre"> Cód. </th>
-                        <th style="text-align:center"  scope="col" class="column-nombre"> Descripción </th>
-                        <th style="text-align:center"  scope="col" class="column-nombre"> Iteracion </th>
-                        <th style="text-align:center"  scope="col" class="column-nombre"> Costo </th>
-                    </tr>
-                </thead>
-                <tbody>
+    <div class="w-screen">
+        <div class="w-11/12 flex">
+
+            <div class="w-3/12">
+                <label id="listbox-label" class="block text-sm font-medium leading-6 text-gray-900">Soluciones</label>
+                <div class="relative mt-2">
+                  <ul class="z-10  overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm" id="miTabla" tabindex="-1" role="listbox" aria-labelledby="listbox-label" aria-activedescendant="listbox-option-3">
                     {% for solucion in soluciones %}
-                    <tr class="fila-clickeable" data-id="{{solucion.Id}}" data-content="{{solucion}}">
-                        <td style="text-align:center">{{solucion.Id}}</td>
-                        <td style="text-align:center">{{solucion.Tag}}</td>
-                        <td style="text-align:center">{{solucion.iteracion}}</td>
-                        <td style="text-align:center">{{solucion.Costo}}</td>
+                    <li class="text-gray-900 relative cursor-default select-none py-2 pl-3 pr-9 hover:bg-sky-200 fila-clickeable" data-id="{{solucion.Id}}" data-content="{{solucion}}" id="listbox-option-0" role="option">
+                      <div class="flex ">
+                        <b class="p-3">#{{solucion.Id}}</b>
+                        <span>
+                            <p class="mt-1 text-gray-600">Costo: {{solucion.Costo}}</p>
+                            <small class="font-semibold text-gray-900">
+                                {{solucion.Tag}} - Iteración {{solucion.iteracion}}
+                            </small>
+                        </span>
+                      </div>
+                    </li>
                     {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        <div class="w-4/12 ">
-            <h1 class=" text-center pb-1.5">GRAPH</h1>
-            <div id="graph_desc" class="w-2/3 mx-auto">
+                  </ul>
+                </div>
             </div>
-            <div id="graph_imagenes" class="w-2/3 mx-auto">
+
+              
+            <div class="w-9/12 mx-10">
+                <label id="listbox-label" class="block text-sm font-medium leading-6 text-gray-900">Vista Previa</label>
+                <div id="graph_desc">
+                </div>
+                <div id="graph_imagenes" class="flex flex-wrap">
+                </div>
+                <form method="post" action="{% url 'guardar_ruta' %}" class="w-full grid bg-red-200 justify-items-center">
+                    {% csrf_token %}    
+                    <input name="politica_reabastecimiento" id="politica_reabastecimiento" value="{{politica_reabastecimiento}}"/>
+                    <input name="horizon_length" id="horizon_length" value="{{horizon_length}}"/>
+                    <input name="patente_vehiculo" id="patente_vehiculo" value="{{patente_vehiculo}}"/>
+                    <input name="selected_solution" id="selected_solution" value="{{solucion}}"/>
+                    <button class="bg-sky-900 rounded-xl text-white px-4 py-2"type="submit">Guardar Solución</button>
+                </form>
             </div>
-        </div>
+           
     </div>
 
     <script>
@@ -59,16 +70,17 @@
             return cookieValue;
         }
 
+
         // Obtener la tabla y sus filas
         var tabla = document.getElementById("miTabla");
-        var filas = tabla.getElementsByTagName("tr");
-
+        var filas = tabla.getElementsByTagName("li");
         // Agregar un evento de clic a cada fila
         for (var i = 0; i < filas.length; i++) {
             filas[i].addEventListener("click", function() {
                 // Acción que se ejecutará al hacer clic en una fila
                 var dataContent = this.getAttribute("data-content");
                 const csrftoken = getCookie('csrftoken');
+                $('#selected_solution').val(dataContent);
                 $.ajax({
                     url:  "{% url 'versolucion' %}",
                     type: "POST",
@@ -77,7 +89,7 @@
                     mode: 'same-origin',
                     success: function(response) {
                         $('#graph_desc').html(response.descripcion);
-                        $('#graph_imagenes').html(response.imagenes);
+                        $('#graph_imagenes').html(response.imagenes); 
                     },
                     error: function(error) {
                         console.log(error);
