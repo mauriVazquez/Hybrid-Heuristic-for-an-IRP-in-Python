@@ -7,7 +7,7 @@ from django.utils.html import format_html
 class ZonasAdmin(admin.ModelAdmin):
     @admin.display(description= "")
     def iniciar_hair(self):
-        url = reverse('ZonaTransporte:hair_form', args=[self.id])
+        url = reverse('hair_form', args=[self.id])
         return format_html('<a class="button" href="{}">Ejecutar</a>', url)
     @admin.display(description= "Cantidad de proveedores")
     def cant_proveedores(self, zona):

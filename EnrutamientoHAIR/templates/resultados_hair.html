@@ -41,7 +41,7 @@
                 </div>
                 <div id="graph_imagenes" class="flex flex-wrap">
                 </div>
-                <form method="post" action="{% url 'ZonaTransporte:guardar_ruta' %}" class="w-full grid bg-red-200 justify-items-center">
+                <form method="post" action="{% url 'guardar_ruta' %}" class="w-full grid bg-red-200 justify-items-center">
                     {% csrf_token %}    
                     <input name="politica_reabastecimiento" id="politica_reabastecimiento" value="{{politica_reabastecimiento}}"/>
                     <input name="horizon_length" id="horizon_length" value="{{horizon_length}}"/>
@@ -82,7 +82,7 @@
                 const csrftoken = getCookie('csrftoken');
                 $('#selected_solution').val(dataContent);
                 $.ajax({
-                    url:  "{% url 'ZonaTransporte:versolucion' %}",
+                    url:  "{% url 'versolucion' %}",
                     type: "POST",
                     data: {solucion: dataContent}, 
                     headers: {'X-CSRFToken': csrftoken},
