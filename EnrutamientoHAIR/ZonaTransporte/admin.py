@@ -1,15 +1,14 @@
 from django.contrib import admin
 from ZonaTransporte.models import Vehiculo, Zona
 from entidades.models import Cliente, Proveedor
-from django.shortcuts import render
-from ZonaTransporte.forms import NameForm
-from . import models 
-from django.utils.safestring import mark_safe
+from django.urls import reverse
+from django.utils.html import format_html
 
 class ZonasAdmin(admin.ModelAdmin):
     @admin.display(description= "")
-    def crear_producto_individual(self):
-         return mark_safe('<a class="button" href="{0}">Ejecutar</a>'.format('/admin/hair/{0}/execute'.format(self.id)))
+    def iniciar_hair(self):
+        url = reverse('ZonaTransporte:hair_form', args=[self.id])
+        return format_html('<a class="button" href="{}">Ejecutar</a>', url)
     @admin.display(description= "Cantidad de proveedores")
     def cant_proveedores(self, zona):
         return len(Proveedor.objects.filter(zona=zona.id))
@@ -17,7 +16,7 @@ class ZonasAdmin(admin.ModelAdmin):
     def cant_clientes(self, zona):
         return len(Cliente.objects.filter(zona=zona.id))
     search_fields = ('nombre',)
-    list_display = ['nombre','cant_clientes','cant_proveedores',crear_producto_individual]
+    list_display = ['nombre','cant_clientes','cant_proveedores',iniciar_hair]
 
 class VehiculosAdmin(admin.ModelAdmin):
     search_fields = ('nombre',)

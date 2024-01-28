@@ -26,4 +26,4 @@ class Visita(models.Model):
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
     orden = models.IntegerField(help_text="Orden de entrega")
     cantidad = models.IntegerField(help_text="Cantidad entregada")
-    realizada = models.DateTimeField(help_text="Fecha y hora de visita")
+    realizada = models.DateTimeField(help_text="Fecha y hora de visita", null=True)

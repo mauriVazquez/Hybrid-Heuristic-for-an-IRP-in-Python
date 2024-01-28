@@ -11,7 +11,7 @@
 {% block nav-global %}{% endblock %}
 
 {%block content%}
-    <form action="/admin/hair/results" method="get">
+    <form action="{%url 'ZonaTransporte:resultados_hair'%}" method="get">
         {% csrf_token %}
         <div style="display:flex; width:100%">
             <div style="width:50%">
