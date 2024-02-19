@@ -1,5 +1,5 @@
 import math
-from constantes import constantes
+from entidades_manager import EntidadesManager
 from random import randint
 
 def obtener_ttl() -> int:
@@ -10,10 +10,10 @@ def obtener_ttl() -> int:
     - int: Tiempo de vida aleatorio.
     """
    
-    lambda_ttl = constantes.lambda_ttl
-    cant_clientes = len(constantes.clientes)
-    horizon_len = constantes.horizon_length
-    return constantes.taboo_len + randint(0, math.floor(lambda_ttl * math.sqrt(cant_clientes * horizon_len)))
+    lambda_ttl = EntidadesManager.obtener_parametros().lambda_ttl
+    cant_clientes = len(EntidadesManager.obtener_clientes())
+    horizon_len = EntidadesManager.obtener_parametros().horizon_length
+    return EntidadesManager.obtener_parametros().taboo_len + randint(0, math.floor(lambda_ttl * math.sqrt(cant_clientes * horizon_len)))
 
 class TabuLists:
     @staticmethod
@@ -83,7 +83,7 @@ class TabuLists:
         - solucion_prima: Solución vecina.
         - main_iterator: Iterador principal del algoritmo.
         """
-        for cliente in constantes.clientes:
+        for cliente in EntidadesManager.obtener_clientes():
             conjuntoT_s = solucion.T(cliente)
             conjuntoT_sprima = solucion_prima.T(cliente)
             self._agregar_a_lista_a(cliente, conjuntoT_s, conjuntoT_sprima, main_iterator)

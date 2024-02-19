@@ -1,4 +1,4 @@
-from constantes import constantes
+from entidades_manager import EntidadesManager
 
 class BaseAlphaBeta:
     """
@@ -43,7 +43,7 @@ class BaseAlphaBeta:
         self.no_factibles_contador += 1
         self.factibles_contador = 0
         if self.no_factibles_contador == 10:
-            if self.value <= constantes.penalty_factor_min:
+            if self.value <= EntidadesManager.obtener_parametros().penalty_factor_min:
                 self.actualizar(2)
             self.no_factibles_contador = 0
 
@@ -54,7 +54,7 @@ class BaseAlphaBeta:
         self.factibles_contador += 1
         self.no_factibles_contador = 0
         if self.factibles_contador == 10:
-            if self.value >= constantes.penalty_factor_min:
+            if self.value >= EntidadesManager.obtener_parametros().penalty_factor_min:
                 self.actualizar(1/2)
             self.factibles_contador = 0
 

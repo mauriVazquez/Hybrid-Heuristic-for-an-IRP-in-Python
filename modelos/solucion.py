@@ -1,6 +1,6 @@
 from graph import Graph
 from modelos.ruta import Ruta
-from constantes import constantes
+from entidades_manager import EntidadesManager
 from typing import Type
 from modelos.penalty_variables import alpha, beta
 from modelos.tabulists import tabulists
@@ -13,7 +13,7 @@ def LK(solucion: Type["Solucion"], solucion_prima: Type["Solucion"]) -> Type["So
     aux_solucion = solucion.clonar()
     if solucion != solucion_prima:
         aux_solucion = solucion_prima.clonar()
-        for tiempo in range(constantes.horizon_length):
+        for tiempo in range(EntidadesManager.obtener_parametros().horizon_length):
             tamano_matriz = len(solucion_prima.rutas[tiempo].clientes)+1
             matriz =  [[0] * tamano_matriz for _ in range(tamano_matriz)]
 
@@ -25,7 +25,7 @@ def LK(solucion: Type["Solucion"], solucion_prima: Type["Solucion"]) -> Type["So
             # Clientes distancias
             for indice, c in enumerate(solucion_prima.rutas[tiempo].clientes):
                 for indice2, c2 in enumerate(solucion_prima.rutas[tiempo].clientes):
-                    matriz[indice+1][indice2+1] = constantes.matriz_distancia[c.id][c2.id]
+                    matriz[indice+1][indice2+1] = EntidadesManager.obtener_matriz_clientes()[c.id][c2.id]
 
             # Make an instance with all nodes
             TSP.setEdges(matriz)
@@ -41,12 +41,12 @@ def LK(solucion: Type["Solucion"], solucion_prima: Type["Solucion"]) -> Type["So
 class Solucion():
     @staticmethod
     def obtener_empty_solucion() -> Type["Solucion"]:
-        return Solucion([Ruta(ruta[0], ruta[1]) for ruta in [[[], []] for _ in range(constantes.horizon_length)]])
+        return Solucion([Ruta(ruta[0], ruta[1]) for ruta in [[[], []] for _ in range(EntidadesManager.obtener_parametros().horizon_length)]])
 
     @staticmethod
     def inicializar():
         solucion = Solucion.obtener_empty_solucion()
-        for cliente in constantes.clientes:
+        for cliente in EntidadesManager.obtener_clientes():
             nivel_inicial, nivel_demanda = cliente.nivel_inicial, cliente.nivel_demanda
             min_nivel, max_nivel = cliente.min_nivel, cliente.max_nivel
             #Se calcula el tiempo en que sucederá el primer stockout, y la frecuencia del mismo.
@@ -57,14 +57,14 @@ class Solucion():
                     max_nivel - (nivel_inicial - nivel_demanda * (tiempo_stockout+1)),
                     len(solucion.rutas[tiempo_stockout].clientes))
             #Se calculan todos los tiempos dentro del horizonte donde ocurrirá el stockout y se agrega la visita.
-            for t in range(tiempo_stockout+stockout_frequency, constantes.horizon_length, stockout_frequency):
+            for t in range(tiempo_stockout+stockout_frequency, EntidadesManager.obtener_parametros().horizon_length, stockout_frequency):
                 solucion.rutas[t].insertar_visita(cliente, max_nivel, len(solucion.rutas[t].clientes))
         solucion.refrescar()
         print(f"Inicio {solucion}")
         return solucion
     
     def __init__(self,  rutas: list[Ruta] = None) -> None:
-        self.rutas = rutas if rutas else [Ruta for _ in range(constantes.horizon_length)]
+        self.rutas = rutas if rutas else [Ruta for _ in range(EntidadesManager.obtener_parametros().horizon_length)]
         self.costo = self.funcion_objetivo()
         
     def __str__(self) -> str:
@@ -96,39 +96,39 @@ class Solucion():
 
     def cliente_tiene_stockout(self) -> bool:
         return any(self.obtener_niveles_inventario_cliente(cliente)[tiempo] < 0
-                   for cliente in constantes.clientes
-                   for tiempo in range(constantes.horizon_length+1))
+                   for cliente in EntidadesManager.obtener_clientes()
+                   for tiempo in range(EntidadesManager.obtener_parametros().horizon_length+1))
 
     def cliente_tiene_overstock(self) -> bool:
         return any(self.obtener_niveles_inventario_cliente(cliente)[tiempo] > cliente.max_nivel
-                   for cliente in constantes.clientes
-                   for tiempo in range(constantes.horizon_length))
+                   for cliente in EntidadesManager.obtener_clientes()
+                   for tiempo in range(EntidadesManager.obtener_parametros().horizon_length))
     
     def proveedor_tiene_stockout(self) -> bool:
         return any(nivel_inventario < 0 for nivel_inventario in self.obtener_niveles_inventario_proveedor())
     
     def obtener_niveles_inventario_proveedor(self):
-        return [self.B(t) for t in range(constantes.horizon_length+1)]
+        return [self.B(t) for t in range(EntidadesManager.obtener_parametros().horizon_length+1)]
      
     def B(self, t):
         return (
-            self.B(t-1) + constantes.proveedor.nivel_produccion - self.rutas[t-1].obtener_total_entregado()
+            self.B(t-1) + EntidadesManager.obtener_proveedor().nivel_produccion - self.rutas[t-1].obtener_total_entregado()
             if t > 0
-            else constantes.proveedor.nivel_inicial
+            else EntidadesManager.obtener_proveedor().nivel_inicial
         )
     
     def obtener_niveles_inventario_cliente(self, cliente):
         cliente_inventario = [cliente.nivel_inicial]
-        for tiempo in range(1, constantes.horizon_length +1):
+        for tiempo in range(1, EntidadesManager.obtener_parametros().horizon_length +1):
             cliente_inventario.append(cliente_inventario[tiempo-1] + self.rutas[tiempo-1].obtener_cantidad_entregada(cliente) - cliente.nivel_demanda)          
         return cliente_inventario
            
     def obtener_niveles_inventario_clientes(self):
-        return {cliente.id:self.obtener_niveles_inventario_cliente(cliente) for cliente in constantes.clientes}
+        return {cliente.id:self.obtener_niveles_inventario_cliente(cliente) for cliente in EntidadesManager.obtener_clientes()}
 
     # Retorna the set of tiempos when is visitado a cliente in a given solucion.
     def T(self, cliente):
-        return [tiempo for tiempo in range(constantes.horizon_length) if self.rutas[tiempo].es_visitado(cliente)]
+        return [tiempo for tiempo in range(EntidadesManager.obtener_parametros().horizon_length) if self.rutas[tiempo].es_visitado(cliente)]
     
     def mover(self) -> Type["Solucion"]:
         return min(self.neighborhood(), key=lambda neighbor: neighbor.costo, default=self.clonar())
@@ -230,32 +230,32 @@ class Solucion():
         proveedor_nivel_inventario = self.obtener_niveles_inventario_proveedor()
     
         # First term (costo_almacenamiento)
-        costo_almacenamiento = sum(proveedor_nivel_inventario) * constantes.proveedor.costo_almacenamiento
+        costo_almacenamiento = sum(proveedor_nivel_inventario) * EntidadesManager.obtener_proveedor().costo_almacenamiento
         costo_almacenamiento += sum(cliente.costo_almacenamiento * self.obtener_niveles_inventario_cliente(cliente)[tiempo]  
-                for tiempo in range(constantes.horizon_length + 1)
-                for cliente in constantes.clientes)
+                for tiempo in range(EntidadesManager.obtener_parametros().horizon_length + 1)
+                for cliente in EntidadesManager.obtener_clientes())
             
         # Second term (costo_transporte)
-        costo_transporte = sum(self.rutas[tiempo].obtener_costo() for tiempo in range(constantes.horizon_length))
+        costo_transporte = sum(self.rutas[tiempo].obtener_costo() for tiempo in range(EntidadesManager.obtener_parametros().horizon_length))
 
         # Third term (penalty 1)
-        penalty1 = sum(max(0,self.rutas[tiempo].obtener_total_entregado() - constantes.vehicle_capacity) 
-                       for tiempo in range(constantes.horizon_length)) * alpha.obtener_valor() 
+        penalty1 = sum(max(0,self.rutas[tiempo].obtener_total_entregado() - EntidadesManager.obtener_vehiculo().capacidad) 
+                       for tiempo in range(EntidadesManager.obtener_parametros().horizon_length)) * alpha.obtener_valor() 
         
         # Fourth term
         penalty2 = sum(max(0, -proveedor_nivel_inventario[tiempo]) 
-                       for tiempo in range(constantes.horizon_length+1)) * beta.obtener_valor()
+                       for tiempo in range(EntidadesManager.obtener_parametros().horizon_length+1)) * beta.obtener_valor()
        
         return costo_almacenamiento + costo_transporte + penalty1 + penalty2
 
     def remover_visita(self, cliente, tiempo):
         cantidad_eliminado = self.rutas[tiempo].remover_visita(cliente)
-        if constantes.politica_reabastecimiento == "OU":
-            for t in range(tiempo + 1, constantes.horizon_length):
+        if EntidadesManager.obtener_parametros().politica_reabastecimiento == "OU":
+            for t in range(tiempo + 1, EntidadesManager.obtener_parametros().horizon_length):
                 if self.rutas[t].es_visitado(cliente):
                     self.rutas[t].agregar_cantidad_cliente(cliente, cantidad_eliminado)
                     break
-        elif constantes.politica_reabastecimiento == "ML":
+        elif EntidadesManager.obtener_parametros().politica_reabastecimiento == "ML":
             if self.cliente_tiene_stockout():
                 for tinverso in range(tiempo):
                     t2 = tiempo - tinverso
@@ -266,17 +266,17 @@ class Solucion():
         self.refrescar()
 
     def insertar_visita(self, cliente, tiempo):
-        if constantes.politica_reabastecimiento == "OU":
+        if EntidadesManager.obtener_parametros().politica_reabastecimiento == "OU":
             cantidad_delivered = cliente.max_nivel - self.obtener_niveles_inventario_cliente(cliente)[tiempo]
             self.rutas[tiempo].insertar_visita(cliente, cantidad_delivered, None)
-            for t in range(tiempo + 1, constantes.horizon_length):
+            for t in range(tiempo + 1, EntidadesManager.obtener_parametros().horizon_length):
                 if self.rutas[t].es_visitado(cliente):
                     self.rutas[t].quitar_cantidad_cliente(cliente, cantidad_delivered)
                     break
-        elif constantes.politica_reabastecimiento == "ML":
+        elif EntidadesManager.obtener_parametros().politica_reabastecimiento == "ML":
             cantidad_delivered = min(
                 cliente.max_nivel - self.obtener_niveles_inventario_cliente(cliente)[tiempo],
-                constantes.vehicle_capacity - self.rutas[tiempo].obtener_total_entregado(),
+                EntidadesManager.obtener_vehiculo().capacidad - self.rutas[tiempo].obtener_total_entregado(),
                 self.B(tiempo)
             )
             cantidad_delivered = cantidad_delivered if cantidad_delivered > 0 else cliente.nivel_demanda
@@ -285,14 +285,14 @@ class Solucion():
 
     def variante_eliminacion(self) -> list[Type["Solucion"]]:
         neighborhood_prima = []
-        for cliente in constantes.clientes:
+        for cliente in EntidadesManager.obtener_clientes():
             # La eliminación del cliente parece ser interesante cuando hi>h0
-            if cliente.costo_almacenamiento > constantes.proveedor.costo_almacenamiento:
-                for tiempo in range(constantes.horizon_length):
+            if cliente.costo_almacenamiento > EntidadesManager.obtener_proveedor().costo_almacenamiento:
+                for tiempo in range(EntidadesManager.obtener_parametros().horizon_length):
                     solucion_copy = self.clonar()
                     if (solucion_copy.rutas[tiempo].es_visitado(cliente)):
                         solucion_copy.remover_visita(cliente, tiempo)
-                        if solucion_copy.es_admisible() and (not tabulists.esta_prohibido_quitar(cliente.id, tiempo)):# or solucion_copy.costo < constantes.multiplicador_tolerancia * self.costo):
+                        if solucion_copy.es_admisible() and (not tabulists.esta_prohibido_quitar(cliente.id, tiempo)):# or solucion_copy.costo < EntidadesManager.obtener_parametros().multiplicador_tolerancia * self.costo):
                             solution_append = solucion_copy.clonar()
                             solution_append.refrescar()
                             neighborhood_prima.append(solution_append)
@@ -300,12 +300,12 @@ class Solucion():
 
     def variante_insercion(self) -> list[Type["Solucion"]]:
         neighborhood_prima = []
-        for cliente in constantes.clientes:
-            for tiempo in range(constantes.horizon_length):
+        for cliente in EntidadesManager.obtener_clientes():
+            for tiempo in range(EntidadesManager.obtener_parametros().horizon_length):
                 solucion_copy = self.clonar()
                 if (not solucion_copy.rutas[tiempo].es_visitado(cliente)):
                     solucion_copy.insertar_visita(cliente, tiempo)
-                    if solucion_copy.es_admisible() and (not tabulists.esta_prohibido_agregar(cliente, tiempo) ):#or solucion_copy.costo < constantes.multiplicador_tolerancia * self.costo):
+                    if solucion_copy.es_admisible() and (not tabulists.esta_prohibido_agregar(cliente, tiempo) ):#or solucion_copy.costo < EntidadesManager.obtener_parametros().multiplicador_tolerancia * self.costo):
                         solution_append = solucion_copy.clonar()
                         solution_append.refrescar()
                         neighborhood_prima.append(solution_append)
@@ -313,9 +313,9 @@ class Solucion():
 
     def variante_mover_visita(self) -> list[Type["Solucion"]]:
         neighborhood_prima = []
-        for cliente in constantes.clientes:
+        for cliente in EntidadesManager.obtener_clientes():
             set_t_visitado = self.T(cliente)
-            set_t_not_visitado = set(range(constantes.horizon_length)) - set(set_t_visitado)
+            set_t_not_visitado = set(range(EntidadesManager.obtener_parametros().horizon_length)) - set(set_t_visitado)
             for t_visitado in set_t_visitado:
                 new_solucion = self.clonar()
                 cantidad_eliminado = new_solucion.rutas[t_visitado].remover_visita(cliente)
@@ -323,7 +323,7 @@ class Solucion():
                     solucion_copy = new_solucion.clonar()
                     solucion_copy.rutas[t_not_visitado].insertar_visita(cliente, cantidad_eliminado, None)
                     solucion_copy.refrescar()
-                    if solucion_copy.es_admisible() and ((not tabulists.esta_prohibido_quitar(cliente, t_visitado) and not tabulists.esta_prohibido_agregar(cliente, t_not_visitado))):# or saux.costo < constantes.multiplicador_tolerancia * self.costo):
+                    if solucion_copy.es_admisible() and ((not tabulists.esta_prohibido_quitar(cliente, t_visitado) and not tabulists.esta_prohibido_agregar(cliente, t_not_visitado))):# or saux.costo < EntidadesManager.obtener_parametros().multiplicador_tolerancia * self.costo):
                         solution_append = solucion_copy.clonar()
                         solution_append.refrescar()
                         neighborhood_prima.append(solution_append)
@@ -331,8 +331,8 @@ class Solucion():
 
     def variante_intercambiar_visitas(self) -> list[Type["Solucion"]]:
         neighborhood_prima = []
-        for t1 in range(constantes.horizon_length):
-            for t2 in range(constantes.horizon_length):
+        for t1 in range(EntidadesManager.obtener_parametros().horizon_length):
+            for t2 in range(EntidadesManager.obtener_parametros().horizon_length):
                 if t1 != t2:
                     for cliente1 in self.rutas[t1].clientes:
                         for cliente2 in self.rutas[t2].clientes:
@@ -345,7 +345,7 @@ class Solucion():
                                 cantidad_to_insert = solucion_copy.rutas[t2].remover_visita(cliente2)
                                 solucion_copy.rutas[t1].insertar_visita(cliente2,cantidad_to_insert,None)
                                 solucion_copy.refrescar()
-                                if solucion_copy.es_admisible() and (not(tabulists.esta_prohibido_agregar(cliente1, t2) or tabulists.esta_prohibido_quitar(cliente1, t1) or tabulists.esta_prohibido_agregar(cliente2, t1) or tabulists.esta_prohibido_quitar(cliente2, t2))):# or solucion_copy.costo < constantes.multiplicador_tolerancia * self.costo):
+                                if solucion_copy.es_admisible() and (not(tabulists.esta_prohibido_agregar(cliente1, t2) or tabulists.esta_prohibido_quitar(cliente1, t1) or tabulists.esta_prohibido_agregar(cliente2, t1) or tabulists.esta_prohibido_quitar(cliente2, t2))):# or solucion_copy.costo < EntidadesManager.obtener_parametros().multiplicador_tolerancia * self.costo):
                                     solution_append = solucion_copy.clonar()
                                     solution_append.refrescar()
                                     neighborhood_prima.append(solution_append)
@@ -359,26 +359,26 @@ class Solucion():
         self.refrescar()
 
     def pass_constraints(self, MIP, MIPcliente = None, MIPtiempo = None, operation = None): 
-        for tiempo in range(constantes.horizon_length):
+        for tiempo in range(EntidadesManager.obtener_parametros().horizon_length):
             # Constraint 3: La cantidad entregada en t, es menor o igual al nivel de inventario del proveedor en t.
             if self.B(tiempo) < self.rutas[tiempo].obtener_total_entregado():
                 return False
-            for cliente in constantes.clientes:
+            for cliente in EntidadesManager.obtener_clientes():
                 theeta = 1 if self.rutas[tiempo].es_visitado(cliente) else 0
                 #Constraint 17: Theeta puede tener el valor 0 o 1
                 if theeta not in [0, 1]:
                     return False
                 # Constraint 5: La cantidad entregada a un cliente en un tiempo dado es mayor o igual a la capacidad máxima menos el nivel de inventario (si lo visita en el tiempo dado).
-                if constantes.politica_reabastecimiento == "OU" and (self.rutas[tiempo].obtener_cantidad_entregada(cliente) < (cliente.max_nivel * theeta) - self.obtener_niveles_inventario_cliente(cliente)[tiempo]):
+                if EntidadesManager.obtener_parametros().politica_reabastecimiento == "OU" and (self.rutas[tiempo].obtener_cantidad_entregada(cliente) < (cliente.max_nivel * theeta) - self.obtener_niveles_inventario_cliente(cliente)[tiempo]):
                     return False
                 # Constraint 6: La cantidad entregada a un cliente en un tiempo dado debe ser menor o igual a la capacidad máxima menos el nivel de inventario (Junto con C5, definen OU)
                 if self.rutas[tiempo].obtener_cantidad_entregada(cliente) > cliente.max_nivel - self.obtener_niveles_inventario_cliente(cliente)[tiempo]:
                     return False
                 # Constraint 7: La cantidad entregada a un cliente es menor o igual al nivel máximo de inventario si es que lo visita.
-                if constantes.politica_reabastecimiento == "OU" and (self.rutas[tiempo].obtener_cantidad_entregada(cliente) > cliente.max_nivel * theeta):
+                if EntidadesManager.obtener_parametros().politica_reabastecimiento == "OU" and (self.rutas[tiempo].obtener_cantidad_entregada(cliente) > cliente.max_nivel * theeta):
                     return False
                 # Constraint 8: La cantidad entregada a los clientes en un tiempo dado, es menor o igual a la capacidad del camión.
-                if self.rutas[tiempo].obtener_total_entregado() > constantes.vehicle_capacity:
+                if self.rutas[tiempo].obtener_total_entregado() > EntidadesManager.obtener_vehiculo().capacidad:
                     return False
                 # Constraint 14: La cantidad entregada a los clientes siempre debe ser mayor a cero
                 if self.rutas[tiempo].obtener_cantidad_entregada(cliente) < 0:
@@ -386,8 +386,8 @@ class Solucion():
         
         # #Constraints 9 -13: #TODO (IMPORTANTE: SON SOLO DE MIP1)
         # #Constraints 17 -19 son obvias     
-        for tiempo in range(constantes.horizon_length+1):
-            for cliente in constantes.clientes:
+        for tiempo in range(EntidadesManager.obtener_parametros().horizon_length+1):
+            for cliente in EntidadesManager.obtener_clientes():
                 # Constraint 4
                 if tiempo == 0:
                     if self.obtener_niveles_inventario_cliente(cliente)[tiempo] != cliente.nivel_inicial:
@@ -429,8 +429,8 @@ class Solucion():
 
     # def draw_rutas(self):
     #     points = []
-    #     for tiempo in range(constantes.horizon_length):
-    #         x = [constantes.coords[cliente+1][0] for cliente in self.rutas[tiempo].clientes]
-    #         y = [constantes.coords[cliente+1][1] for cliente in self.rutas[tiempo].clientes]
+    #     for tiempo in range(EntidadesManager.obtener_parametros().horizon_length):
+    #         x = [EntidadesManager.obtener_parametros().coords[cliente+1][0] for cliente in self.rutas[tiempo].clientes]
+    #         y = [EntidadesManager.obtener_parametros().coords[cliente+1][1] for cliente in self.rutas[tiempo].clientes]
     #         points.append([x,y])
-    #     Graph.draw_rutas(constantes.coords,points,constantes.coords[0])
+    #     Graph.draw_rutas(EntidadesManager.obtener_parametros().coords,points,EntidadesManager.obtener_parametros().coords[0])

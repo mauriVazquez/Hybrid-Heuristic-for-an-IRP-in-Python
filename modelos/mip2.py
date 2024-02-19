@@ -1,4 +1,4 @@
-from constantes import constantes
+from entidades_manager import EntidadesManager
 
 class Mip2():
     """
@@ -25,8 +25,8 @@ class Mip2():
         costo_minimo = float("inf")
         costo_minimo_solucion = solucion.clonar()
 
-        for cliente in constantes.clientes:
-            for tiempo in range(constantes.horizon_length):
+        for cliente in EntidadesManager.obtener_clientes():
+            for tiempo in range(EntidadesManager.obtener_parametros().horizon_length):
                 solucion_aux = solucion.clonar()
                 operacion = "REMOVE" if solucion.rutas[tiempo].es_visitado(cliente) else "INSERT"
                 costo_mip = Mip2.costo(solucion_aux, cliente, tiempo, operacion)
@@ -60,12 +60,12 @@ class Mip2():
         if not any(len(ruta.clientes) > 0 for ruta in solucion.rutas):
             return float("inf")
         
-        term_1 = sum([constantes.proveedor.costo_almacenamiento * solucion.obtener_niveles_inventario_proveedor()[t]
-                      for t in range(constantes.horizon_length+1)])
+        term_1 = sum([EntidadesManager.obtener_proveedor().costo_almacenamiento * solucion.obtener_niveles_inventario_proveedor()[t]
+                      for t in range(EntidadesManager.obtener_parametros().horizon_length+1)])
 
         term_2 = sum([sum([cliente.costo_almacenamiento * solucion.obtener_niveles_inventario_cliente(cliente)[t]
-                    for t in range(constantes.horizon_length)])
-                    for cliente in constantes.clientes])
+                    for t in range(EntidadesManager.obtener_parametros().horizon_length)])
+                    for cliente in EntidadesManager.obtener_clientes()])
 
         if operation != "REMOVE":
             term_3 = 0

@@ -1,4 +1,4 @@
-from constantes import constantes
+from entidades_manager import EntidadesManager
 
 class Ruta():
     """
@@ -39,7 +39,7 @@ class Ruta():
         return 0 if not clientes else (
             #Distancia del primero al proveedor + distancia del último al proveedor, mas distancia entre clientes
             clientes[0].distancia_proveedor + clientes[-1].distancia_proveedor +
-            sum(constantes.compute_dist(c1.coord_x, c0.coord_x, c1.coord_y, c0.coord_y)
+            sum(EntidadesManager.compute_dist(c1.coord_x, c0.coord_x, c1.coord_y, c0.coord_y)
                 for c0, c1 in zip(clientes, clientes[1:]))
             )
     
@@ -112,7 +112,7 @@ class Ruta():
         Retorna:
         - bool: True si la capacidad está excedida, False en caso contrario.
         """
-        return constantes.vehicle_capacity < self.obtener_total_entregado()
+        return EntidadesManager.obtener_vehiculo().capacidad < self.obtener_total_entregado()
     
     def es_visitado(self, cliente) -> bool:
         """

@@ -1,5 +1,5 @@
 from random import randint
-from constantes import constantes
+from entidades_manager import EntidadesManager
 from modelos.solucion import Solucion
 
 class TripletManager:
@@ -15,6 +15,7 @@ class TripletManager:
     - eliminar_triplets_solucion(solucion):  Remueve los triplets correspondientes dada una solucion.
     """
     _instance = None
+    triplets = []
 
     def __new__(cls):
         """
@@ -31,9 +32,9 @@ class TripletManager:
         """
         self.triplets = [
             [cliente, tiempo, tiempo_prima] 
-            for cliente in constantes.clientes
-            for tiempo in range(constantes.horizon_length)
-            for tiempo_prima in range(constantes.horizon_length)
+            for cliente in EntidadesManager.obtener_clientes()
+            for tiempo in range(EntidadesManager.obtener_parametros().horizon_length)
+            for tiempo_prima in range(EntidadesManager.obtener_parametros().horizon_length)
             if tiempo != tiempo_prima
         ]
 

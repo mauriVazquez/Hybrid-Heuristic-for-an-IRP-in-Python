@@ -1,5 +1,5 @@
 from itertools import permutations
-from constantes import constantes
+from entidades_manager import EntidadesManager
 from modelos.ruta import Ruta
 
 class Mip1():
@@ -27,7 +27,7 @@ class Mip1():
         costo_minimo = float("inf")
         costo_minimo_solucion = solucion_original.clonar()
 
-        for perm in permutations(range(constantes.horizon_length)):
+        for perm in permutations(range(EntidadesManager.obtener_parametros().horizon_length)):
             solucion_actual = solucion_original.clonar()
             solucion_actual.rutas = [solucion_actual.rutas[i] for i in perm]
             solucion_actual.refrescar()
@@ -37,8 +37,8 @@ class Mip1():
                 costo_minimo = costo_mip
                 costo_minimo_solucion = solucion_actual.clonar()
 
-            for cliente in constantes.clientes:
-                for tiempo in range(constantes.horizon_length):
+            for cliente in EntidadesManager.obtener_clientes():
+                for tiempo in range(EntidadesManager.obtener_parametros().horizon_length):
                     solucion_modificada = solucion_actual.clonar()
                     if solucion_modificada.rutas[tiempo].es_visitado(cliente):
                         costo_mip = Mip1.costo(solucion_modificada, cliente, tiempo)
@@ -67,11 +67,11 @@ class Mip1():
         """
         solucion.refrescar()
 
-        term_1 = constantes.proveedor.costo_almacenamiento * sum(solucion.B(t) for t in range(constantes.horizon_length + 1))
+        term_1 = EntidadesManager.obtener_proveedor().costo_almacenamiento * sum(solucion.B(t) for t in range(EntidadesManager.obtener_parametros().horizon_length + 1))
 
         term_2 = sum(cliente.costo_almacenamiento * solucion.obtener_niveles_inventario_cliente(cliente)[t]
-                    for t in range(constantes.horizon_length + 1)
-                    for cliente in constantes.clientes)
+                    for t in range(EntidadesManager.obtener_parametros().horizon_length + 1)
+                    for cliente in EntidadesManager.obtener_clientes())
 
         if cliente_eliminado is None:
             term_3 = 0

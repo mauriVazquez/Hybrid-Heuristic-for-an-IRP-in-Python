@@ -3,11 +3,11 @@ from modelos.penalty_variables import alpha, beta
 from modelos.mip2 import Mip2
 from modelos.tripletManager import triplet_manager
 from modelos.tabulists import tabulists
-from constantes import constantes
+from entidades_manager import EntidadesManager
 from random import seed
 from datetime import datetime
 
-if __name__ == '__main__':
+def execute():
     seed(datetime.now().microsecond)
     #Se inicializan los iteradores
     main_iterator, it_sinmejora = 0, 0
@@ -17,7 +17,7 @@ if __name__ == '__main__':
     mejor_solucion = solucion.clonar()
 
     #Mientras la cantidad de iteraciones sin mejoras de sbest sea menor o igual a MAX_ITER
-    while it_sinmejora <= constantes.max_iter:
+    while it_sinmejora <= EntidadesManager.obtener_parametros().max_iter:
         #Se aplica el procedimiento mover sobre solucion, para obtener una solución vecina sprima
         solucion_prima = solucion.mover()
         tabulists.actualizar(solucion, solucion_prima, main_iterator)
@@ -42,7 +42,7 @@ if __name__ == '__main__':
         solucion = solucion_prima.clonar()
 
         #Si la cantidad de iteraciones sin mejora es múltiple de JUMP_ITER
-        if it_sinmejora != 0 and it_sinmejora % constantes.jump_iter == 0: 
+        if it_sinmejora != 0 and it_sinmejora % EntidadesManager.obtener_parametros().jump_iter == 0: 
             #Mientras haya triplets
             while triplet_manager.triplets:
                 #Se realizan jumps en función de algún triplet random
@@ -53,7 +53,7 @@ if __name__ == '__main__':
             #Cuando no se puedan hacer mas saltos, se ejecuta el MIP2 sobre la solución encontrada.
             solucion = Mip2.ejecutar(solucion)
             print(f"SALTO! ({main_iterator}) {solucion}")
-        elif(it_sinmejora % constantes.jump_iter) > (constantes.jump_iter / 2):
+        elif(it_sinmejora % EntidadesManager.obtener_parametros().jump_iter) > (EntidadesManager.obtener_parametros().jump_iter / 2):
             triplet_manager.eliminar_triplets_solucion(solucion)
     
     print("\n-------------------------------MEJOR SOLUCIÓN-------------------------------\n")
@@ -63,4 +63,3 @@ if __name__ == '__main__':
 # alpha.no_factibles() if solucion_prima.es_excedida_capacidad_vehiculo() else alpha.factible()
 # beta.no_factibles() if solucion_prima.proveedor_tiene_stockout() else beta.factible()
 # print(alpha.value)
-        
