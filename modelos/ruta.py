@@ -199,3 +199,12 @@ class Ruta():
         - cantidad: Cantidad a reducir.
         """
         self.cantidades[self.clientes.index(cliente)] -= cantidad
+    
+    def to_json(self) -> None: 
+        """
+        Retorna un json con los valores básicos de una ruta.
+
+        Retorna
+        - str: json con información de la ruta.
+        """
+        return {"clientes":list({str(c.id) for c in self.clientes}),"cantidades":list({c for c in self.cantidades}),"costo":self.obtener_costo()}

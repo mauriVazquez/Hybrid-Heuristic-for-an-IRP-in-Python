@@ -29,12 +29,13 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         
         #Se inicializan los parámetros [Importante que vaya último]
         EntidadesManager.crear_parametros(data['horizon_length'])
-
-        execute()
+       
+        soluciones = execute()
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
         self.end_headers()
-        response = json.dumps({"mensaje": data, "status":200})
+        response = json.dumps({"mensaje": soluciones, "status":200})
+        print(soluciones)
         self.wfile.write(response.encode('utf-8'))
 
 def run(server_class=HTTPServer, handler_class=SimpleHTTPRequestHandler, port=8001):

@@ -41,8 +41,10 @@ def LK(solucion: Type["Solucion"], solucion_prima: Type["Solucion"]) -> Type["So
 class Solucion():
     @staticmethod
     def obtener_empty_solucion() -> Type["Solucion"]:
-        return Solucion([Ruta(ruta[0], ruta[1]) for ruta in [[[], []] for _ in range(EntidadesManager.obtener_parametros().horizon_length)]])
-
+        empty =  Solucion([Ruta(ruta[0], ruta[1]) for ruta in [[[], []] for _ in range(EntidadesManager.obtener_parametros().horizon_length)]])
+        print(empty)
+        return empty
+    
     @staticmethod
     def inicializar():
         solucion = Solucion.obtener_empty_solucion()
@@ -426,7 +428,10 @@ class Solucion():
             if not w_it in [0,1]:
                 return False
         return True
-
+    
+    def to_json(self):   
+        return {"proveedor_id":str(EntidadesManager.obtener_proveedor().id), "rutas":{i:ruta.to_json() for i, ruta in enumerate(self.rutas)}}
+    
     # def draw_rutas(self):
     #     points = []
     #     for tiempo in range(EntidadesManager.obtener_parametros().horizon_length):

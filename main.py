@@ -6,6 +6,7 @@ from modelos.tabulists import tabulists
 from entidades_manager import EntidadesManager
 from random import seed
 from datetime import datetime
+from Soluciones import SolucionesAlmacenadas
 
 def execute():
     seed(datetime.now().microsecond)
@@ -13,6 +14,8 @@ def execute():
     main_iterator, it_sinmejora = 0, 0
     #Se ejecuta el procedimiento inicialización, devolviendo una primera solución candidata
     solucion = Solucion.inicializar()
+    SolucionesAlmacenadas.agregar_solucion(solucion.to_json())
+    SolucionesAlmacenadas.agregar_solucion(solucion.to_json())
     #Se almacena la solución inicial como mejor solución
     mejor_solucion = solucion.clonar()
 
@@ -58,6 +61,8 @@ def execute():
     
     print("\n-------------------------------MEJOR SOLUCIÓN-------------------------------\n")
     print(mejor_solucion.detail())
+
+    return(SolucionesAlmacenadas.obtener_soluciones())
 
 # Update alpha and beta (TODO: REVISAR, SON SIEMPRE FEASIBLES)
 # alpha.no_factibles() if solucion_prima.es_excedida_capacidad_vehiculo() else alpha.factible()
