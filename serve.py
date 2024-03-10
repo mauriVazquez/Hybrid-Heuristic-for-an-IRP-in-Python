@@ -3,14 +3,10 @@ from entidades_manager import EntidadesManager
 import json
 from main import execute
 class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'text/plain')
-        self.end_headers()
-        response = "Hola desde el servidor Python!"
-        self.wfile.write(response.encode('utf-8'))
 
     def do_POST(self):
+        EntidadesManager.restart()
+        
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
         data = json.loads(post_data.decode('utf-8'))
@@ -34,7 +30,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
         self.end_headers()
-        response = json.dumps({"mensaje": soluciones, "status":200})
+        response = json.dumps({"data": soluciones, "status":200})
         print(soluciones)
         self.wfile.write(response.encode('utf-8'))
 

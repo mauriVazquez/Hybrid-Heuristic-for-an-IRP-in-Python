@@ -9,6 +9,8 @@ class SolucionesAlmacenadas:
     #SETS
     @staticmethod
     def agregar_solucion(solucion):
-        # if id not in SolucionesAlmacenadas.solucion:
-            # SolucionesAlmacenadas.solucion.append(Solucion(id, coord_x, coord_y, nivel_inicial, costo_almacenamiento, max_nivel, min_nivel, nivel_demanda, proovedor_x, proovedor_y))
         SolucionesAlmacenadas._soluciones.append(solucion)
+    
+    @staticmethod
+    def borrar_todas_soluciones():
+        SolucionesAlmacenadas._soluciones = []

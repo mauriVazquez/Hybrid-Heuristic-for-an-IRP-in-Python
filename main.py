@@ -9,13 +9,13 @@ from datetime import datetime
 from Soluciones import SolucionesAlmacenadas
 
 def execute():
+    SolucionesAlmacenadas.borrar_todas_soluciones()
     seed(datetime.now().microsecond)
     #Se inicializan los iteradores
     main_iterator, it_sinmejora = 0, 0
     #Se ejecuta el procedimiento inicialización, devolviendo una primera solución candidata
     solucion = Solucion.inicializar()
-    SolucionesAlmacenadas.agregar_solucion(solucion.to_json())
-    SolucionesAlmacenadas.agregar_solucion(solucion.to_json())
+    SolucionesAlmacenadas.agregar_solucion(solucion.to_json(tag="Inicialización",iteration=main_iterator))
     #Se almacena la solución inicial como mejor solución
     mejor_solucion = solucion.clonar()
 
@@ -32,6 +32,7 @@ def execute():
             #Se almacena solucion_prima como nueva mejor solución
             mejor_solucion = solucion_prima.clonar()
             print(f"MEJORA! ({main_iterator}) {solucion_prima}")
+            SolucionesAlmacenadas.agregar_solucion(mejor_solucion.to_json(tag="Mejora",iteration=main_iterator))
             triplet_manager.__init__()
             it_sinmejora = 0
         else:
@@ -61,7 +62,7 @@ def execute():
     
     print("\n-------------------------------MEJOR SOLUCIÓN-------------------------------\n")
     print(mejor_solucion.detail())
-
+    SolucionesAlmacenadas.agregar_solucion(mejor_solucion.to_json(tag="Mejor solución",iteration=main_iterator))
     return(SolucionesAlmacenadas.obtener_soluciones())
 
 # Update alpha and beta (TODO: REVISAR, SON SIEMPRE FEASIBLES)

@@ -42,7 +42,6 @@ class Solucion():
     @staticmethod
     def obtener_empty_solucion() -> Type["Solucion"]:
         empty =  Solucion([Ruta(ruta[0], ruta[1]) for ruta in [[[], []] for _ in range(EntidadesManager.obtener_parametros().horizon_length)]])
-        print(empty)
         return empty
     
     @staticmethod
@@ -429,8 +428,14 @@ class Solucion():
                 return False
         return True
     
-    def to_json(self):   
-        return {"proveedor_id":str(EntidadesManager.obtener_proveedor().id), "rutas":{i:ruta.to_json() for i, ruta in enumerate(self.rutas)}}
+    def to_json(self, iteration, tag):   
+        return {
+            "proveedor_id":str(EntidadesManager.obtener_proveedor().id), 
+            "iteration":iteration,
+            "tag":tag,
+            "rutas":{i:ruta.to_json() for i, ruta in enumerate(self.rutas)},
+            "costo":self.costo
+        }
     
     # def draw_rutas(self):
     #     points = []

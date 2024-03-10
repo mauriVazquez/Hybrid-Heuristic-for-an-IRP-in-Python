@@ -49,6 +49,14 @@ class EntidadesManager:
     _parametros = None
     _matriz_clientes = []
 
+    @staticmethod
+    def restart():
+        _clientes = []
+        _proveedor = None
+        _vehiculo = None
+        _parametros = None
+        _matriz_clientes = []
+
     #GETS
     @staticmethod
     def obtener_cantidad_clientes():
@@ -110,7 +118,6 @@ class EntidadesManager:
     @staticmethod
     def compute_dist(xi, xj, yi, yj):
         return round(math.sqrt(math.pow(xi - xj, 2) + math.pow(yi - yj, 2)))
-    
         
 # # Ejemplo de uso
 # cliente1 = EntidadesManager.obtener_cliente("Cliente A")
