@@ -51,11 +51,11 @@ class EntidadesManager:
 
     @staticmethod
     def restart():
-        _clientes = []
-        _proveedor = None
-        _vehiculo = None
-        _parametros = None
-        _matriz_clientes = []
+        EntidadesManager._clientes = []
+        EntidadesManager._proveedor = None
+        EntidadesManager._vehiculo = None
+        EntidadesManager._parametros = None
+        EntidadesManager._matriz_clientes = []
 
     #GETS
     @staticmethod
