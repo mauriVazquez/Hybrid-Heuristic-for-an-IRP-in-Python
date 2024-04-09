@@ -1,0 +1,89 @@
+version: '3'
+services:
+  hair-app:
+    build:
+      context: ./config
+      dockerfile: php.dockerfile
+      args:
+        - USER_NAME=$USER
+        - USER_ID=$USER_ID
+        - DOCKERFILE=local
+    working_dir: /var/www
+    image: 'hair-app'
+    container_name: 'hair-app'
+    ports:
+      - 8005:8000
+    volumes:
+      - ./source/hair_app:/var/www
+      - vendor:/var/www/vendor
+    networks:
+      - app-network
+
+  db:
+    image: mysql:8.2
+    container_name: hair-app-db
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_USER: ${DB_USERNAME}
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    working_dir: /var/lib/mysql
+    volumes:
+      - datadb:/var/lib/mysql
+    networks:
+      - app-network
+
+  pma:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: hair-app-pma
+    environment:
+      - MAX_EXECUTION_TIME=600
+      - UPLOAD_LIMIT=800M
+      - PMA_HOST=hair-app-db
+      - PMA_PORT=3306
+      - PMA_ARBITRARY=1
+      - PMA_PASSWORD= ${DB_PASSWORD}
+      - PMA_CONTROLPASS= ${DB_PASSWORD}
+    depends_on:
+      - db
+    ports:
+      - 8008:80
+    networks:
+      - app-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: hair-app-nginx
+    ports:
+      - 8000:80
+    volumes:
+      - ./source/hair_app:/var/www
+      - ./config/nginx:/etc/nginx/conf.d/
+    networks:
+      - app-network
+
+  websocket-server:
+    image: quay.io/soketi/soketi:latest-16-alpine
+    container_name: websocket-server
+    ports:
+      - 6001:6001
+    networks:
+      - app-network
+
+  # hair_serivice:
+  #   image: tiangolo/uvicorn-gunicorn-fastapi:python3.7
+  #   ports:
+  #     - 5000:5000
+  #   volumes:
+  #     - ./source/hair_service/:/app
+  #   networks:
+  #     - app-network
+
+networks:
+  app-network:
+    driver: bridge
+volumes:
+  datadb:
+  vendor:
