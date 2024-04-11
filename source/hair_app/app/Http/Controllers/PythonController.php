@@ -15,14 +15,15 @@ class PythonController extends Controller
     public static function runPythonScript($proveedor_id, $clientes_id, $vehiculo_id,$horizon_length)
     {
         $data = [
-            'proveedor'=> new ProveedorPythonResource(Proveedor::find($proveedor_id)),
-            'clientes' => new ClientePythonCollection(Cliente::whereIn('id', $clientes_id)->get()),
-            'vehiculo' => new VehiculoPythonResource(Vehiculo::find($vehiculo_id)),
+            'proveedor'=> ProveedorPythonResource::make(Proveedor::find($proveedor_id)),
+            'clientes' => ClientePythonCollection::make(Cliente::whereIn('id', $clientes_id)->get()),
+            'vehiculo' => VehiculoPythonResource::make(Vehiculo::find($vehiculo_id)),
             'horizon_length' => $horizon_length,
         ];
+        
         try {
             // Realiza la solicitud POST al servicio externo
-            $response = Http::post('http://localhost:8001/', $data);
+            $response = Http::post('hair-service/solicitud-ejecucion', $data);
             // Verifica si la solicitud fue exitosa (código de estado 200)
             if ($response->successful()) {
                 return json_decode($response);

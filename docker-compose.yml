@@ -72,14 +72,21 @@ services:
     networks:
       - app-network
 
-  # hair_serivice:
-  #   image: tiangolo/uvicorn-gunicorn-fastapi:python3.7
-  #   ports:
-  #     - 5000:5000
-  #   volumes:
-  #     - ./source/hair_service/:/app
-  #   networks:
-  #     - app-network
+  hair_serivice:
+    container_name: hair-service
+    build:
+      context: ./config/python
+      dockerfile: python.dockerfile
+      args:
+        - USER_NAME=$USER
+        - USER_ID=$USER_ID
+        - DOCKERFILE=local
+    ports:
+      - 8003:80
+    volumes:
+      - ./source/hair_service:/usr/src/app
+    networks:
+      - app-network
 
 networks:
   app-network:
