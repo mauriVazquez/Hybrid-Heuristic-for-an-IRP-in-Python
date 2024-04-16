@@ -20,5 +20,3 @@ yarn-error.log
 
 .editorconfig
 .gitattributes
-*.config.js
-bootstrap
