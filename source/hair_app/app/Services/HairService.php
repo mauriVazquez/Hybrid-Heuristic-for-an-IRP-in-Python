@@ -38,9 +38,9 @@ class HairService
     public function enviarSolicitudEjecucion(Proveedor $proveedor, $clientes, Vehiculo $vehiculo, $horizonLength)
     {
         $data = [
-            'proveedor' => ProveedorPythonResource::make($proveedor)->jsonSerialize(),
-            'clientes' => ClientePythonResource::collection(Cliente::whereIn('id', $clientes)->get())->jsonSerialize(),
-            'vehiculo' => VehiculoPythonResource::make($vehiculo)->jsonSerialize(),
+            'proveedor' => ProveedorPythonResource::make($proveedor)->toJson(),
+            'clientes' => ClientePythonResource::collection(Cliente::whereIn('id', $clientes)->get())->toJson(),
+            'vehiculo' => VehiculoPythonResource::make($vehiculo)->toJson(),
             'horizon_length' => $horizonLength,
         ];
 
@@ -48,6 +48,7 @@ class HairService
 
         $response = $this->getHttpClient()->post($this->url . '/solicitud-ejecucion', [
             RequestOptions::FORM_PARAMS => $data,
+
             RequestOptions::HEADERS => [
                 'Content-Type' => "application/x-www-form-urlencoded"
             ]

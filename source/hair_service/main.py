@@ -3,6 +3,8 @@ from typing import Annotated
 from fastapi import FastAPI, Request, Form, Body
 from pydantic import BaseModel, Field
 
+import json
+
 app = FastAPI()
 
 
@@ -13,7 +15,7 @@ def read_root():
 
 
 class Proveedor(BaseModel):
-    id: str = Field(alias='proveedor.id', default="No encontrado")
+    data: list
     # coord_x: float = Field(default="No encontrado")
     # coord_y: float = Field(default="No encontrado")
     # costo_almacenamiento: float = Field(default="No encontrado")
@@ -22,7 +24,11 @@ class Proveedor(BaseModel):
 
 
 @app.post("/solicitud-ejecucion")
-async def procesar_solicitud(horizon_length: int = Form(), proveedor: Proveedor = Form()):
-    print(horizon_length)
-    print(proveedor)
+async def procesar_solicitud(horizon_length: int = Form(), proveedor: str = Form(), vehiculo: str = Form(), clientes: str = Form()):    
+    proveedorJson = json.loads(proveedor),
+    vehiculoJson = json.loads(vehiculo),
+    clientesJson = json.loads(clientes),
+    
+    
+    
     return {"Hello": "hellooo"}
