@@ -79,6 +79,15 @@ class Solucion():
         resp += 'Situacion de Overstock? : ' + ('yes' if self.cliente_tiene_overstock() else 'no') + "\n"
         return resp
     
+    def to_json(self, iteration, tag):   
+        return {
+            "proveedor_id":str(constantes.proveedor.id), 
+            "iteration":iteration,
+            "tag":tag,
+            "rutas":{i:ruta.to_json() for i, ruta in enumerate(self.rutas)},
+            "costo":self.costo
+        }
+
     def refrescar(self):
         self.costo = self.funcion_objetivo()
 
@@ -357,6 +366,7 @@ class Solucion():
         self.rutas[rutabase_indice].cantidades.extend(self.rutas[rutasecondary_indice].cantidades)
         self.rutas[rutasecondary_indice] = Ruta([],[])
         self.refrescar()
+
 
     def pass_constraints(self, MIP, MIPcliente = None, MIPtiempo = None, operation = None): 
         for tiempo in range(constantes.horizon_length):

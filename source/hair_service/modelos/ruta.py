@@ -64,6 +64,15 @@ class Ruta():
         clientes_ids = [cliente.id for cliente in self.clientes]
         return f"[{clientes_ids},{self.cantidades}]"
     
+    def to_json(self) -> None: 
+        """
+        Retorna un json con los valores básicos de una ruta.
+
+        Retorna
+        - str: json con información de la ruta.
+        """
+        return {"clientes":list({str(c.id) for c in self.clientes}),"cantidades":list({c for c in self.cantidades}),"costo":self.obtener_costo()}
+    
     def clonar(self):
         """
         Crea y devuelve una copia de la instancia actual de la clase Ruta, manteniendo referencias a Clientes y Cantidades.

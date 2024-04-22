@@ -39,7 +39,8 @@
                                 </tr>
                         </thead>     
                         <tbody class="divide-y divide-gray-200 whitespace-nowrap dark:divide-white/5">
-                        @foreach($this->attributes['soluciones'] as $solucion)
+                               
+                        @foreach(json_decode($this->attributes['soluciones']) as $solucion)
                         <tr class="fi-ta-row hover:bg-gray-50 dark:hover:bg-white/5">
                                 <td class="fi-ta-cell p-0 w-1 text-center">{{$solucion->iteration}}</td>
                                 <td class="fi-ta-cell p-0 w-1 text-center">{{$solucion->tag}}</td>

@@ -1,7 +1,7 @@
-from typing import Annotated
-
-from fastapi import FastAPI, Request, Form, Body
+from typing import List
+from fastapi import FastAPI
 from pydantic import BaseModel, Field
+from hair_main import hair_execute
 
 import json
 
@@ -15,20 +15,32 @@ def read_root():
 
 
 class Proveedor(BaseModel):
-    data: list
-    # coord_x: float = Field(default="No encontrado")
-    # coord_y: float = Field(default="No encontrado")
-    # costo_almacenamiento: float = Field(default="No encontrado")
-    # nivel_almacenamiento: int = Field(default="No encontrado")
-    # nivel_produccion: int = Field(default="No encontrado")
+    id : str
+    coord_x : float
+    coord_y : float
+    costo_almacenamiento : float
+    nivel_almacenamiento : int
+    nivel_produccion : int
+
+class Cliente(BaseModel):
+        id: str
+        coord_x: float
+        coord_y: float
+        costo_almacenamiento: float
+        nivel_almacenamiento: int
+        nivel_maximo: int
+        nivel_minimo: int
+        nivel_demanda: int
+
+
+class Param(BaseModel):
+    horizon_length: int = Field( default=None)
+    capacidad_vehiculo: int = Field( default=None)
+    proveedor: Proveedor = Field(default = None)
+    clientes : List[Cliente] = Field(default = None)
 
 
 @app.post("/solicitud-ejecucion")
-async def procesar_solicitud(horizon_length: int = Form(), proveedor: str = Form(), vehiculo: str = Form(), clientes: str = Form()):    
-    proveedorJson = json.loads(proveedor),
-    vehiculoJson = json.loads(vehiculo),
-    clientesJson = json.loads(clientes),
-    
-    
-    
-    return {"Hello": "hellooo"}
+async def procesar_solicitud(param : Param):
+    response = hair_execute(param.horizon_length, param.capacidad_vehiculo, param.proveedor, param.clientes)
+    return response

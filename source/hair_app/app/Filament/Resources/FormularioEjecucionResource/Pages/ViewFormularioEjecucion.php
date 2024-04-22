@@ -37,6 +37,6 @@ class ViewFormularioEjecucion extends ViewRecord
         $hairService = new HairService;
         $response = $hairService->enviarSolicitudEjecucion($this->record->proveedor, $this->record->clientes->pluck('id'), $this->record->vehiculo, $this->record->horizon_length);
         
-        $this->attributes['soluciones'] = $response->data ?? null;
+        $this->attributes['soluciones'] = $response ?? null;
     }
 }

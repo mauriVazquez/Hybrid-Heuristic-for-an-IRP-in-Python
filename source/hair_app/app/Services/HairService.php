@@ -1,19 +1,13 @@
 <?php
-
-
 namespace App\Services;
 
-use App\Http\Resources\ClientePythonCollection;
 use App\Http\Resources\ClientePythonResource;
 use App\Http\Resources\ProveedorPythonResource;
-use App\Http\Resources\VehiculoPythonResource;
 use App\Models\Cliente;
 use App\Models\Proveedor;
 use App\Models\Vehiculo;
 use GuzzleHttp\Client;
-use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\RequestOptions;
-use Illuminate\Support\Facades\Http;
 
 class HairService
 {
@@ -34,28 +28,18 @@ class HairService
         return $this->httpClient;
     }
 
-
     public function enviarSolicitudEjecucion(Proveedor $proveedor, $clientes, Vehiculo $vehiculo, $horizonLength)
     {
         $data = [
-            'proveedor' => ProveedorPythonResource::make($proveedor)->toJson(),
-            'clientes' => ClientePythonResource::collection(Cliente::whereIn('id', $clientes)->get())->toJson(),
-            'vehiculo' => VehiculoPythonResource::make($vehiculo)->toJson(),
             'horizon_length' => $horizonLength,
+            'capacidad_vehiculo' => $vehiculo->capacidad,
+            'proveedor' => ProveedorPythonResource::make($proveedor),
+            'clientes' => ClientePythonResource::collection(Cliente::whereIn('id', $clientes)->get()),
         ];
 
-        info($data);
-
         $response = $this->getHttpClient()->post($this->url . '/solicitud-ejecucion', [
-            RequestOptions::FORM_PARAMS => $data,
-
-            RequestOptions::HEADERS => [
-                'Content-Type' => "application/x-www-form-urlencoded"
-            ]
+            RequestOptions::BODY => json_encode($data),
         ]);
-
-        info($response->getBody());
-
         return $response->getBody();
     }
 }

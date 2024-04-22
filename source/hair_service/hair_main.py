@@ -7,7 +7,9 @@ from constantes import constantes
 from random import seed
 from datetime import datetime
 
-if __name__ == '__main__':
+def hair_execute(horizon_length, capacidad_vehiculo, proveedor, clientes):
+    soluciones = []
+    constantes.inicializar(horizon_length, capacidad_vehiculo, proveedor, clientes)
     seed(datetime.now().microsecond)
     #Se inicializan los iteradores
     main_iterator, it_sinmejora = 0, 0
@@ -15,6 +17,8 @@ if __name__ == '__main__':
     solucion = Solucion.inicializar()
     #Se almacena la solución inicial como mejor solución
     mejor_solucion = solucion.clonar()
+    #Se agrega la mejor solución al listado de la respuesta
+    soluciones.append(mejor_solucion.to_json(tag="Inicialización",iteration=main_iterator))
 
     #Mientras la cantidad de iteraciones sin mejoras de sbest sea menor o igual a MAX_ITER
     while it_sinmejora <= constantes.max_iter:
@@ -28,6 +32,7 @@ if __name__ == '__main__':
             solucion_prima.mejorar()
             #Se almacena solucion_prima como nueva mejor solución
             mejor_solucion = solucion_prima.clonar()
+            soluciones.append(mejor_solucion.to_json(tag="Mejora",iteration=main_iterator))
             print(f"MEJORA! ({main_iterator}) {solucion_prima}")
             triplet_manager.__init__()
             it_sinmejora = 0
@@ -53,11 +58,16 @@ if __name__ == '__main__':
             #Cuando no se puedan hacer mas saltos, se ejecuta el MIP2 sobre la solución encontrada.
             solucion = Mip2.ejecutar(solucion)
             print(f"SALTO! ({main_iterator}) {solucion}")
+            soluciones.append(solucion.to_json(tag="Salto",iteration=main_iterator))
         elif(it_sinmejora % constantes.jump_iter) > (constantes.jump_iter / 2):
             triplet_manager.eliminar_triplets_solucion(solucion)
     
     print("\n-------------------------------MEJOR SOLUCIÓN-------------------------------\n")
     print(mejor_solucion.detail())
+
+ 
+    soluciones.append(mejor_solucion.to_json(tag="Mejor Solución",iteration=main_iterator))
+    return soluciones
 
 # Update alpha and beta (TODO: REVISAR, SON SIEMPRE FEASIBLES)
 # alpha.no_factibles() if solucion_prima.es_excedida_capacidad_vehiculo() else alpha.factible()
