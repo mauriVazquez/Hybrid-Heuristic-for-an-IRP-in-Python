@@ -11,13 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('soluciones', function (Blueprint $table) {
+        Schema::create('recorridos', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('politica_reabastecimiento',2);
-            $table->integer('estado');
-            $table->float('costo');
-            $table->foreignUuid('vehiculo_id')->constrained('vehiculos');
             $table->foreignUuid('proveedor_id')->constrained('proveedores');
+            $table->foreignUuid('vehiculo_id')->constrained('vehiculos');
+            $table->integer('horizon_length')->default(3);
+            $table->integer('estado');
             $table->timestamps();
         });
     }
@@ -27,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('soluciones');
+        Schema::dropIfExists('recorridos');
     }
 };

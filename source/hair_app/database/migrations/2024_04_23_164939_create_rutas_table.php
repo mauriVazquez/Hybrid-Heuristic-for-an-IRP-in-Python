@@ -11,13 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('soluciones', function (Blueprint $table) {
+        Schema::create('rutas', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('politica_reabastecimiento',2);
-            $table->integer('estado');
             $table->float('costo');
-            $table->foreignUuid('vehiculo_id')->constrained('vehiculos');
-            $table->foreignUuid('proveedor_id')->constrained('proveedores');
+            $table->integer('orden');
+            $table->foreignUuid('solucion_id')->references('id')->on('soluciones');
             $table->timestamps();
         });
     }
@@ -27,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('soluciones');
+        Schema::dropIfExists('rutas');
     }
 };

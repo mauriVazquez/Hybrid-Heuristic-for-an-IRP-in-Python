@@ -6,6 +6,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Database\Seeders\LocalidadesSeeder;
 use Database\Seeders\EntidadSeeder;
+
 class DatabaseSeeder extends Seeder
 {
     /**
@@ -17,6 +18,7 @@ class DatabaseSeeder extends Seeder
             ZonaSeeder::class,
             LocalidadesSeeder::class,
             EntidadSeeder::class,
+            UserSeeder::class,
         ]);
     }
 }

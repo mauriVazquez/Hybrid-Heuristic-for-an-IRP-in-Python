@@ -42,5 +42,5 @@ class Param(BaseModel):
 
 @app.post("/solicitud-ejecucion")
 async def procesar_solicitud(param : Param):
-    response = hair_execute(param.horizon_length, param.capacidad_vehiculo, param.proveedor, param.clientes)
+    response = await hair_execute(param.horizon_length, param.capacidad_vehiculo, param.proveedor, param.clientes)
     return response

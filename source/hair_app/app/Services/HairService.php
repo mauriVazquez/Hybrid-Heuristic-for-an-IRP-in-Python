@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Services;
 
 use App\Http\Resources\ClientePythonResource;
@@ -28,9 +29,10 @@ class HairService
         return $this->httpClient;
     }
 
-    public function enviarSolicitudEjecucion(Proveedor $proveedor, $clientes, Vehiculo $vehiculo, $horizonLength)
+    public function enviarSolicitudEjecucion($recorrido_id, Proveedor $proveedor, $clientes, Vehiculo $vehiculo, $horizonLength)
     {
         $data = [
+            'recorrido_id' => $recorrido_id,
             'horizon_length' => $horizonLength,
             'capacidad_vehiculo' => $vehiculo->capacidad,
             'proveedor' => ProveedorPythonResource::make($proveedor),
