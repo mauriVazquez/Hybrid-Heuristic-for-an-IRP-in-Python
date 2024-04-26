@@ -17,7 +17,7 @@ class LocalidadesSeeder extends Seeder
 
     public function provinciasSeeder()
     {
-        $file = file_get_contents(resource_path('data/provincias.json'));
+        $file = file_get_contents(base_path('database/data/provincias.json'));
         $datos = json_decode($file, true);
 
         foreach ($datos['provincias'] as $provincia) {
@@ -33,7 +33,7 @@ class LocalidadesSeeder extends Seeder
 
     public function departamentosSeeder()
     {
-        $file = file_get_contents(resource_path('data/departamentos_pampeanos.json'));
+        $file = file_get_contents(base_path('database/data/departamentos_pampeanos.json'));
         $datos = json_decode($file, true);
 
         foreach ($datos['departamentos'] as $departamento) {
@@ -50,7 +50,7 @@ class LocalidadesSeeder extends Seeder
 
     public function localidadesSeeder()
     {
-        $file = file_get_contents(resource_path('data/localidades_pampeanas.json'));
+        $file = file_get_contents(base_path('database/data/localidades_pampeanas.json'));
         $datos = json_decode($file, true);
 
         foreach ($datos['localidades'] as $localidad) {

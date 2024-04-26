@@ -10,19 +10,19 @@ class Cliente extends Model
     use HasFactory, HasUuids;
     protected $table = 'clientes';
 
-    // protected $fillable = [
-    //     'nombre',
-    //     'direccion',
-    //     'coord_x',
-    //     'coord_y',
-    //     'nivel_maximo',
-    //     'nivel_minimo',
-    //     'nivel_almacenamiento',
-    //     'nivel_demanda',
-    //     'costo_almacenamiento',
-    //     'zona_id',
-    //     'localidad_id',
-    // ];
+    protected $fillable = [
+        'nombre',
+        'direccion',
+        'coord_x',
+        'coord_y',
+        'nivel_maximo',
+        'nivel_minimo',
+        'nivel_almacenamiento',
+        'nivel_demanda',
+        'costo_almacenamiento',
+        'zona_id',
+        'localidad_id',
+    ];
 
     public function zona()
     {

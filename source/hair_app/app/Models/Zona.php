@@ -11,6 +11,10 @@ class Zona extends Model
     use HasFactory, HasUuids;
     protected $table = 'zonas';
 
+    protected $fillable = [
+        'nombre'
+    ];
+
     public function clientes()
     {
         return $this->hasMany(Cliente::class);

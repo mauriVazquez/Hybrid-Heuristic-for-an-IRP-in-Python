@@ -11,6 +11,17 @@ class Proveedor extends Model
     use HasFactory, HasUuids;
     protected $table = 'proveedores';
 
+    protected $fillable = [
+        'nombre',
+        'direccion',
+        'coord_x',
+        'coord_y',
+        'costo_almacenamiento',
+        'nivel_almacenamiento',
+        'nivel_produccion',
+        'zona_id',
+        'localidad_id',
+    ];
 
     public function zona()
     {
