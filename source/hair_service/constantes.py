@@ -25,16 +25,14 @@ class Constantes():
     def inicializar(self,horizon_length, capacidad_vehiculo, proveedor, clientes) -> None:
         self.max_iter = 10 * len(clientes) * len(clientes) * horizon_length * horizon_length
         self.jump_iter = 10 * len(clientes) * horizon_length
-
-        # self.proveedor = Proveedor(proveedor["id"], proveedor["cord"])
-        print(proveedor.id)
+        
         self.proveedor = Proveedor(proveedor.id,proveedor.coord_x,proveedor.coord_y,proveedor.nivel_almacenamiento,proveedor.nivel_produccion, proveedor.costo_almacenamiento)
         self.vehicle_capacity = capacidad_vehiculo
         self.horizon_length = horizon_length
         
         self.clientes = []
         for cliente in clientes:
-            distancia_proveedor = self.compute_distancia_proveedor(cliente.coord_x, cliente.coord_y) 
+            distancia_proveedor = self.calcular_distancia_proveedor(cliente.coord_x, cliente.coord_y) 
             self.clientes.append(Cliente(cliente.id, cliente.coord_x, cliente.coord_y,  cliente.nivel_almacenamiento, cliente.nivel_maximo, cliente.nivel_minimo, cliente.nivel_demanda, cliente.costo_almacenamiento, distancia_proveedor))
           
         self.matriz_distancia = self.compute_matriz_distancia()
@@ -47,16 +45,13 @@ class Constantes():
                 for c in self.clientes}
        
 
-    # Compute the distancias to the proveedor
-    def compute_distancia_proveedor(self, coord_x, coord_y):
+    # Calcular distancias al proveedor
+    def calcular_distancia_proveedor(self, coord_x, coord_y):
         return self.compute_dist(self.proveedor.coord_x, coord_x, self.proveedor.coord_y, coord_y) 
 
+    #Distancia entre dos puntos
     def compute_dist(self, xi, xj, yi, yj):
         return round(math.sqrt(math.pow(xi - xj, 2) + math.pow(yi - yj, 2)))
-
-    def read_elem(self, filename):
-        with open(filename) as f:
-            return [str(elem) for elem in f.read().split()]
 
 
 constantes = Constantes()
