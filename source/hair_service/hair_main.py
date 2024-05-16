@@ -1,3 +1,4 @@
+import requests
 from modelos.solucion import Solucion
 from modelos.penalty_variables import alpha, beta
 from modelos.mip2 import Mip2
@@ -7,7 +8,8 @@ from constantes import constantes
 from random import seed
 from datetime import datetime
 
-def hair_execute(horizon_length, capacidad_vehiculo, proveedor, clientes):
+async def hair_execute(recorrido_id, horizon_length, capacidad_vehiculo, proveedor, clientes):
+    print(f"iniciado procesamiento del recorrido id: {recorrido_id}")
     soluciones = []
     constantes.inicializar(horizon_length, capacidad_vehiculo, proveedor, clientes)
     seed(datetime.now().microsecond)
@@ -65,9 +67,14 @@ def hair_execute(horizon_length, capacidad_vehiculo, proveedor, clientes):
     print("\n-------------------------------MEJOR SOLUCIÓN-------------------------------\n")
     print(mejor_solucion.detail())
 
- 
     soluciones.append(mejor_solucion.to_json(tag="Mejor Solución",iteration=main_iterator))
-    return soluciones
+
+    #TODO: Retornar las soluciones a un endpoint de hair-app
+    url = f"http://hair-app-nginx/api/recorridos/{recorrido_id}/solucion"
+    data = {"mejorSolucion": mejor_solucion.to_json(tag="Mejor Solución",iteration=main_iterator)}
+    
+    requests.post(url,json=data)
+    
 
 # Update alpha and beta (TODO: REVISAR, SON SIEMPRE FEASIBLES)
 # alpha.no_factibles() if solucion_prima.es_excedida_capacidad_vehiculo() else alpha.factible()

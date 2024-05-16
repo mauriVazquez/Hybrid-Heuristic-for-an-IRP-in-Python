@@ -1,5 +1,7 @@
+import requests
 from typing import List
-from fastapi import FastAPI
+from fastapi import FastAPI, BackgroundTasks
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from hair_main import hair_execute
 
@@ -10,37 +12,42 @@ app = FastAPI()
 
 @app.get("/")
 def read_root():
-    print('LLegó solicitud')
     return {"Hello": "World"}
 
 
 class Proveedor(BaseModel):
-    id : str
-    coord_x : float
-    coord_y : float
-    costo_almacenamiento : float
-    nivel_almacenamiento : int
-    nivel_produccion : int
+    id: str
+    coord_x: float
+    coord_y: float
+    costo_almacenamiento: float
+    nivel_almacenamiento: int
+    nivel_produccion: int
+
 
 class Cliente(BaseModel):
-        id: str
-        coord_x: float
-        coord_y: float
-        costo_almacenamiento: float
-        nivel_almacenamiento: int
-        nivel_maximo: int
-        nivel_minimo: int
-        nivel_demanda: int
+    id: str
+    coord_x: float
+    coord_y: float
+    costo_almacenamiento: float
+    nivel_almacenamiento: int
+    nivel_maximo: int
+    nivel_minimo: int
+    nivel_demanda: int
 
 
 class Param(BaseModel):
-    horizon_length: int = Field( default=None)
-    capacidad_vehiculo: int = Field( default=None)
-    proveedor: Proveedor = Field(default = None)
-    clientes : List[Cliente] = Field(default = None)
+    recorrido_id: str = Field(default="id recorrido no encontrado")
+    horizon_length: int = Field(default=None)
+    capacidad_vehiculo: int = Field(default=None)
+    proveedor: Proveedor = Field(default=None)
+    clientes: List[Cliente] = Field(default=None)
 
 
 @app.post("/solicitud-ejecucion")
-async def procesar_solicitud(param : Param):
-    response = await hair_execute(param.horizon_length, param.capacidad_vehiculo, param.proveedor, param.clientes)
-    return response
+async def procesar_solicitud(param: Param,  background_tasks: BackgroundTasks):
+    print(
+        f"Se recibió la solicitud para ejecutar el algoritmo en el recorrido {param.recorrido_id}")
+    background_tasks.add_task(hair_execute, param.recorrido_id, param.horizon_length,
+                              param.capacidad_vehiculo, param.proveedor, param.clientes)
+    # response = await hair_execute(param.horizon_length, param.capacidad_vehiculo, param.proveedor, param.clientes)
+    return {"message": "Solicitud de procesamiento de recorrido recibida", "recorrido_id": param.recorrido_id}

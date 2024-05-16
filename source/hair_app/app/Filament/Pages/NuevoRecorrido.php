@@ -111,9 +111,10 @@ class NuevoRecorrido extends Page implements HasForms
                 ]);
 
                 $recorrido->clientes()->attach($formData['clientes']);
-
                 $hairService = new HairService;
-                $response = $hairService->enviarSolicitudEjecucion($recorrido->id, $this->record->proveedor, $this->record->clientes->pluck('id'), $this->record->vehiculo, $this->record->horizon_length);
+                $response = $hairService->enviarSolicitudEjecucion($recorrido->id, $recorrido->proveedor, $recorrido->clientes->pluck('id'), $recorrido->vehiculo, $recorrido->horizon_length);
+
+                info($response);
             });
         } catch (Throwable $th) {
             info($th->getMessage());

@@ -7,6 +7,7 @@ use App\Http\Resources\ProveedorPythonResource;
 use App\Models\Cliente;
 use App\Models\Proveedor;
 use App\Models\Vehiculo;
+use Exception;
 use GuzzleHttp\Client;
 use GuzzleHttp\RequestOptions;
 
@@ -42,6 +43,10 @@ class HairService
         $response = $this->getHttpClient()->post($this->url . '/solicitud-ejecucion', [
             RequestOptions::BODY => json_encode($data),
         ]);
-        return $response->getBody();
+
+        if ($response->getStatusCode() > 201)
+            throw new Exception("Ocurrio un error al consultar al servicio python: {$response->getBody()}", $response->getStatusCode());
+
+        return json_decode($response->getBody());
     }
 }
