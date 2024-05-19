@@ -10,14 +10,12 @@ class RecorridoController extends Controller
 {
     public function guardarSolucion(Request $request, Recorrido $recorrido)
     {
-        info($recorrido);
-        info($request);
-
+        $solucion = $request->input('mejor_solucion');
+        info(json_encode($solucion));
         // Notification::make()
         //     ->title('Procesamiento de recorrido finalizado')
         //     ->body('Ya puedes ver la mejor ruta encontrada')
         //     ->success()
         //     ->broadcast(auth()->user());
-
     }
 }

@@ -98,8 +98,6 @@ class NuevoRecorrido extends Page implements HasForms
 
     public function submit()
     {
-        info($this->form->getState());
-
         try {
             DB::transaction(function () {
                 $formData = $this->form->getState();
@@ -113,12 +111,11 @@ class NuevoRecorrido extends Page implements HasForms
                 $recorrido->clientes()->attach($formData['clientes']);
                 $hairService = new HairService;
                 $response = $hairService->enviarSolicitudEjecucion($recorrido->id, $recorrido->proveedor, $recorrido->clientes->pluck('id'), $recorrido->vehiculo, $recorrido->horizon_length);
-
-                info($response);
+                // info($response);
             });
         } catch (Throwable $th) {
-            info($th->getMessage());
-            info($th->getTraceAsString());
+            // info($th->getMessage());
+            // info($th->getTraceAsString());
         }
 
         return redirect('admin/recorridos');

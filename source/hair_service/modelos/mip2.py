@@ -38,7 +38,6 @@ class Mip2():
                         costo_minimo = costo_mip
                         costo_minimo_solucion = solucion_aux.clonar()
         
-        costo_minimo_solucion.refrescar()
         #print(f"SALIDA MIP2 {costo_minimo_solucion}")
         return costo_minimo_solucion
 
@@ -56,7 +55,6 @@ class Mip2():
         Retorna:
             float: El costo total asociado a la solución después de realizar la operación.
         """
-        solucion.refrescar()
         if not any(len(ruta.clientes) > 0 for ruta in solucion.rutas):
             return float("inf")
         

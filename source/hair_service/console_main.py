@@ -1,42 +1,7 @@
-from hair_main import hair_execute
+from hair_main import execute
 import math
 import argparse
-
-class Proveedor():
-    id : str
-    coord_x : float
-    coord_y : float
-    costo_almacenamiento : float
-    nivel_almacenamiento : int
-    nivel_produccion : int
-
-    def __init__(self, id, coord_x, coord_y, costo_almacenamiento, nivel_almacenamiento, nivel_produccion):
-        self.id = id
-        self.coord_x = coord_x
-        self.coord_y = coord_y
-        self.costo_almacenamiento = costo_almacenamiento
-        self.nivel_almacenamiento = nivel_almacenamiento
-        self.nivel_produccion = nivel_produccion
-
-class Cliente():
-    id: str
-    coord_x: float
-    coord_y: float
-    costo_almacenamiento: float
-    nivel_almacenamiento: int
-    nivel_maximo: int
-    nivel_minimo: int
-    nivel_demanda: int
-
-    def __init__(self, id, coord_x, coord_y, costo_almacenamiento, nivel_almacenamiento, nivel_maximo, nivel_minimo, nivel_demanda):
-        self.id = id
-        self.coord_x = coord_x
-        self.coord_y = coord_y
-        self.costo_almacenamiento = costo_almacenamiento
-        self.nivel_almacenamiento = nivel_almacenamiento
-        self.nivel_maximo = nivel_maximo
-        self.nivel_minimo = nivel_minimo
-        self.nivel_demanda = nivel_demanda
+from modelos.entidad import Cliente, Proveedor
 
 def read_input_irp(filename, horizon_len):
     file_it = iter(read_elem(filename))
@@ -51,11 +16,11 @@ def read_input_irp(filename, horizon_len):
     next(file_it)
     coord_x = float(next(file_it))
     coord_y = float(next(file_it))
-    nivel_inicial = int(next(file_it))
+    nivel_almacenamiento = int(next(file_it))
     nivel_produccion = int(next(file_it))
     costo_almacenamiento = float(next(file_it))
     
-    proveedor = Proveedor(0, coord_x, coord_y, costo_almacenamiento, nivel_inicial, nivel_produccion)
+    proveedor = Proveedor(0, coord_x, coord_y, nivel_almacenamiento, nivel_produccion, costo_almacenamiento)
    
 
     clientes = []
@@ -63,12 +28,13 @@ def read_input_irp(filename, horizon_len):
         next(file_it)
         coord_x = float(next(file_it))
         coord_y = float(next(file_it))
-        nivel_inicial = int(next(file_it))
-        max_nivel = int(next(file_it))
-        min_nivel = int(next(file_it))
+        nivel_almacenamiento = int(next(file_it))
+        nivel_maximo = int(next(file_it))
+        nivel_minimo = int(next(file_it))
         nivel_demanda = int(next(file_it))
         costo_almacenamiento = float(next(file_it))
-        clientes.append(Cliente(i, coord_x, coord_y, costo_almacenamiento, nivel_inicial, max_nivel, min_nivel, nivel_demanda))
+        distancia_proveedor = compute_dist(coord_x, proveedor.coord_x, coord_y, proveedor.coord_y)
+        clientes.append(Cliente(i, coord_x, coord_y, nivel_almacenamiento, nivel_maximo, nivel_minimo, nivel_demanda, costo_almacenamiento, distancia_proveedor))
 
     return horizon_len, proveedor, clientes, capacidad_vehiculo
 
@@ -94,4 +60,4 @@ if __name__ == '__main__':
 
     horizon_len, proveedor, clientes, capacidad_vehiculo = read_input_irp(instancia, horizon_len)
     
-    response = hair_execute(horizon_len, capacidad_vehiculo, proveedor, clientes)
+    response = execute(0, horizon_len, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento)

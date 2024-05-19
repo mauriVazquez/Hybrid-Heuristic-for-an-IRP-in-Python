@@ -30,7 +30,6 @@ class Mip1():
         for perm in permutations(range(constantes.horizon_length)):
             solucion_actual = solucion_original.clonar()
             solucion_actual.rutas = [solucion_actual.rutas[i] for i in perm]
-            solucion_actual.refrescar()
 
             costo_mip = Mip1.costo(solucion_actual)
             if costo_mip < costo_minimo and solucion_actual.pass_constraints("MIP1"):
@@ -43,12 +42,10 @@ class Mip1():
                     if solucion_modificada.rutas[tiempo].es_visitado(cliente):
                         costo_mip = Mip1.costo(solucion_modificada, cliente, tiempo)
                         solucion_modificada.remover_visita(cliente, tiempo)
-                        solucion_modificada.refrescar()
                         if costo_mip < costo_minimo and solucion_modificada.pass_constraints("MIP1", cliente, tiempo, "REMOVE"):
                             costo_minimo = costo_mip
                             costo_minimo_solucion = solucion_modificada.clonar()
 
-        costo_minimo_solucion.refrescar()
         #print(f"SALIDA MIP1 {costo_minimo_solucion}")
         return costo_minimo_solucion
 
@@ -65,7 +62,6 @@ class Mip1():
         Retorna:
             float: El costo total asociado a la solución.
         """
-        solucion.refrescar()
 
         term_1 = constantes.proveedor.costo_almacenamiento * sum(solucion.B(t) for t in range(constantes.horizon_length + 1))
 

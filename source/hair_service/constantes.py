@@ -14,26 +14,44 @@ class Constantes():
         self.penalty_factor_min = float(config['Penalty_factor']['min_limit'])
         self.penalty_factor_max = float(config['Penalty_factor']['max_limit'])
         
-        self.max_iter = None
-        self.jump_iter = None
+        self.max_iter = 0 
+        self.jump_iter = 0
         self.proveedor = None
         self.vehicle_capacity = None
         self.horizon_length = None
         self.clientes = []
         self.matriz_distancia = []
      
-    def inicializar(self,horizon_length, capacidad_vehiculo, proveedor, clientes) -> None:
-        self.max_iter = 10 * len(clientes) * len(clientes) * horizon_length * horizon_length
-        self.jump_iter = 10 * len(clientes) * horizon_length
-        
-        self.proveedor = Proveedor(proveedor.id,proveedor.coord_x,proveedor.coord_y,proveedor.nivel_almacenamiento,proveedor.nivel_produccion, proveedor.costo_almacenamiento)
+    def inicializar(self,horizon_length, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento) -> None:
         self.vehicle_capacity = capacidad_vehiculo
         self.horizon_length = horizon_length
+        self.max_iter = 200 * len(clientes)  * horizon_length
+        self.jump_iter = self.max_iter // 2
+        self.politica_reabastecimiento = self.politica_reabastecimiento if politica_reabastecimiento == None else politica_reabastecimiento
+        
+        self.proveedor = Proveedor(
+            proveedor.id,
+            proveedor.coord_x,
+            proveedor.coord_y,
+            proveedor.nivel_almacenamiento,
+            proveedor.nivel_produccion,
+            proveedor.costo_almacenamiento
+        )
         
         self.clientes = []
         for cliente in clientes:
-            distancia_proveedor = self.calcular_distancia_proveedor(cliente.coord_x, cliente.coord_y) 
-            self.clientes.append(Cliente(cliente.id, cliente.coord_x, cliente.coord_y,  cliente.nivel_almacenamiento, cliente.nivel_maximo, cliente.nivel_minimo, cliente.nivel_demanda, cliente.costo_almacenamiento, distancia_proveedor))
+            distancia_proveedor = self.calcular_distancia_proveedor(cliente.coord_x,cliente.coord_y) 
+            self.clientes.append(Cliente(
+                cliente.id,
+                cliente.coord_x,
+                cliente.coord_y,
+                cliente.nivel_almacenamiento,
+                cliente.nivel_maximo,
+                cliente.nivel_minimo,
+                cliente.nivel_demanda,
+                cliente.costo_almacenamiento,
+                distancia_proveedor
+            ))
           
         self.matriz_distancia = self.compute_matriz_distancia()
         

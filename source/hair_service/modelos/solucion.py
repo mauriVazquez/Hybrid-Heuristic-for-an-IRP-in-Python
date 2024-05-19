@@ -8,6 +8,7 @@ from modelos.mip1 import Mip1
 from modelos.mip2 import Mip2
 from tsp_local.base import TSP
 from tsp_local.kopt import KOpt
+from random import randint
 
 def LK(solucion: Type["Solucion"], solucion_prima: Type["Solucion"]) -> Type["Solucion"]:
     aux_solucion = solucion.clonar()
@@ -35,8 +36,8 @@ def LK(solucion: Type["Solucion"], solucion_prima: Type["Solucion"]) -> Type["So
                 [solucion_prima.rutas[tiempo].clientes[indice - 1] for indice in path[1:]],
                 [solucion_prima.rutas[tiempo].cantidades[indice - 1] for indice in path[1:]]
             )
-    aux_solucion.refrescar()
-    return aux_solucion if aux_solucion.costo < solucion_prima.costo else solucion_prima
+
+    return aux_solucion if aux_solucion.costo() < solucion_prima.costo() else solucion_prima
 
 class Solucion():
     @staticmethod
@@ -46,33 +47,31 @@ class Solucion():
     @staticmethod
     def inicializar():
         solucion = Solucion.obtener_empty_solucion()
+        # Simular demanda de clientes y actualizar stock
         for cliente in constantes.clientes:
-            nivel_inicial, nivel_demanda = cliente.nivel_inicial, cliente.nivel_demanda
-            min_nivel, max_nivel = cliente.min_nivel, cliente.max_nivel
-            #Se calcula el tiempo en que sucederá el primer stockout, y la frecuencia del mismo.
-            tiempo_stockout = (nivel_inicial - min_nivel) // nivel_demanda -1
-            stockout_frequency = (max_nivel - min_nivel) // nivel_demanda
-            #Se visita al cliente en el primer stock
-            solucion.rutas[tiempo_stockout].insertar_visita(cliente, 
-                    max_nivel - (nivel_inicial - nivel_demanda * (tiempo_stockout+1)),
-                    len(solucion.rutas[tiempo_stockout].clientes))
-            #Se calculan todos los tiempos dentro del horizonte donde ocurrirá el stockout y se agrega la visita.
-            for t in range(tiempo_stockout+stockout_frequency, constantes.horizon_length, stockout_frequency):
-                solucion.rutas[t].insertar_visita(cliente, max_nivel, len(solucion.rutas[t].clientes))
-        solucion.refrescar()
-        print(f"Inicio {solucion}")
+            stock_cliente = cliente.nivel_almacenamiento
+            for t in range(constantes.horizon_length):
+                stock_cliente -= cliente.nivel_demanda
+                if stock_cliente < cliente.nivel_demanda:
+                    # Calcular cantidad máxima a entregar
+                    maxima_entrega = cliente.nivel_maximo - stock_cliente
+                    # Calcular cantidad a entregar según la política
+                    cantidad_entregada = maxima_entrega if constantes.politica_reabastecimiento == "ML" else randint(1, maxima_entrega)
+                    # Insertar visita en la solución
+                    solucion.rutas[t].insertar_visita(cliente, cantidad_entregada , None)
+                     # Actualizar demanda acumulada
+                    stock_cliente += cantidad_entregada
         return solucion
-    
+  
     def __init__(self,  rutas: list[Ruta] = None) -> None:
         self.rutas = rutas if rutas else [Ruta for _ in range(constantes.horizon_length)]
-        self.costo = self.funcion_objetivo()
         
     def __str__(self) -> str:
-        return "".join("T"+str(i+1)+"= "+ruta.__str__()+"    " for i, ruta in enumerate(self.rutas)) + 'Costo:' + str(self.costo)
+        return "".join("T"+str(i+1)+"= "+ruta.__str__()+"    " for i, ruta in enumerate(self.rutas)) + 'Costo:' + str(self.costo())
 
     def  detail(self) -> str:
         resp = "Clientes visitados:"+" ".join("T"+str(i+1)+"= "+ruta.__str__()+"\t" for i, ruta in enumerate(self.rutas))
-        resp += '\nObjective function: ' + str(self.costo) + "\n"
+        resp += '\nObjective function: ' + str(self.costo()) + "\n"
         resp += 'Proveedor inventario: ' + str(self.obtener_niveles_inventario_proveedor()) + "\n"
         resp += 'Clientes inventario: ' + str(self.obtener_niveles_inventario_clientes()) + "\n"
         resp += 'Situación de Stockout? : ' + ('yes' if self.cliente_tiene_stockout() else 'no') + "\n"
@@ -85,11 +84,11 @@ class Solucion():
             "iteration":iteration,
             "tag":tag,
             "rutas":{i:ruta.to_json() for i, ruta in enumerate(self.rutas)},
-            "costo":self.costo
+            "costo": self.costo()
         }
 
-    def refrescar(self):
-        self.costo = self.funcion_objetivo()
+    def costo(self):
+        return self.funcion_objetivo()    
 
     def clonar(self) -> Type["Solucion"]:
         return Solucion([ruta.clonar() for ruta in self.rutas])
@@ -109,7 +108,7 @@ class Solucion():
                    for tiempo in range(constantes.horizon_length+1))
 
     def cliente_tiene_overstock(self) -> bool:
-        return any(self.obtener_niveles_inventario_cliente(cliente)[tiempo] > cliente.max_nivel
+        return any(self.obtener_niveles_inventario_cliente(cliente)[tiempo] > cliente.nivel_maximo
                    for cliente in constantes.clientes
                    for tiempo in range(constantes.horizon_length))
     
@@ -123,11 +122,11 @@ class Solucion():
         return (
             self.B(t-1) + constantes.proveedor.nivel_produccion - self.rutas[t-1].obtener_total_entregado()
             if t > 0
-            else constantes.proveedor.nivel_inicial
+            else constantes.proveedor.nivel_almacenamiento
         )
     
     def obtener_niveles_inventario_cliente(self, cliente):
-        cliente_inventario = [cliente.nivel_inicial]
+        cliente_inventario = [cliente.nivel_almacenamiento]
         for tiempo in range(1, constantes.horizon_length +1):
             cliente_inventario.append(cliente_inventario[tiempo-1] + self.rutas[tiempo-1].obtener_cantidad_entregada(cliente) - cliente.nivel_demanda)          
         return cliente_inventario
@@ -135,19 +134,24 @@ class Solucion():
     def obtener_niveles_inventario_clientes(self):
         return {cliente.id:self.obtener_niveles_inventario_cliente(cliente) for cliente in constantes.clientes}
 
-    # Retorna the set of tiempos when is visitado a cliente in a given solucion.
+    # Retorna el conjunto de tiempos donde un cliente es visitado en una solucion dada.
     def T(self, cliente):
         return [tiempo for tiempo in range(constantes.horizon_length) if self.rutas[tiempo].es_visitado(cliente)]
     
     def mover(self) -> Type["Solucion"]:
-        return min(self.neighborhood(), key=lambda neighbor: neighbor.costo, default=self.clonar())
+        neighborhood = self.variante_eliminacion()
+        neighborhood += self.variante_insercion()
+        neighborhood += self.variante_mover_visita()
+        neighborhood += self.variante_intercambiar_visitas()
+        minimo = min(neighborhood, key=lambda neighbor: neighbor.costo(), default=self.clonar())
+        return minimo 
     
     def mejorar(self):
         do_continue = True
         solucion_best = self.clonar()
         solucion_best = LK(Solucion.obtener_empty_solucion(), solucion_best)
+
         while do_continue:
-            solucion_best.refrescar()
             do_continue = False
 
             #PRIMER TIPO DE MEJORA
@@ -156,8 +160,8 @@ class Solucion():
             solucion_prima = LK(solucion_best, solucion_prima)
             
             #Si el costo de la solución encontrada es mejor que el de solucion_best, se actualiza solucion_best
-            if solucion_prima.costo < solucion_best.costo:
-                #print(f"first improvement: {solucion_prima.costo}")
+            if solucion_prima.costo() < solucion_best.costo():
+                #print(f"first improvement: {solucion_prima.costo()}")
                 solucion_best = solucion_prima.clonar()
                 do_continue = True
 
@@ -179,7 +183,7 @@ class Solucion():
                 aux_solucion = Mip2.ejecutar(s1)
                 if aux_solucion.es_factible():
                     solucion_prima = LK(s1, aux_solucion)
-                    if solucion_prima.costo < solucion_merge.costo:
+                    if solucion_prima.costo() < solucion_merge.costo():
                         solucion_merge = solucion_prima.clonar()
 
                 #Por cada par de rutas, se crea una solución s2 que resulta de trasladar las visitas de r1 a r2
@@ -195,11 +199,11 @@ class Solucion():
                 if aux_solucion.es_factible():
                     solucion_prima = LK(s2, solucion_prima)
                     #En este punto solucion_merge es la mejor solución entre solucion_best y la primer parte de esta mejora.
-                    if solucion_prima.costo < solucion_merge.costo:
+                    if solucion_prima.costo() < solucion_merge.costo():
                         solucion_merge = solucion_prima.clonar()
             #Si el costo de solucion_merge es mejor que el de solucion_best, se actualiza el valor de solucion_best
-            if solucion_merge.costo < solucion_best.costo:
-                #print(f"second improvement: {solucion_merge.costo}")
+            if solucion_merge.costo() < solucion_best.costo():
+                #print(f"second improvement: {solucion_merge.costo()}")
                 solucion_best = solucion_merge.clonar()
                 do_continue = True
 
@@ -207,8 +211,8 @@ class Solucion():
             #Se aplica el MIP2 a solucion_best, luego se le aplica LK
             solucion_prima = Mip2.ejecutar(solucion_best)
             solucion_prima = LK(solucion_best, solucion_prima)
-            if solucion_prima.costo < solucion_best.costo:
-                #print(f"Third improvement: {solucion_prima.costo}")
+            if solucion_prima.costo() < solucion_best.costo():
+                #print(f"Third improvement: {solucion_prima.costo()}")
                 solucion_best = solucion_prima.clonar()
                 do_continue = True 
         #print(f"sbest despues de improvement {solucion_best}")
@@ -221,16 +225,7 @@ class Solucion():
             cantidad_eliminado = new_solucion.rutas[tiempo_visitado].remover_visita(cliente)
             new_solucion.rutas[tiempo_not_visitado].insertar_visita(cliente, cantidad_eliminado, None)
        
-        new_solucion.refrescar()
         return new_solucion
-    
-    def neighborhood(self) -> list[Type["Solucion"]]:
-        return (
-            self.variante_eliminacion()
-            + self.variante_insercion()
-            + self.variante_mover_visita()
-            + self.variante_intercambiar_visitas()
-        )
    
     def funcion_objetivo(self):
         if not any(len(ruta.clientes) > 0 for ruta in self.rutas):
@@ -264,47 +259,42 @@ class Solucion():
                 if self.rutas[t].es_visitado(cliente):
                     self.rutas[t].agregar_cantidad_cliente(cliente, cantidad_eliminado)
                     break
-        elif constantes.politica_reabastecimiento == "ML":
+        elif constantes.politica_reabastecimiento == "ML":   
             if self.cliente_tiene_stockout():
-                for tinverso in range(tiempo):
-                    t2 = tiempo - tinverso
+                for t2 in range(tiempo, -1, -1):
                     if self.rutas[t2].es_visitado(cliente):
-                        cantidad = cliente.max_nivel - self.obtener_niveles_inventario_cliente(cliente)[t2]
+                        cantidad = cliente.nivel_maximo - self.obtener_niveles_inventario_cliente(cliente)[t2]
                         self.rutas[t2].agregar_cantidad_cliente(cliente, cantidad)
                         break
-        self.refrescar()
-
+        
     def insertar_visita(self, cliente, tiempo):
         if constantes.politica_reabastecimiento == "OU":
-            cantidad_delivered = cliente.max_nivel - self.obtener_niveles_inventario_cliente(cliente)[tiempo]
-            self.rutas[tiempo].insertar_visita(cliente, cantidad_delivered, None)
+            cantidad_entregada = cliente.nivel_maximo - self.obtener_niveles_inventario_cliente(cliente)[tiempo]
+            self.rutas[tiempo].insertar_visita(cliente, cantidad_entregada, None)
             for t in range(tiempo + 1, constantes.horizon_length):
                 if self.rutas[t].es_visitado(cliente):
-                    self.rutas[t].quitar_cantidad_cliente(cliente, cantidad_delivered)
+                    self.rutas[t].quitar_cantidad_cliente(cliente, cantidad_entregada)
                     break
         elif constantes.politica_reabastecimiento == "ML":
-            cantidad_delivered = min(
-                cliente.max_nivel - self.obtener_niveles_inventario_cliente(cliente)[tiempo],
+            cantidad_entregada = min(
+                cliente.nivel_maximo - self.obtener_niveles_inventario_cliente(cliente)[tiempo],
                 constantes.vehicle_capacity - self.rutas[tiempo].obtener_total_entregado(),
                 self.B(tiempo)
             )
-            cantidad_delivered = cantidad_delivered if cantidad_delivered > 0 else cliente.nivel_demanda
-            self.rutas[tiempo].insertar_visita(cliente, cantidad_delivered, None)
-        self.refrescar()
+            cantidad_entregada = cantidad_entregada if cantidad_entregada > 0 else cliente.nivel_demanda
+            self.rutas[tiempo].insertar_visita(cliente, cantidad_entregada, None)
 
     def variante_eliminacion(self) -> list[Type["Solucion"]]:
         neighborhood_prima = []
         for cliente in constantes.clientes:
-            # La eliminación del cliente parece ser interesante cuando hi>h0
+            # La eliminación de la visita es interesante si el costo de almacenamiento del cliente es mayor que el del proveedor.
             if cliente.costo_almacenamiento > constantes.proveedor.costo_almacenamiento:
                 for tiempo in range(constantes.horizon_length):
                     solucion_copy = self.clonar()
-                    if (solucion_copy.rutas[tiempo].es_visitado(cliente)):
+                    if solucion_copy.rutas[tiempo].es_visitado(cliente) and (not tabulists.esta_prohibido_quitar(cliente.id, tiempo)):
                         solucion_copy.remover_visita(cliente, tiempo)
-                        if solucion_copy.es_admisible() and (not tabulists.esta_prohibido_quitar(cliente.id, tiempo)):# or solucion_copy.costo < constantes.multiplicador_tolerancia * self.costo):
-                            solution_append = solucion_copy.clonar()
-                            solution_append.refrescar()
-                            neighborhood_prima.append(solution_append)
+                        if solucion_copy.es_admisible():
+                            neighborhood_prima.append(solucion_copy)
         return neighborhood_prima
 
     def variante_insercion(self) -> list[Type["Solucion"]]:
@@ -312,12 +302,10 @@ class Solucion():
         for cliente in constantes.clientes:
             for tiempo in range(constantes.horizon_length):
                 solucion_copy = self.clonar()
-                if (not solucion_copy.rutas[tiempo].es_visitado(cliente)):
+                if not (solucion_copy.rutas[tiempo].es_visitado(cliente) or tabulists.esta_prohibido_agregar(cliente.id, tiempo)):
                     solucion_copy.insertar_visita(cliente, tiempo)
-                    if solucion_copy.es_admisible() and (not tabulists.esta_prohibido_agregar(cliente, tiempo) ):#or solucion_copy.costo < constantes.multiplicador_tolerancia * self.costo):
-                        solution_append = solucion_copy.clonar()
-                        solution_append.refrescar()
-                        neighborhood_prima.append(solution_append)
+                    if solucion_copy.es_admisible():
+                        neighborhood_prima.append(solucion_copy)
         return neighborhood_prima
 
     def variante_mover_visita(self) -> list[Type["Solucion"]]:
@@ -329,13 +317,11 @@ class Solucion():
                 new_solucion = self.clonar()
                 cantidad_eliminado = new_solucion.rutas[t_visitado].remover_visita(cliente)
                 for t_not_visitado in set_t_not_visitado:
-                    solucion_copy = new_solucion.clonar()
-                    solucion_copy.rutas[t_not_visitado].insertar_visita(cliente, cantidad_eliminado, None)
-                    solucion_copy.refrescar()
-                    if solucion_copy.es_admisible() and ((not tabulists.esta_prohibido_quitar(cliente, t_visitado) and not tabulists.esta_prohibido_agregar(cliente, t_not_visitado))):# or saux.costo < constantes.multiplicador_tolerancia * self.costo):
-                        solution_append = solucion_copy.clonar()
-                        solution_append.refrescar()
-                        neighborhood_prima.append(solution_append)
+                    if not (tabulists.esta_prohibido_quitar(cliente.id, t_visitado) or tabulists.esta_prohibido_agregar(cliente.id, t_not_visitado)):
+                        solucion_copy = new_solucion.clonar()
+                        solucion_copy.rutas[t_not_visitado].insertar_visita(cliente, cantidad_eliminado, None)
+                        if solucion_copy.es_admisible():
+                            neighborhood_prima.append(solucion_copy)
         return neighborhood_prima
 
     def variante_intercambiar_visitas(self) -> list[Type["Solucion"]]:
@@ -345,7 +331,9 @@ class Solucion():
                 if t1 != t2:
                     for cliente1 in self.rutas[t1].clientes:
                         for cliente2 in self.rutas[t2].clientes:
-                            if not(self.rutas[t1].es_visitado(cliente2) or self.rutas[t2].es_visitado(cliente1)):
+                            if not(self.rutas[t1].es_visitado(cliente2) or self.rutas[t2].es_visitado(cliente1)
+                                   or tabulists.esta_prohibido_agregar(cliente1.id, t2) or tabulists.esta_prohibido_quitar(cliente1.id, t1) 
+                                   or tabulists.esta_prohibido_agregar(cliente2.id, t1) or tabulists.esta_prohibido_quitar(cliente2.id, t2)):
                                 solucion_copy = self.clonar()
                                 # Mover cliente1 de t1 a t2
                                 cantidad_to_insert = solucion_copy.rutas[t1].remover_visita(cliente1)
@@ -353,11 +341,7 @@ class Solucion():
                                # Mover cliente1 de t2 a t1
                                 cantidad_to_insert = solucion_copy.rutas[t2].remover_visita(cliente2)
                                 solucion_copy.rutas[t1].insertar_visita(cliente2,cantidad_to_insert,None)
-                                solucion_copy.refrescar()
-                                if solucion_copy.es_admisible() and (not(tabulists.esta_prohibido_agregar(cliente1, t2) or tabulists.esta_prohibido_quitar(cliente1, t1) or tabulists.esta_prohibido_agregar(cliente2, t1) or tabulists.esta_prohibido_quitar(cliente2, t2))):# or solucion_copy.costo < constantes.multiplicador_tolerancia * self.costo):
-                                    solution_append = solucion_copy.clonar()
-                                    solution_append.refrescar()
-                                    neighborhood_prima.append(solution_append)
+                                if solucion_copy.es_admisible():
                                     neighborhood_prima.append(solucion_copy)
         return neighborhood_prima
 
@@ -365,7 +349,6 @@ class Solucion():
         self.rutas[rutabase_indice].clientes.extend(self.rutas[rutasecondary_indice].clientes)
         self.rutas[rutabase_indice].cantidades.extend(self.rutas[rutasecondary_indice].cantidades)
         self.rutas[rutasecondary_indice] = Ruta([],[])
-        self.refrescar()
 
 
     def pass_constraints(self, MIP, MIPcliente = None, MIPtiempo = None, operation = None): 
@@ -379,13 +362,13 @@ class Solucion():
                 if theeta not in [0, 1]:
                     return False
                 # Constraint 5: La cantidad entregada a un cliente en un tiempo dado es mayor o igual a la capacidad máxima menos el nivel de inventario (si lo visita en el tiempo dado).
-                if constantes.politica_reabastecimiento == "OU" and (self.rutas[tiempo].obtener_cantidad_entregada(cliente) < (cliente.max_nivel * theeta) - self.obtener_niveles_inventario_cliente(cliente)[tiempo]):
+                if constantes.politica_reabastecimiento == "OU" and (self.rutas[tiempo].obtener_cantidad_entregada(cliente) < (cliente.nivel_maximo * theeta) - self.obtener_niveles_inventario_cliente(cliente)[tiempo]):
                     return False
                 # Constraint 6: La cantidad entregada a un cliente en un tiempo dado debe ser menor o igual a la capacidad máxima menos el nivel de inventario (Junto con C5, definen OU)
-                if self.rutas[tiempo].obtener_cantidad_entregada(cliente) > cliente.max_nivel - self.obtener_niveles_inventario_cliente(cliente)[tiempo]:
+                if self.rutas[tiempo].obtener_cantidad_entregada(cliente) > cliente.nivel_maximo - self.obtener_niveles_inventario_cliente(cliente)[tiempo]:
                     return False
                 # Constraint 7: La cantidad entregada a un cliente es menor o igual al nivel máximo de inventario si es que lo visita.
-                if constantes.politica_reabastecimiento == "OU" and (self.rutas[tiempo].obtener_cantidad_entregada(cliente) > cliente.max_nivel * theeta):
+                if constantes.politica_reabastecimiento == "OU" and (self.rutas[tiempo].obtener_cantidad_entregada(cliente) > cliente.nivel_maximo * theeta):
                     return False
                 # Constraint 8: La cantidad entregada a los clientes en un tiempo dado, es menor o igual a la capacidad del camión.
                 if self.rutas[tiempo].obtener_total_entregado() > constantes.vehicle_capacity:
@@ -400,7 +383,7 @@ class Solucion():
             for cliente in constantes.clientes:
                 # Constraint 4
                 if tiempo == 0:
-                    if self.obtener_niveles_inventario_cliente(cliente)[tiempo] != cliente.nivel_inicial:
+                    if self.obtener_niveles_inventario_cliente(cliente)[tiempo] != cliente.nivel_almacenamiento:
                         return False
                 else:
                     if self.obtener_niveles_inventario_cliente(cliente)[tiempo] != self.obtener_niveles_inventario_cliente(cliente)[tiempo-1] + self.rutas[tiempo-1].obtener_cantidad_entregada(cliente) - cliente.nivel_demanda:
@@ -427,7 +410,7 @@ class Solucion():
             if w_it > sigma_it:
                 return False
             # Constraint 23: La cantidad entregada al cliente i no puede ser mayor a la capacidad máxima
-            if self.rutas[MIPtiempo].obtener_cantidad_entregada(MIPcliente) > MIPcliente.max_nivel * (sigma_it - w_it + v_it):
+            if self.rutas[MIPtiempo].obtener_cantidad_entregada(MIPcliente) > MIPcliente.nivel_maximo * (sigma_it - w_it + v_it):
                 return False
             #Constraint 24: v_it debe ser 0 o 1
             if not v_it in [0,1]:
@@ -437,10 +420,10 @@ class Solucion():
                 return False
         return True
 
-    # def draw_rutas(self):
-    #     points = []
-    #     for tiempo in range(constantes.horizon_length):
-    #         x = [constantes.coords[cliente+1][0] for cliente in self.rutas[tiempo].clientes]
-    #         y = [constantes.coords[cliente+1][1] for cliente in self.rutas[tiempo].clientes]
-    #         points.append([x,y])
-    #     Graph.draw_rutas(constantes.coords,points,constantes.coords[0])
+    def draw_rutas(self):
+        clients_coords = []
+        for tiempo in range(constantes.horizon_length):
+            x = [cliente.coord_x for cliente in self.rutas[tiempo].clientes]
+            y = [cliente.coord_y for cliente in self.rutas[tiempo].clientes]
+            clients_coords.append([x,y])
+        Graph.draw_rutas(clients_coords,[constantes.proveedor.coord_x, constantes.proveedor.coord_y])

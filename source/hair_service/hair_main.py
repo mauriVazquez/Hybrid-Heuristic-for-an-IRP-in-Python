@@ -8,10 +8,10 @@ from constantes import constantes
 from random import seed
 from datetime import datetime
 
-async def hair_execute(recorrido_id, horizon_length, capacidad_vehiculo, proveedor, clientes):
+def execute(recorrido_id, horizon_length, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento = None):
     print(f"iniciado procesamiento del recorrido id: {recorrido_id}")
     soluciones = []
-    constantes.inicializar(horizon_length, capacidad_vehiculo, proveedor, clientes)
+    constantes.inicializar(horizon_length, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento)
     seed(datetime.now().microsecond)
     #Se inicializan los iteradores
     main_iterator, it_sinmejora = 0, 0
@@ -29,7 +29,7 @@ async def hair_execute(recorrido_id, horizon_length, capacidad_vehiculo, proveed
         tabulists.actualizar(solucion, solucion_prima, main_iterator)
        
         #Si solucion_prima tiene un costo menor a la mejor_solución
-        if solucion_prima.costo < mejor_solucion.costo:
+        if solucion_prima.costo() < mejor_solucion.costo():
             #Se aplica el procedimiento Mejorar sobre solucion_prima para encontrar una posible mejora sobre solucion_prima
             solucion_prima.mejorar()
             #Se almacena solucion_prima como nueva mejor solución
@@ -69,10 +69,13 @@ async def hair_execute(recorrido_id, horizon_length, capacidad_vehiculo, proveed
 
     soluciones.append(mejor_solucion.to_json(tag="Mejor Solución",iteration=main_iterator))
 
-    #TODO: Retornar las soluciones a un endpoint de hair-app
-    url = f"http://hair-app-nginx/api/recorridos/{recorrido_id}/solucion"
-    data = {"mejorSolucion": mejor_solucion.to_json(tag="Mejor Solución",iteration=main_iterator)}
+    return mejor_solucion, main_iterator
     
+async def async_execute(recorrido_id, horizon_length, capacidad_vehiculo, proveedor, clientes):
+    mejor_solucion, main_iterator = execute(recorrido_id, horizon_length, capacidad_vehiculo, proveedor, clientes)
+    
+    url = f"http://hair-app-nginx/api/recorridos/{recorrido_id}/solucion"
+    data = {"mejor_solucion": mejor_solucion.to_json(tag="Mejor Solución",iteration=main_iterator)}
     requests.post(url,json=data)
     
 
