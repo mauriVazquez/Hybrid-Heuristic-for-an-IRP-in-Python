@@ -60,4 +60,4 @@ if __name__ == '__main__':
 
     horizon_len, proveedor, clientes, capacidad_vehiculo = read_input_irp(instancia, horizon_len)
     
-    response = execute(0, horizon_len, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento)
+    response = execute(horizon_len, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento)

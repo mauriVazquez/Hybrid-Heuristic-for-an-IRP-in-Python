@@ -61,6 +61,7 @@ class Solucion():
                     solucion.rutas[t].insertar_visita(cliente, cantidad_entregada , None)
                      # Actualizar demanda acumulada
                     stock_cliente += cantidad_entregada
+        print(f"Inicialización: {solucion}")
         return solucion
   
     def __init__(self,  rutas: list[Ruta] = None) -> None:
@@ -218,14 +219,22 @@ class Solucion():
         #print(f"sbest despues de improvement {solucion_best}")
         return solucion_best.clonar()
 
-    def saltar(self, triplet) -> Type["Solucion"]:
+    def saltar(self,triplet_manager):
         new_solucion = self.clonar()
-        cliente, tiempo_visitado, tiempo_not_visitado = triplet  
-        if self.rutas[tiempo_visitado].es_visitado(cliente) and (not self.rutas[tiempo_not_visitado].es_visitado(cliente)):    
-            cantidad_eliminado = new_solucion.rutas[tiempo_visitado].remover_visita(cliente)
-            new_solucion.rutas[tiempo_not_visitado].insertar_visita(cliente, cantidad_eliminado, None)
-       
-        return new_solucion
+        mejor_solucion = self.clonar()
+        
+        #Mientras haya triplets
+        while triplet_manager.triplets:
+            #Se realizan jumps en función de algún triplet random
+            cliente, tiempo_visitado, tiempo_not_visitado = triplet_manager.obtener_triplet_aleatorio() 
+            if new_solucion.rutas[tiempo_visitado].es_visitado(cliente) and (not new_solucion.rutas[tiempo_not_visitado].es_visitado(cliente)):    
+                cantidad_eliminado = new_solucion.rutas[tiempo_visitado].remover_visita(cliente)
+                new_solucion.rutas[tiempo_not_visitado].insertar_visita(cliente, cantidad_eliminado, None)
+                if not new_solucion.cliente_tiene_stockout():
+                    mejor_solucion = new_solucion.clonar()
+                    
+        #Cuando no se puedan hacer mas saltos, se retorna la respuesta de ejecutar el MIP2 sobre la solución encontrada.
+        return Mip2.ejecutar(mejor_solucion)
    
     def funcion_objetivo(self):
         if not any(len(ruta.clientes) > 0 for ruta in self.rutas):
