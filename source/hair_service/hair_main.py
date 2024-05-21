@@ -1,7 +1,6 @@
 import requests
-from modelos.solucion_utils import SolucionesUtils
+from modelos.solucion_utils import inicializar, mover, mejorar, saltar
 from modelos.penalty_variables import alpha, beta
-from modelos.mip2 import Mip2
 from modelos.tripletManager import triplet_manager
 from modelos.tabulists import tabulists
 from constantes import constantes
@@ -13,7 +12,7 @@ def execute(horizon_length, capacidad_vehiculo, proveedor, clientes, politica_re
     seed(datetime.now().timestamp())
     constantes.inicializar(horizon_length, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento)
     main_iterator, it_sinmejora = 0, 0
-    solucion = SolucionesUtils.inicializar()    
+    solucion = inicializar()    
     
     #Se almacena la solución inicial como mejor solución
     mejor_solucion = solucion.clonar()
@@ -23,13 +22,13 @@ def execute(horizon_length, capacidad_vehiculo, proveedor, clientes, politica_re
         main_iterator += 1
         
         #Se aplica el procedimiento mover sobre solucion, para obtener una solución vecina sprima
-        solucion_prima = SolucionesUtils.mover(solucion)
+        solucion_prima = mover(solucion)
         tabulists.actualizar(solucion, solucion_prima, main_iterator)
         
         #Si solucion_prima tiene un costo menor a la mejor_solución
         if solucion_prima.costo() < mejor_solucion.costo():
             #Se aplica Mejorar sobre solucion_prima para encontrar una posible mejora, al resultado se lo almacena como mejor_solucion
-            mejor_solucion = SolucionesUtils.mejorar(solucion_prima)
+            mejor_solucion = mejorar(solucion_prima)
             print(f"Mejora ({main_iterator}): {solucion_prima}")
             
             #Se reinicializan los triplets
@@ -44,7 +43,7 @@ def execute(horizon_length, capacidad_vehiculo, proveedor, clientes, politica_re
 
         #Si la cantidad de iteraciones sin mejora es múltiple de JUMP_ITER
         if it_sinmejora != 0 and it_sinmejora % constantes.jump_iter == 0 and it_sinmejora < constantes.max_iter: 
-            solucion = SolucionesUtils.saltar(solucion, triplet_manager)
+            solucion = saltar(solucion, triplet_manager)
             print(f"Salto ({main_iterator}): {solucion}")
             triplet_manager.__init__()
         elif(it_sinmejora % constantes.jump_iter) > (constantes.jump_iter / 2):

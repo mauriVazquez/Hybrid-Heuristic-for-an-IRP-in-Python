@@ -5,9 +5,6 @@ from modelos.penalty_variables import alpha, beta
 from constantes import constantes
 
 class Solucion():
-    @staticmethod
-    def obtener_empty_solucion() -> Type["Solucion"]:
-        return Solucion([Ruta(ruta[0], ruta[1]) for ruta in [[[], []] for _ in range(constantes.horizon_length)]])
   
     def __init__(self,  rutas: list[Ruta] = None) -> None:
         self.rutas = rutas if rutas else [Ruta for _ in range(constantes.horizon_length)]
@@ -15,7 +12,7 @@ class Solucion():
     def __str__(self) -> str:
         return "".join("T"+str(i+1)+"= "+ruta.__str__()+"    " for i, ruta in enumerate(self.rutas)) + 'Costo:' + str(self.costo())
 
-    def  detail(self) -> str:
+    def detail(self) -> str:
         resp = "Clientes visitados:"+" ".join("T"+str(i+1)+"= "+ruta.__str__()+"\t" for i, ruta in enumerate(self.rutas))
         resp += '\nObjective function: ' + str(self.costo()) + "\n"
         resp += 'Proveedor inventario: ' + str(self.obtener_niveles_inventario_proveedor()) + "\n"
@@ -33,9 +30,6 @@ class Solucion():
             "costo": self.costo()
         }
 
-    def costo(self):
-        return self.funcion_objetivo()    
-
     def clonar(self) -> Type["Solucion"]:
         return Solucion([ruta.clonar() for ruta in self.rutas])
 
@@ -43,10 +37,19 @@ class Solucion():
         return not (self.cliente_tiene_stockout() or self.cliente_tiene_overstock())
 
     def es_factible(self) -> bool:
-        return self.es_admisible() and (not self.proveedor_tiene_stockout()) and (not self.es_excedida_capacidad_vehiculo())
+        #Para que una solución sea factible:
+        # - No debe haber faltantes de stock ni en el proveedor ni en los clientes en T' (Bt ≥ 0 e Iit ≥ 0)
+        # - El nivel de inventario de cada cliente i no debe ser superior a su nivel máximo Ui
+        # - La cantidad total entregada en cualquier momento no debe superar la capacidad del vehículo C.
+        return not (
+            self.cliente_tiene_stockout() 
+            or self.proveedor_tiene_stockout()  
+            or self.cliente_tiene_overstock() 
+            or self.es_excedida_capacidad_vehiculo()
+        )
 
     def es_excedida_capacidad_vehiculo(self) -> bool:
-        return any(ruta.es_excedida_capacidad_vehiculo() for ruta in self.rutas)
+        return any(constantes.capacidad_vehiculo < ruta.obtener_total_entregado() for ruta in self.rutas)
 
     def cliente_tiene_stockout(self) -> bool:
         return any(self.obtener_niveles_inventario_cliente(cliente)[tiempo] < 0
@@ -56,7 +59,7 @@ class Solucion():
     def cliente_tiene_overstock(self) -> bool:
         return any(self.obtener_niveles_inventario_cliente(cliente)[tiempo] > cliente.nivel_maximo
                    for cliente in constantes.clientes
-                   for tiempo in range(constantes.horizon_length))
+                   for tiempo in range(constantes.horizon_length+1))
     
     def proveedor_tiene_stockout(self) -> bool:
         return any(nivel_inventario < 0 for nivel_inventario in self.obtener_niveles_inventario_proveedor())
@@ -84,7 +87,7 @@ class Solucion():
     def T(self, cliente):
         return [tiempo for tiempo in range(constantes.horizon_length) if self.rutas[tiempo].es_visitado(cliente)]
    
-    def funcion_objetivo(self):
+    def costo(self):
         if not any(len(ruta.clientes) > 0 for ruta in self.rutas):
             return float("inf")
         
@@ -100,7 +103,7 @@ class Solucion():
         costo_transporte = sum(self.rutas[tiempo].obtener_costo() for tiempo in range(constantes.horizon_length))
 
         # Third term (penalty 1)
-        penalty1 = sum(max(0,self.rutas[tiempo].obtener_total_entregado() - constantes.vehicle_capacity) 
+        penalty1 = sum(max(0,self.rutas[tiempo].obtener_total_entregado() - constantes.capacidad_vehiculo) 
                        for tiempo in range(constantes.horizon_length)) * alpha.obtener_valor() 
         
         # Fourth term
@@ -135,7 +138,7 @@ class Solucion():
         elif constantes.politica_reabastecimiento == "ML":
             cantidad_entregada = min(
                 cliente.nivel_maximo - self.obtener_niveles_inventario_cliente(cliente)[tiempo],
-                constantes.vehicle_capacity - self.rutas[tiempo].obtener_total_entregado(),
+                constantes.capacidad_vehiculo - self.rutas[tiempo].obtener_total_entregado(),
                 self.B(tiempo)
             )
             cantidad_entregada = cantidad_entregada if cantidad_entregada > 0 else cliente.nivel_demanda
@@ -147,7 +150,7 @@ class Solucion():
         self.rutas[rutasecondary_indice] = Ruta([],[])
 
 
-    def pass_constraints(self, MIP, MIPcliente = None, MIPtiempo = None, operation = None): 
+    def cumple_restricciones(self, MIP, MIPcliente = None, MIPtiempo = None, operation = None): 
         for tiempo in range(constantes.horizon_length):
             # Constraint 3: La cantidad entregada en t, es menor o igual al nivel de inventario del proveedor en t.
             if self.B(tiempo) < self.rutas[tiempo].obtener_total_entregado():
@@ -167,7 +170,7 @@ class Solucion():
                 if constantes.politica_reabastecimiento == "OU" and (self.rutas[tiempo].obtener_cantidad_entregada(cliente) > cliente.nivel_maximo * theeta):
                     return False
                 # Constraint 8: La cantidad entregada a los clientes en un tiempo dado, es menor o igual a la capacidad del camión.
-                if self.rutas[tiempo].obtener_total_entregado() > constantes.vehicle_capacity:
+                if self.rutas[tiempo].obtener_total_entregado() > constantes.capacidad_vehiculo:
                     return False
                 # Constraint 14: La cantidad entregada a los clientes siempre debe ser mayor a cero
                 if self.rutas[tiempo].obtener_cantidad_entregada(cliente) < 0:

@@ -32,7 +32,7 @@ class Mip1():
             solucion_actual.rutas = [solucion_actual.rutas[i] for i in perm]
 
             costo_mip = Mip1.costo(solucion_actual)
-            if costo_mip < costo_minimo and solucion_actual.pass_constraints("MIP1"):
+            if costo_mip < costo_minimo and solucion_actual.cumple_restricciones("MIP1"):
                 costo_minimo = costo_mip
                 costo_minimo_solucion = solucion_actual.clonar()
 
@@ -42,7 +42,7 @@ class Mip1():
                     if solucion_modificada.rutas[tiempo].es_visitado(cliente):
                         costo_mip = Mip1.costo(solucion_modificada, cliente, tiempo)
                         solucion_modificada.remover_visita(cliente, tiempo)
-                        if costo_mip < costo_minimo and solucion_modificada.pass_constraints("MIP1", cliente, tiempo, "REMOVE"):
+                        if costo_mip < costo_minimo and solucion_modificada.cumple_restricciones("MIP1", cliente, tiempo, "REMOVE"):
                             costo_minimo = costo_mip
                             costo_minimo_solucion = solucion_modificada.clonar()
 
