@@ -27,8 +27,8 @@ class Ruta extends Model
         return $this->hasMany(Visita::class);
     }
 
-    public function clientes()
-    {
-        return $this->hasManyThrough(Cliente::class, Visita::class);
-    }
+    // public function clientes()
+    // {
+    //     return $this->hasManyThrough(Cliente::class, Visita::class);
+    // }
 }

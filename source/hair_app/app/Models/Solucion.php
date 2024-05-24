@@ -17,6 +17,7 @@ class Solucion extends Model
         'politica_reabastecimiento',
         'vehiculo_id',
         'proveedor_id',
+        'recorrido_id',
     ];
 
     public function vehiculo()
@@ -32,5 +33,10 @@ class Solucion extends Model
     public function proveedor()
     {
         return $this->belongsTo(Proveedor::class);
+    }
+
+    public function recorrido()
+    {
+        return $this->belongsTo(Recorrido::class);
     }
 }

@@ -38,4 +38,9 @@ class Recorrido extends Model
     {
         return $this->belongsToMany(Cliente::class, 'clientes_recorridos');
     }
+
+    public function solucion()
+    {
+        return $this->hasOne(Solucion::class)->latestOfMany();
+    }
 }

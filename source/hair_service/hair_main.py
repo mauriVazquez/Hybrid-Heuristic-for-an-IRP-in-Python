@@ -54,12 +54,12 @@ def execute(horizon_length, capacidad_vehiculo, proveedor, clientes, politica_re
 
     return mejor_solucion, main_iterator
     
-async def async_execute(recorrido_id, horizon_length, capacidad_vehiculo, proveedor, clientes):
+def async_execute(recorrido_id, horizon_length, capacidad_vehiculo, proveedor, clientes, user_id):
     print(f"iniciado procesamiento del recorrido id: {recorrido_id}")
     mejor_solucion, main_iterator = execute(horizon_length, capacidad_vehiculo, proveedor, clientes)
     
     url = f"http://hair-app-nginx/api/recorridos/{recorrido_id}/solucion"
-    data = {"mejor_solucion": mejor_solucion.to_json(tag="Mejor Solución",iteration=main_iterator)}
+    data = {"mejor_solucion": mejor_solucion.to_json(tag="Mejor Solución",iteration=main_iterator), 'user_id': user_id}
     requests.post(url,json=data)
     
 # Update alpha and beta (TODO: REVISAR, SON SIEMPRE FEASIBLES)
