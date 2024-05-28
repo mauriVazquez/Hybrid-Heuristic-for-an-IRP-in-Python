@@ -12,13 +12,13 @@ class Solucion():
     def __str__(self) -> str:
         return "".join("T"+str(i+1)+"= "+ruta.__str__()+"    " for i, ruta in enumerate(self.rutas)) + 'Costo:' + str(self.costo())
 
-    def detail(self) -> str:
+    def imprimir_detalle(self) -> str:
         resp = "Clientes visitados:"+" ".join("T"+str(i+1)+"= "+ruta.__str__()+"\t" for i, ruta in enumerate(self.rutas))
         resp += '\nObjective function: ' + str(self.costo()) + "\n"
         resp += 'Proveedor inventario: ' + str(self.obtener_niveles_inventario_proveedor()) + "\n"
         resp += 'Clientes inventario: ' + str(self.obtener_niveles_inventario_clientes()) + "\n"
-        resp += 'Situación de Stockout? : ' + ('yes' if self.cliente_tiene_stockout() else 'no') + "\n"
-        resp += 'Situacion de Overstock? : ' + ('yes' if self.cliente_tiene_overstock() else 'no') + "\n"
+        resp += 'Situación de desabastecimiento? : ' + ('yes' if self.cliente_tiene_desabastecimiento() else 'no') + "\n"
+        resp += 'Situacion de sobreabastecimiento? : ' + ('yes' if self.cliente_tiene_sobreabastecimiento() else 'no') + "\n"
         return resp
     
     def to_json(self, iteration, tag):   
@@ -34,7 +34,7 @@ class Solucion():
         return Solucion([ruta.clonar() for ruta in self.rutas])
 
     def es_admisible(self) -> bool:
-        return not (self.cliente_tiene_stockout() or self.cliente_tiene_overstock())
+        return not (self.cliente_tiene_desabastecimiento() or self.cliente_tiene_sobreabastecimiento())
 
     def es_factible(self) -> bool:
         #Para que una solución sea factible:
@@ -42,26 +42,26 @@ class Solucion():
         # - El nivel de inventario de cada cliente i no debe ser superior a su nivel máximo Ui
         # - La cantidad total entregada en cualquier momento no debe superar la capacidad del vehículo C.
         return not (
-            self.cliente_tiene_stockout() 
-            or self.proveedor_tiene_stockout()  
-            or self.cliente_tiene_overstock() 
+            self.cliente_tiene_desabastecimiento() 
+            or self.proveedor_tiene_desabastecimiento()  
+            or self.cliente_tiene_sobreabastecimiento() 
             or self.es_excedida_capacidad_vehiculo()
         )
 
     def es_excedida_capacidad_vehiculo(self) -> bool:
         return any(constantes.capacidad_vehiculo < ruta.obtener_total_entregado() for ruta in self.rutas)
 
-    def cliente_tiene_stockout(self) -> bool:
+    def cliente_tiene_desabastecimiento(self) -> bool:
         return any(self.obtener_niveles_inventario_cliente(cliente)[tiempo] < 0
                    for cliente in constantes.clientes
                    for tiempo in range(constantes.horizon_length+1))
 
-    def cliente_tiene_overstock(self) -> bool:
+    def cliente_tiene_sobreabastecimiento(self) -> bool:
         return any(self.obtener_niveles_inventario_cliente(cliente)[tiempo] > cliente.nivel_maximo
                    for cliente in constantes.clientes
                    for tiempo in range(constantes.horizon_length+1))
     
-    def proveedor_tiene_stockout(self) -> bool:
+    def proveedor_tiene_desabastecimiento(self) -> bool:
         return any(nivel_inventario < 0 for nivel_inventario in self.obtener_niveles_inventario_proveedor())
     
     def obtener_niveles_inventario_proveedor(self):
@@ -120,7 +120,7 @@ class Solucion():
                     self.rutas[t].agregar_cantidad_cliente(cliente, cantidad_eliminado)
                     break
         elif constantes.politica_reabastecimiento == "ML":   
-            if self.cliente_tiene_stockout():
+            if self.cliente_tiene_desabastecimiento():
                 for t2 in range(tiempo, -1, -1):
                     if self.rutas[t2].es_visitado(cliente):
                         cantidad = cliente.nivel_maximo - self.obtener_niveles_inventario_cliente(cliente)[t2]
@@ -188,10 +188,10 @@ class Solucion():
                     if self.obtener_niveles_inventario_cliente(cliente)[tiempo] != self.obtener_niveles_inventario_cliente(cliente)[tiempo-1] + self.rutas[tiempo-1].obtener_cantidad_entregada(cliente) - cliente.nivel_demanda:
                         return False
 
-                # Constraint 15: No puede haber stockout
+                # Constraint 15: No puede haber desabastecimiento
                 if self.obtener_niveles_inventario_cliente(cliente)[tiempo] <= 0:
                     return False
-            #Constraint 16: No puede haber stockout en el proveedor
+            #Constraint 16: No puede haber desabastecimiento en el proveedor
             if self.B(tiempo) < 0:
                 return False
 
