@@ -28,6 +28,9 @@ def inicializar():
     print(f"Inicialización: {solucion}")
     return solucion
 
+# TODO: Ver la condicion and solucion_dosprima.costo() != solucion.costo()
+# Lo que quería era ver de eliminar si y sólo si s' no se generó por la inserción del cliente en t
+
 def mover(solucion) -> Type["Solucion"]:
     neighborhood_prima = _variante_eliminacion(solucion)
     neighborhood_prima += _variante_insercion(solucion)
@@ -74,7 +77,7 @@ def mover(solucion) -> Type["Solucion"]:
                                 solucion_dosprima.rutas[t].remover_visita(cliente)
                                 
                             # Si f(s") < f(s'), asignar s" a s'
-                            if solucion_dosprima.costo() < solucion_prima.costo():
+                            if solucion_dosprima.costo() < solucion_prima.costo() and solucion_dosprima.costo() != solucion.costo():
                                 solucion_prima = solucion_dosprima.clonar()
                                 # Agregar el cliente al conjunto A si el cliente no es visitado en el tiempo t en s'
                                 if not solucion_prima.rutas[t].es_visitado(cliente):
@@ -94,10 +97,11 @@ def mover(solucion) -> Type["Solucion"]:
                             solucion_dosprima = solucion_prima.clonar()
                             solucion_dosprima.rutas[t].agregar_cantidad_cliente(cliente, cliente.nivel_maximo - y)
 
-                            if solucion_dosprima.costo() < solucion_prima.costo():
+                            if solucion_dosprima.costo() < solucion_prima.costo() and solucion_dosprima.costo() != solucion.costo():
                                 solucion_prima = solucion_dosprima.clonar()
-
+                                
         neighborhood.append(solucion_prima.clonar()) 
+
     return min(neighborhood, key=lambda neighbor: neighbor.costo(), default=solucion.clonar()) 
 
 def mejorar(solucion):
