@@ -12,7 +12,7 @@ def execute(horizon_length, capacidad_vehiculo, proveedor, clientes, politica_re
     seed(datetime.now().timestamp())
     constantes.inicializar(horizon_length, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento)
     iterador_principal, iteraciones_sin_mejoras = 0, 0
-    solucion = inicializar()    
+    solucion = inicializar()
     
     #Se almacena la solución inicial como mejor solución
     mejor_solucion = solucion.clonar()
@@ -25,6 +25,9 @@ def execute(horizon_length, capacidad_vehiculo, proveedor, clientes, politica_re
         solucion_prima = mover(solucion)
         tabulists.actualizar(solucion, solucion_prima, iterador_principal)
         
+        alpha.no_factibles() if solucion_prima.es_excedida_capacidad_vehiculo() else alpha.factible()
+        beta.no_factibles() if solucion_prima.proveedor_tiene_desabastecimiento() else beta.factible()
+        
         #Si solucion_prima tiene un costo menor a la mejor_solución
         if solucion_prima.costo() < mejor_solucion.costo():
             #Se aplica Mejorar sobre solucion_prima para encontrar una posible mejora, al resultado se lo almacena como mejor_solucion
@@ -34,6 +37,7 @@ def execute(horizon_length, capacidad_vehiculo, proveedor, clientes, politica_re
             #Se reinicializan los triplets
             triplet_manager.__init__()
             iteraciones_sin_mejoras = 0
+            
         else:
             #Se incrementa la cantidad de iteraciones sin mejora en una unidad
             iteraciones_sin_mejoras += 1
@@ -50,7 +54,7 @@ def execute(horizon_length, capacidad_vehiculo, proveedor, clientes, politica_re
             triplet_manager.eliminar_triplets_solucion(solucion)
         
     print("\n-------------------------------MEJOR SOLUCIÓN-------------------------------\n")
-    print(mejor_solucion.imprimir_detalle())
+    mejor_solucion.imprimir_detalle()
 
     return mejor_solucion, iterador_principal
     
@@ -61,9 +65,3 @@ def async_execute(recorrido_id, horizon_length, capacidad_vehiculo, proveedor, c
     url = f"http://hair-app-nginx/api/recorridos/{recorrido_id}/solucion"
     data = {"mejor_solucion": mejor_solucion.to_json(tag="Mejor Solución",iteration=iterador_principal), 'user_id': user_id}
     requests.post(url,json=data)
-    
-# Update alpha and beta (TODO: REVISAR, SON SIEMPRE FEASIBLES)
-# alpha.no_factibles() if solucion_prima.es_excedida_capacidad_vehiculo() else alpha.factible()
-# beta.no_factibles() if solucion_prima.proveedor_tiene_desabastecimiento() else beta.factible()
-# print(alpha.value)
-        

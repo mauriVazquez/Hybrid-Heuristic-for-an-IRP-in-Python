@@ -13,13 +13,15 @@ class Solucion():
         return "".join("T"+str(i+1)+"= "+ruta.__str__()+"    " for i, ruta in enumerate(self.rutas)) + 'Costo:' + str(self.costo())
 
     def imprimir_detalle(self) -> str:
-        resp = "Clientes visitados:"+" ".join("T"+str(i+1)+"= "+ruta.__str__()+"\t" for i, ruta in enumerate(self.rutas))
-        resp += '\nObjective function: ' + str(self.costo()) + "\n"
-        resp += 'Proveedor inventario: ' + str(self.obtener_niveles_inventario_proveedor()) + "\n"
-        resp += 'Clientes inventario: ' + str(self.obtener_niveles_inventario_clientes()) + "\n"
-        resp += 'Situación de desabastecimiento? : ' + ('yes' if self.cliente_tiene_desabastecimiento() else 'no') + "\n"
-        resp += 'Situacion de sobreabastecimiento? : ' + ('yes' if self.cliente_tiene_sobreabastecimiento() else 'no') + "\n"
-        return resp
+        resp = "Clientes visitados:"+" ".join("T"+str(i+1)+"= "+ruta.__str__()+"\t" for i, ruta in enumerate(self.rutas)) + "\n"
+        resp += 'Inventario de proveedor: ' + str(self.obtener_niveles_inventario_proveedor()) + "\n"
+        resp += 'Inventario de clientes: ' + str(self.obtener_niveles_inventario_clientes()) + "\n"
+        # resp += '¿Desabastecimiento? (cliente) : ' + ('SI' if self.cliente_tiene_desabastecimiento() else 'NO') + "\n"
+        # resp += '¿Sobreabastecimiento? (cliente) : ' + ('SI' if self.cliente_tiene_sobreabastecimiento() else 'NO') + "\n"
+        resp += '¿Admisible? : ' + ('SI' if self.es_admisible() else 'NO') + "\n"
+        resp += '¿Factible? : ' + ('SI' if self.es_factible() else 'NO') + "\n"
+        resp += 'Función objetivo: ' + str(self.costo()) + "\n"
+        print(resp)
     
     def to_json(self, iteration, tag):   
         return {

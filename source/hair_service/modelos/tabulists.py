@@ -117,7 +117,7 @@ class TabuLists:
         self.lista_r += [[[cliente.id, t], main_iterator + obtener_ttl()] for t in elementos_a_agregar
                          if not tabulists.esta_en_lista(self.lista_r, [cliente.id, t])]
 
-    def esta_prohibido_agregar(self, i: int, t: int) -> bool:
+    def esta_prohibido_agregar(self, i, t: int) -> bool:
         """
         Verifica si un movimiento de tipo "add" está prohibido.
 
@@ -128,9 +128,12 @@ class TabuLists:
         Retorna:
         - bool: True si el movimiento está prohibido, False en caso contrario.
         """
-        return any(elemento[0] == [i, t] for elemento in self.lista_a)
+        for item in self.lista_a:
+           if item[0][0] == i.id and item[0][1] == t:
+               return True
+        return False 
 
-    def esta_prohibido_quitar(self, i: int, t: int) -> bool:
+    def esta_prohibido_quitar(self, i, t: int) -> bool:
         """
         Verifica si un movimiento de tipo "remove" está prohibido.
 
@@ -141,6 +144,9 @@ class TabuLists:
         Retorna:
         - bool: True si el movimiento está prohibido, False en caso contrario.
         """
-        return any(elemento[0] == [i, t] for elemento in self.lista_r)
+        for item in self.lista_r:
+            if item[0][0] == i.id and item[0][1] == t:
+               return True
+        return False 
 
 tabulists = TabuLists()

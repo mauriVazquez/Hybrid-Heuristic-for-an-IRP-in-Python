@@ -7,9 +7,10 @@ from modelos.ruta import Ruta
 from random import randint, random
 from typing import Type
 
-from modelos.tabulists import tabulists
 from tsp_local.base import TSP
 from tsp_local.kopt import KOpt
+
+from modelos.tabulists import tabulists
 
 def inicializar():
     #Cada cliente es considerado secuencialmente, y los tiempos de entrega se establecen lo más tarde posible antes de que ocurra una situación de desabastecimiento. 
@@ -19,18 +20,20 @@ def inicializar():
         for t in range(constantes.horizon_length):
             if stock_cliente < cliente.nivel_demanda:
                 maxima_entrega = cliente.nivel_maximo - stock_cliente
-                cantidad_entregada = maxima_entrega if constantes.politica_reabastecimiento == "ML" else randint(1, maxima_entrega)
-                solucion.rutas[t].insertar_visita(cliente, cantidad_entregada , None)
-                #Incrementar el stock según la cantidad entregada
-                stock_cliente += cantidad_entregada
-            #Decrementar el stock según la demanda del cliente.
-            stock_cliente -= cliente.nivel_demanda
-    print(f"Inicialización: {solucion}")
+                cantidad_entregada = maxima_entrega if constantes.politica_reabastecimiento == "ML" else randint(cliente.nivel_demanda, maxima_entrega)
+                solucion.rutas[t].clientes.append(cliente)
+                solucion.rutas[t].cantidades.append(cantidad_entregada)
+            else:
+                cantidad_entregada = 0
+                
+            #Actualizar el stock según la demanda del cliente y la entrega realizada.
+            stock_cliente = stock_cliente + cantidad_entregada - cliente.nivel_demanda
+            
+    solucion.imprimir_detalle()
     return solucion
 
 # TODO: Ver la condicion and solucion_dosprima.costo() != solucion.costo()
 # Lo que quería era ver de eliminar si y sólo si s' no se generó por la inserción del cliente en t
-
 def mover(solucion) -> Type["Solucion"]:
     neighborhood_prima = _variante_eliminacion(solucion)
     neighborhood_prima += _variante_insercion(solucion)
@@ -42,6 +45,7 @@ def mover(solucion) -> Type["Solucion"]:
     for solucion_prima in neighborhood_prima:
         # Determinar el conjunto A de clientes tales que Ti(s) != Ti(s'). 
         conjunto_A = [cliente for cliente in constantes.clientes if solucion.T(cliente) != solucion_prima.T(cliente)]
+        
         # Mientras el conjunto_A no esté vacío
         while len(conjunto_A) > 0:
             # Elegir alteatoriamente un cliente de A y removerlo
@@ -101,7 +105,7 @@ def mover(solucion) -> Type["Solucion"]:
                                 solucion_prima = solucion_dosprima.clonar()
                                 
         neighborhood.append(solucion_prima.clonar()) 
-
+    
     return min(neighborhood, key=lambda neighbor: neighbor.costo(), default=solucion.clonar()) 
 
 def mejorar(solucion):
@@ -212,7 +216,7 @@ def _variante_insercion(solucion) -> list[Type["Solucion"]]:
     for cliente in constantes.clientes:
         for tiempo in range(constantes.horizon_length):
             solucion_copy = solucion.clonar()
-            if not (solucion_copy.rutas[tiempo].es_visitado(cliente)):
+            if not ((solucion_copy.rutas[tiempo].es_visitado(cliente)) or tabulists.esta_prohibido_agregar(cliente, tiempo)):
                 solucion_copy.insertar_visita(cliente, tiempo)
                 if solucion_copy.es_admisible():
                     neighborhood_prima.append(solucion_copy)
@@ -224,13 +228,15 @@ def _variante_mover_visita(solucion) -> list[Type["Solucion"]]:
         set_t_visitado = solucion.T(cliente)
         set_t_not_visitado = set(range(constantes.horizon_length)) - set(set_t_visitado)
         for t_visitado in set_t_visitado:
-            new_solucion = solucion.clonar()
-            cantidad_eliminado = new_solucion.rutas[t_visitado].remover_visita(cliente)
-            for t_not_visitado in set_t_not_visitado:
-                solucion_copy = new_solucion.clonar()
-                solucion_copy.rutas[t_not_visitado].insertar_visita(cliente, cantidad_eliminado, None)
-                if solucion_copy.es_admisible():
-                    neighborhood_prima.append(solucion_copy)
+            if not tabulists.esta_prohibido_quitar(cliente, t_visitado):
+                new_solucion = solucion.clonar()
+                cantidad_eliminado = new_solucion.rutas[t_visitado].remover_visita(cliente)
+                for t_not_visitado in set_t_not_visitado:
+                    if not tabulists.esta_prohibido_agregar(cliente, t_not_visitado):
+                        solucion_copy = new_solucion.clonar()
+                        solucion_copy.rutas[t_not_visitado].insertar_visita(cliente, cantidad_eliminado, None)
+                        if solucion_copy.es_admisible():
+                            neighborhood_prima.append(solucion_copy)
     return neighborhood_prima
 
 def _variante_intercambiar_visitas(solucion) -> list[Type["Solucion"]]:
@@ -238,17 +244,19 @@ def _variante_intercambiar_visitas(solucion) -> list[Type["Solucion"]]:
     for cliente1 in constantes.clientes:
         for cliente2 in list(set(constantes.clientes) -set([cliente1])):
             for iter_t in (set(solucion.T(cliente1)) - set(solucion.T(cliente2))):
-                for iter_tprima in (set(solucion.T(cliente2)) - set(solucion.T(cliente1))):
-                    solucion_copy = solucion.clonar()
-                    # Remover visitas
-                    cantidad_eliminada_cliente1 = solucion_copy.rutas[iter_t].remover_visita(cliente1)
-                    cantidad_eliminada_cliente2 = solucion_copy.rutas[iter_tprima].remover_visita(cliente2)
-                    #Añadir nuevas visitas
-                    solucion_copy.rutas[iter_tprima].insertar_visita(cliente1,cantidad_eliminada_cliente1,None)
-                    solucion_copy.rutas[iter_t].insertar_visita(cliente2,cantidad_eliminada_cliente2,None)
+                if  not (tabulists.esta_prohibido_agregar(cliente2, iter_t) or tabulists.esta_prohibido_quitar(cliente1,iter_t)):
+                    for iter_tprima in (set(solucion.T(cliente2)) - set(solucion.T(cliente1))):
+                        if not (tabulists.esta_prohibido_agregar(cliente1,iter_tprima) or tabulists.esta_prohibido_quitar(cliente2, iter_tprima)):
+                            solucion_copy = solucion.clonar()
+                            # Remover visitas
+                            cantidad_eliminada_cliente1 = solucion_copy.rutas[iter_t].remover_visita(cliente1)
+                            cantidad_eliminada_cliente2 = solucion_copy.rutas[iter_tprima].remover_visita(cliente2)
+                            #Añadir nuevas visitas
+                            solucion_copy.rutas[iter_tprima].insertar_visita(cliente1,cantidad_eliminada_cliente1,None)
+                            solucion_copy.rutas[iter_t].insertar_visita(cliente2,cantidad_eliminada_cliente2,None)
 
-                    if solucion_copy.es_admisible():
-                        neighborhood_prima.append(solucion_copy)                    
+                            if solucion_copy.es_admisible():
+                                neighborhood_prima.append(solucion_copy)                    
     return neighborhood_prima
 
 
