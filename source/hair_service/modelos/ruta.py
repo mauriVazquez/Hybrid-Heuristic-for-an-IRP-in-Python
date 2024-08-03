@@ -30,7 +30,7 @@ class Ruta():
         return sum(self.cantidades)
     
     def obtener_cantidad_entregada(self, cliente) -> int:
-        return next((self.cantidades[i] for i, it_cliente in enumerate(self.clientes) if it_cliente == cliente), 0)
+        return next((self.cantidades[i] for i, it_cliente in enumerate(self.clientes) if (it_cliente == cliente)), 0)
     
     def es_visitado(self, cliente) -> bool:
         return cliente in self.clientes
@@ -63,3 +63,6 @@ class Ruta():
             range(len(self.clientes) + 1), 
             key=lambda pos: self.obtener_costo_recorrido(self.clientes[:pos] + [cliente] + self.clientes[pos:])
         )
+        
+    def es_igual(self, ruta2):
+        return (self.clientes == ruta2.clientes) and (self.cantidades == ruta2.cantidades)

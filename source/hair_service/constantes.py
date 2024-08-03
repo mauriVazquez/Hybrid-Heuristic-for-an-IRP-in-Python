@@ -8,7 +8,6 @@ class Constantes():
         config = configparser.ConfigParser()
         config.read('config.ini')
         self.politica_reabastecimiento = config['App']['politica_reabastecimiento']
-        self.multiplicador_tolerancia = float(config['App']['multiplicador_tolerancia'])
         self.taboo_len = int(config['Taboo']['list_length'])
         self.lambda_ttl = float(config['Taboo']['lambda_ttl'])
         self.penalty_factor_min = float(config['Penalty_factor']['min_limit'])

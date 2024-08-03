@@ -16,8 +16,6 @@ class Solucion():
         resp = "Clientes visitados:"+" ".join("T"+str(i+1)+"= "+ruta.__str__()+"\t" for i, ruta in enumerate(self.rutas)) + "\n"
         resp += 'Inventario de proveedor: ' + str(self.obtener_niveles_inventario_proveedor()) + "\n"
         resp += 'Inventario de clientes: ' + str(self.obtener_niveles_inventario_clientes()) + "\n"
-        # resp += '¿Desabastecimiento? (cliente) : ' + ('SI' if self.cliente_tiene_desabastecimiento() else 'NO') + "\n"
-        # resp += '¿Sobreabastecimiento? (cliente) : ' + ('SI' if self.cliente_tiene_sobreabastecimiento() else 'NO') + "\n"
         resp += '¿Admisible? : ' + ('SI' if self.es_admisible() else 'NO') + "\n"
         resp += '¿Factible? : ' + ('SI' if self.es_factible() else 'NO') + "\n"
         resp += 'Función objetivo: ' + str(self.costo()) + "\n"
@@ -56,30 +54,29 @@ class Solucion():
     def cliente_tiene_desabastecimiento(self) -> bool:
         return any(self.obtener_niveles_inventario_cliente(cliente)[tiempo] < 0
                    for cliente in constantes.clientes
-                   for tiempo in range(constantes.horizon_length+1))
+                   for tiempo in range(constantes.horizon_length))
 
     def cliente_tiene_sobreabastecimiento(self) -> bool:
         return any(self.obtener_niveles_inventario_cliente(cliente)[tiempo] > cliente.nivel_maximo
                    for cliente in constantes.clientes
-                   for tiempo in range(constantes.horizon_length+1))
+                   for tiempo in range(constantes.horizon_length))
     
     def proveedor_tiene_desabastecimiento(self) -> bool:
         return any(nivel_inventario < 0 for nivel_inventario in self.obtener_niveles_inventario_proveedor())
     
     def obtener_niveles_inventario_proveedor(self):
-        return [self.B(t) for t in range(constantes.horizon_length+1)]
-     
-    def B(self, t):
-        return (
-            self.B(t-1) + constantes.proveedor.nivel_produccion - self.rutas[t-1].obtener_total_entregado()
-            if t > 0
-            else constantes.proveedor.nivel_almacenamiento
-        )
+        nivel_almacenamiento = constantes.proveedor.nivel_almacenamiento
+        niveles = [nivel_almacenamiento]
+        for t in range(constantes.horizon_length):
+            nivel_almacenamiento = nivel_almacenamiento + constantes.proveedor.nivel_produccion - self.rutas[t-1].obtener_total_entregado()
+            niveles.append(nivel_almacenamiento)
+        return niveles
     
     def obtener_niveles_inventario_cliente(self, cliente):
         cliente_inventario = [cliente.nivel_almacenamiento]
-        for tiempo in range(1, constantes.horizon_length +1):
+        for tiempo in range(1, constantes.horizon_length):
             cliente_inventario.append(cliente_inventario[tiempo-1] + self.rutas[tiempo-1].obtener_cantidad_entregada(cliente) - cliente.nivel_demanda)          
+        cliente_inventario.append(cliente_inventario[tiempo] - cliente.nivel_demanda)
         return cliente_inventario
            
     def obtener_niveles_inventario_clientes(self):
@@ -89,12 +86,8 @@ class Solucion():
     def T(self, cliente):
         return [tiempo for tiempo in range(constantes.horizon_length) if self.rutas[tiempo].es_visitado(cliente)]
    
-    def costo(self):
-        if not any(len(ruta.clientes) > 0 for ruta in self.rutas):
-            return float("inf")
-        
+    def costo(self):      
         proveedor_nivel_inventario = self.obtener_niveles_inventario_proveedor()
-    
         # First term (costo_almacenamiento)
         costo_almacenamiento = sum(proveedor_nivel_inventario) * constantes.proveedor.costo_almacenamiento
         costo_almacenamiento += sum(cliente.costo_almacenamiento * self.obtener_niveles_inventario_cliente(cliente)[tiempo]  
@@ -115,36 +108,18 @@ class Solucion():
         return costo_almacenamiento + costo_transporte + penalty1 + penalty2
 
     def remover_visita(self, cliente, tiempo):
-        cantidad_eliminado = self.rutas[tiempo].remover_visita(cliente)
-        if constantes.politica_reabastecimiento == "OU":
-            for t in range(tiempo + 1, constantes.horizon_length):
-                if self.rutas[t].es_visitado(cliente):
-                    self.rutas[t].agregar_cantidad_cliente(cliente, cantidad_eliminado)
-                    break
-        elif constantes.politica_reabastecimiento == "ML":   
-            if self.cliente_tiene_desabastecimiento():
-                for t2 in range(tiempo, -1, -1):
-                    if self.rutas[t2].es_visitado(cliente):
-                        cantidad = cliente.nivel_maximo - self.obtener_niveles_inventario_cliente(cliente)[t2]
-                        self.rutas[t2].agregar_cantidad_cliente(cliente, cantidad)
-                        break
+        # Cuando eliminamos una visita al cliente i en el tiempo t, primero eliminamos al cliente i de la ruta del vehículo en el tiempo t, 
+        # y su predecesor se enlaza con su sucesor.
+        self.rutas[tiempo].remover_visita(cliente)
         
+    # Cuando insertamos una visita al cliente en el tiempo t, primero añadimos al cliente a la ruta del vehículo en el tiempo t usando el método de inserción más barato.
     def insertar_visita(self, cliente, tiempo):
-        if constantes.politica_reabastecimiento == "OU":
-            cantidad_entregada = cliente.nivel_maximo - self.obtener_niveles_inventario_cliente(cliente)[tiempo]
-            self.rutas[tiempo].insertar_visita(cliente, cantidad_entregada, None)
-            for t in range(tiempo + 1, constantes.horizon_length):
-                if self.rutas[t].es_visitado(cliente):
-                    self.rutas[t].quitar_cantidad_cliente(cliente, cantidad_entregada)
-                    break
-        elif constantes.politica_reabastecimiento == "ML":
-            cantidad_entregada = min(
-                cliente.nivel_maximo - self.obtener_niveles_inventario_cliente(cliente)[tiempo],
-                constantes.capacidad_vehiculo - self.rutas[tiempo].obtener_total_entregado(),
-                self.B(tiempo)
-            )
-            cantidad_entregada = cantidad_entregada if cantidad_entregada > 0 else cliente.nivel_demanda
-            self.rutas[tiempo].insertar_visita(cliente, cantidad_entregada, None)
+        cantidad_entregada = min(
+            cliente.nivel_maximo - self.obtener_niveles_inventario_cliente(cliente)[tiempo],
+            constantes.capacidad_vehiculo - self.rutas[tiempo].obtener_total_entregado(),
+            self.obtener_niveles_inventario_proveedor()[tiempo]
+        )
+        self.rutas[tiempo].insertar_visita(cliente, (cantidad_entregada if (cantidad_entregada > 0) else cliente.nivel_demanda), None)
 
     def merge_rutas(self, rutabase_indice, rutasecondary_indice) -> None:
         self.rutas[rutabase_indice].clientes.extend(self.rutas[rutasecondary_indice].clientes)
@@ -153,73 +128,95 @@ class Solucion():
 
 
     def cumple_restricciones(self, MIP, MIPcliente = None, MIPtiempo = None, operation = None): 
+        niveles_inventario_proveedor = self.obtener_niveles_inventario_proveedor()
         for tiempo in range(constantes.horizon_length):
-            # Constraint 3: La cantidad entregada en t, es menor o igual al nivel de inventario del proveedor en t.
-            if self.B(tiempo) < self.rutas[tiempo].obtener_total_entregado():
-                return False
+            
+            # Restricción 3: La cantidad entregada en t, es menor o igual al nivel de inventario del proveedor en t.
+            if niveles_inventario_proveedor[tiempo] < self.rutas[tiempo].obtener_total_entregado():
+                return 3
+            
             for cliente in constantes.clientes:
                 theeta = 1 if self.rutas[tiempo].es_visitado(cliente) else 0
-                #Constraint 17: Theeta puede tener el valor 0 o 1
-                if theeta not in [0, 1]:
-                    return False
-                # Constraint 5: La cantidad entregada a un cliente en un tiempo dado es mayor o igual a la capacidad máxima menos el nivel de inventario (si lo visita en el tiempo dado).
-                if constantes.politica_reabastecimiento == "OU" and (self.rutas[tiempo].obtener_cantidad_entregada(cliente) < (cliente.nivel_maximo * theeta) - self.obtener_niveles_inventario_cliente(cliente)[tiempo]):
-                    return False
-                # Constraint 6: La cantidad entregada a un cliente en un tiempo dado debe ser menor o igual a la capacidad máxima menos el nivel de inventario (Junto con C5, definen OU)
-                if self.rutas[tiempo].obtener_cantidad_entregada(cliente) > cliente.nivel_maximo - self.obtener_niveles_inventario_cliente(cliente)[tiempo]:
-                    return False
-                # Constraint 7: La cantidad entregada a un cliente es menor o igual al nivel máximo de inventario si es que lo visita.
-                if constantes.politica_reabastecimiento == "OU" and (self.rutas[tiempo].obtener_cantidad_entregada(cliente) > cliente.nivel_maximo * theeta):
-                    return False
-                # Constraint 8: La cantidad entregada a los clientes en un tiempo dado, es menor o igual a la capacidad del camión.
+                niveles_inventario_cliente = self.obtener_niveles_inventario_cliente(cliente)
+                xij = self.rutas[tiempo].obtener_cantidad_entregada(cliente)
+                
+                # Restricción 5: La cantidad entregada a un cliente en un tiempo dado es mayor o igual a la capacidad máxima menos el nivel de inventario (si lo visita en el tiempo dado).
+                if (constantes.politica_reabastecimiento == "OU") and (xij < ((cliente.nivel_maximo * theeta) - niveles_inventario_cliente[tiempo])):
+                    return 5
+                
+                # Restricción 6: La cantidad entregada a un cliente en un tiempo dado debe ser menor o igual a la capacidad máxima menos el nivel de inventario (Junto con C5, definen OU)
+                if xij > (cliente.nivel_maximo - niveles_inventario_cliente[tiempo]):
+                    return 6
+                
+                # Restricción 7: La cantidad entregada a un cliente es menor o igual al nivel máximo de inventario si es que lo visita.
+                if (constantes.politica_reabastecimiento == "OU") and (xij > (cliente.nivel_maximo * theeta)):
+                    return 7
+                
+                # Restricción 8: La cantidad entregada a los clientes en un tiempo dado, es menor o igual a la capacidad del camión.
                 if self.rutas[tiempo].obtener_total_entregado() > constantes.capacidad_vehiculo:
-                    return False
-                # Constraint 14: La cantidad entregada a los clientes siempre debe ser mayor a cero
-                if self.rutas[tiempo].obtener_cantidad_entregada(cliente) < 0:
-                    return False
+                    return 8
+                
+                # Restricción 14: La cantidad entregada a los clientes siempre debe ser mayor a cero
+                if (self.rutas[tiempo].es_visitado(cliente) and (xij <= 0)):
+                    return 14
+                
+                #Restricción 17: Theeta puede tener el valor 0 o 1
+                if theeta not in [0, 1]:
+                    return 17
         
-        # #Constraints 9 -13: #TODO (IMPORTANTE: SON SOLO DE MIP1)
-        # #Constraints 17 -19 son obvias     
-        for tiempo in range(constantes.horizon_length+1):
+        #Restriccións 9 -13: #TODO (IMPORTANTE: SON SOLO DE MIP1)
+        if (MIP == 1):
+            for ruta in self.rutas:
+                for ruta2 in self.rutas:
+                    if (ruta != ruta2) and ruta.es_igual(ruta2):
+                            return 9
+                    
+        # Restricciones 18 y 19 son obvias     
+        for tiempo in range(constantes.horizon_length + 1):
             for cliente in constantes.clientes:
-                # Constraint 4
-                if tiempo == 0:
-                    if self.obtener_niveles_inventario_cliente(cliente)[tiempo] != cliente.nivel_almacenamiento:
-                        return False
-                else:
-                    if self.obtener_niveles_inventario_cliente(cliente)[tiempo] != self.obtener_niveles_inventario_cliente(cliente)[tiempo-1] + self.rutas[tiempo-1].obtener_cantidad_entregada(cliente) - cliente.nivel_demanda:
-                        return False
+                niveles_inventario_cliente = self.obtener_niveles_inventario_cliente(cliente)
+                 
+                # Restricción 4
+                if (tiempo != 0) and (niveles_inventario_cliente[tiempo] != (niveles_inventario_cliente[tiempo-1] + self.rutas[tiempo-1].obtener_cantidad_entregada(cliente) - cliente.nivel_demanda)):
+                    return 4
 
-                # Constraint 15: No puede haber desabastecimiento
-                if self.obtener_niveles_inventario_cliente(cliente)[tiempo] <= 0:
-                    return False
-            #Constraint 16: No puede haber desabastecimiento en el proveedor
-            if self.B(tiempo) < 0:
-                return False
+                # Restricción 15: No puede haber desabastecimiento
+                if (tiempo < constantes.horizon_length) and (niveles_inventario_cliente[tiempo] < 0):
+                    return 15
+                
+            #Restricción 16: No puede haber desabastecimiento en el proveedor
+            if self.obtener_niveles_inventario_proveedor()[tiempo] < 0:
+                return 16
 
-        if MIP == "MIP2":
+        if (MIP == 2):
             v_it = 1 if (operation == "INSERT") else 0
             w_it = 1 if (operation == "REMOVE") else 0
             sigma_it = 1 if self.rutas[MIPtiempo].es_visitado(MIPcliente) else 0
-            #Constraint 18: w_it debe ser 0 o 1
+            
+            #Restricción 18: w_it debe ser 0 o 1
             if w_it not in [0, 1]:
-                return False
-            # Constraint 21: v_it no puede ser 1 y sigma_it 1, implicaría que se insertó y está presente ¿¿??
-            if v_it > 1 - sigma_it:
-                return False
-            # Constraint 22:  w_it no puede ser 1 y sigma_it 0, implicaría que se borró y no está presente ¿¿??
+                return 18
+            
+            # Restricción 21: v_it no puede ser 1 y sigma_it 1, implicaría que se insertó y está presente ¿¿??
+            if v_it >( 1 - sigma_it):
+                return 21
+            
+            # Restricción 22:  w_it no puede ser 1 y sigma_it 0, implicaría que se borró y no está presente ¿¿??
             if w_it > sigma_it:
-                return False
-            # Constraint 23: La cantidad entregada al cliente i no puede ser mayor a la capacidad máxima
-            if self.rutas[MIPtiempo].obtener_cantidad_entregada(MIPcliente) > MIPcliente.nivel_maximo * (sigma_it - w_it + v_it):
-                return False
-            #Constraint 24: v_it debe ser 0 o 1
+                return 22
+            
+            # Restricción 23: La cantidad entregada al cliente i no puede ser mayor a la capacidad máxima
+            if self.rutas[MIPtiempo].obtener_cantidad_entregada(MIPcliente) > (MIPcliente.nivel_maximo * (sigma_it - w_it + v_it)):
+                return 23
+            
+            #Restricción 24: v_it debe ser 0 o 1
             if not v_it in [0,1]:
-                return False
-            #Constraint 25: w_it debe ser 0 o 1
+                return 24
+            
+            #Restricción 25: w_it debe ser 0 o 1
             if not w_it in [0,1]:
-                return False
-        return True
+                return 25
+        return 0
 
     def draw_rutas(self):
         clients_coords = []

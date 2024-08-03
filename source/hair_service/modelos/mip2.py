@@ -34,9 +34,10 @@ class Mip2():
                     solucion_aux.remover_visita(cliente,tiempo)
                 else:
                     solucion_aux.insertar_visita(cliente, tiempo)
-                if costo_mip < costo_minimo and solucion_aux.cumple_restricciones("MIP2", cliente, tiempo, operacion):
-                        costo_minimo = costo_mip
-                        costo_minimo_solucion = solucion_aux.clonar()
+                if (costo_mip < costo_minimo) and (solucion_aux.cumple_restricciones(2, cliente, tiempo, operacion) == 0):
+                    costo_minimo = costo_mip
+                    costo_minimo_solucion = solucion_aux.clonar()
+                    print("asd")
         
         #print(f"SALIDA MIP2 {costo_minimo_solucion}")
         return costo_minimo_solucion

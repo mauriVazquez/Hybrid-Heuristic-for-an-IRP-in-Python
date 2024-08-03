@@ -1,8 +1,10 @@
 import requests
-from modelos.solucion_utils import inicializar, mover, mejorar, saltar
+from hair_inicializar import inicializar
+from hair_mover import mover
+from hair_mejorar import mejorar
+from hair_saltar import saltar
 from modelos.penalty_variables import alpha, beta
 from modelos.tripletManager import triplet_manager
-from modelos.tabulists import tabulists
 from constantes import constantes
 from random import seed
 from datetime import datetime
@@ -22,8 +24,7 @@ def execute(horizon_length, capacidad_vehiculo, proveedor, clientes, politica_re
         iterador_principal += 1
         
         #Se aplica el procedimiento mover sobre solucion, para obtener una solución vecina sprima
-        solucion_prima = mover(solucion)
-        tabulists.actualizar(solucion, solucion_prima, iterador_principal)
+        solucion_prima = mover(solucion, mejor_solucion, iterador_principal)
         
         alpha.no_factibles() if solucion_prima.es_excedida_capacidad_vehiculo() else alpha.factible()
         beta.no_factibles() if solucion_prima.proveedor_tiene_desabastecimiento() else beta.factible()

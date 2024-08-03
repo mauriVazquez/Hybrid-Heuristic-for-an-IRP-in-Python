@@ -1,6 +1,7 @@
 from itertools import permutations
 from constantes import constantes
 from modelos.ruta import Ruta
+from modelos.solucion import Solucion
 
 class Mip1():
     """
@@ -28,25 +29,26 @@ class Mip1():
         costo_minimo_solucion = solucion_original.clonar()
 
         for perm in permutations(range(constantes.horizon_length)):
-            solucion_actual = solucion_original.clonar()
-            solucion_actual.rutas = [solucion_actual.rutas[i] for i in perm]
-
+            solucion_actual = Solucion([Ruta(list(solucion_original.rutas[i].clientes), list(solucion_original.rutas[i].cantidades)) for i in perm])
+            
             costo_mip = Mip1.costo(solucion_actual)
-            if costo_mip < costo_minimo and solucion_actual.cumple_restricciones("MIP1"):
+            cumple_restricciones = solucion_actual.cumple_restricciones(1)
+            if ((costo_mip < costo_minimo) and (cumple_restricciones == 0)):
                 costo_minimo = costo_mip
                 costo_minimo_solucion = solucion_actual.clonar()
 
             for cliente in constantes.clientes:
-                for tiempo in range(constantes.horizon_length):
+                for tiempo in solucion_actual.T(cliente):
                     solucion_modificada = solucion_actual.clonar()
-                    if solucion_modificada.rutas[tiempo].es_visitado(cliente):
-                        costo_mip = Mip1.costo(solucion_modificada, cliente, tiempo)
-                        solucion_modificada.remover_visita(cliente, tiempo)
-                        if costo_mip < costo_minimo and solucion_modificada.cumple_restricciones("MIP1", cliente, tiempo, "REMOVE"):
-                            costo_minimo = costo_mip
-                            costo_minimo_solucion = solucion_modificada.clonar()
-
-        #print(f"SALIDA MIP1 {costo_minimo_solucion}")
+                    costo_mip = Mip1.costo(solucion_modificada, cliente, tiempo)
+                    
+                    solucion_modificada.remover_visita(cliente, tiempo)
+                    cumple_restricciones = solucion_modificada.cumple_restricciones(1)
+                    
+                    if ((costo_mip < costo_minimo) and (cumple_restricciones == 0)):
+                        costo_minimo = costo_mip
+                        costo_minimo_solucion = solucion_modificada.clonar()
+        
         return costo_minimo_solucion
 
     @staticmethod
@@ -63,19 +65,16 @@ class Mip1():
             float: El costo total asociado a la solución.
         """
 
-        term_1 = constantes.proveedor.costo_almacenamiento * sum(solucion.B(t) for t in range(constantes.horizon_length + 1))
+        term_1 =  sum([(constantes.proveedor.costo_almacenamiento * solucion.obtener_niveles_inventario_proveedor()[t]) for t in range(constantes.horizon_length + 1)])
 
-        term_2 = sum(cliente.costo_almacenamiento * solucion.obtener_niveles_inventario_cliente(cliente)[t]
-                    for t in range(constantes.horizon_length + 1)
-                    for cliente in constantes.clientes)
+        term_2 = sum([(cliente.costo_almacenamiento * solucion.obtener_niveles_inventario_cliente(cliente)[t]) for t in range(constantes.horizon_length + 1) for cliente in constantes.clientes])
 
         if cliente_eliminado is None:
             term_3 = 0
         else:
-            # 3rd term represents the saving
             ruta_actualizada = solucion.rutas[eliminado_tiempo].clonar()
             ruta_actualizada.remover_visita(cliente_eliminado)
-            term_3 = solucion.rutas[eliminado_tiempo].obtener_costo() - Ruta.obtener_costo_recorrido(ruta_actualizada.clientes)
-
-        return term_1 + term_2 - term_3 if any(len(ruta.clientes) > 0 for ruta in solucion.rutas) else float("inf")
+            term_3 = solucion.rutas[eliminado_tiempo].obtener_costo() - ruta_actualizada.obtener_costo()
+        
+        return (term_1 + term_2 - term_3)
     

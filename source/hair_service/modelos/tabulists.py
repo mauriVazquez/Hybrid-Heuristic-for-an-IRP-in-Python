@@ -37,6 +37,7 @@ class TabuLists:
     - __str__(): Representación en cadena de la instancia.
     - esta_prohibido_agregar(i, t): Verifica si un movimiento de tipo "add" está prohibido.
     - esta_prohibido_quitar(i, t): Verifica si un movimiento de tipo "remove" está prohibido.
+    - movimiento_permitido(s, s_prima): Dada dos soluciones verifica si los movimientos para llegar de una a otra están permitidos.
     """
     def __init__(self) -> None:
         """
@@ -149,4 +150,28 @@ class TabuLists:
                return True
         return False 
 
+    def movimiento_permitido(self, s, s_prima) -> bool:
+        """
+        Dada dos soluciones verifica si los movimientos para llegar de una a otra están permitidos.
+
+        Parameters:
+        - s: solucion original
+        - s_prima: solucion obtenida
+
+        Retorna:
+        - bool: True si el movimiento está permitido, False en caso contrario.
+        """
+        for cliente in constantes.clientes:
+            conjuntoT_s = s.T(cliente)
+            conjuntoT_sprima = s_prima.T(cliente)
+           
+            for t in ( set(conjuntoT_s) - set(conjuntoT_sprima) ):        
+                if tabulists.esta_en_lista(self.lista_r, [cliente.id, t]):
+                    return False
+            
+            for t in ( set(conjuntoT_sprima) - set(conjuntoT_s) ):        
+                if tabulists.esta_en_lista(self.lista_a, [cliente.id, t]):
+                    return False
+        return True 
+    
 tabulists = TabuLists()
