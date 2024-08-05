@@ -12,6 +12,9 @@ class Solucion():
     def __str__(self) -> str:
         return "".join("T"+str(i+1)+"= "+ruta.__str__()+"    " for i, ruta in enumerate(self.rutas)) + 'Costo:' + str(self.costo())
 
+    def obtener_empty_solucion() -> Type["Solucion"]:
+        return Solucion([Ruta(ruta[0], ruta[1]) for ruta in [[[], []] for _ in range(constantes.horizon_length)]])
+
     def imprimir_detalle(self) -> str:
         resp = "Clientes visitados:"+" ".join("T"+str(i+1)+"= "+ruta.__str__()+"\t" for i, ruta in enumerate(self.rutas)) + "\n"
         resp += 'Inventario de proveedor: ' + str(self.obtener_niveles_inventario_proveedor()) + "\n"
@@ -33,6 +36,9 @@ class Solucion():
     def clonar(self) -> Type["Solucion"]:
         return Solucion([ruta.clonar() for ruta in self.rutas])
 
+    def es_igual(self, solution2) -> bool:
+        return all(self.rutas[i].es_igual(solution2.rutas[i]) for i in range(constantes.horizon_length))
+        
     def es_admisible(self) -> bool:
         return not (self.cliente_tiene_desabastecimiento() or self.cliente_tiene_sobreabastecimiento())
 
@@ -122,8 +128,11 @@ class Solucion():
         self.rutas[tiempo].insertar_visita(cliente, (cantidad_entregada if (cantidad_entregada > 0) else cliente.nivel_demanda), None)
 
     def merge_rutas(self, rutabase_indice, rutasecondary_indice) -> None:
-        self.rutas[rutabase_indice].clientes.extend(self.rutas[rutasecondary_indice].clientes)
-        self.rutas[rutabase_indice].cantidades.extend(self.rutas[rutasecondary_indice].cantidades)
+        for cliente in self.rutas[rutasecondary_indice].clientes:
+            if(not self.rutas[rutabase_indice].es_visitado(cliente)):
+                self.rutas[rutabase_indice].insertar_visita(cliente, self.rutas[rutasecondary_indice].obtener_cantidad_entregada(cliente), None)
+            # else:
+            #     self.rutas[rutabase_indice].agregar_cantidad_cliente(cliente, self.rutas[rutasecondary_indice].obtener_cantidad_entregada(cliente))
         self.rutas[rutasecondary_indice] = Ruta([],[])
 
 

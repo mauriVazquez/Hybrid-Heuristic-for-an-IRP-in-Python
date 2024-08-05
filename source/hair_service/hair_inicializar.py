@@ -11,7 +11,7 @@ def inicializar():
     Tal solución es obviamente admisible, pero no necesariamente factible.
     """
     # Obtener una solución vacía inicial
-    solucion = _obtener_empty_solucion()
+    solucion = Solucion.obtener_empty_solucion()
     # Iterar sobre cada cliente
     for cliente in constantes.clientes:
         stock_cliente = cliente.nivel_almacenamiento
@@ -29,5 +29,3 @@ def inicializar():
     # Imprimir el detalle de la solución
     return solucion
 
-def _obtener_empty_solucion() -> Type["Solucion"]:
-    return Solucion([Ruta(ruta[0], ruta[1]) for ruta in [[[], []] for _ in range(constantes.horizon_length)]])

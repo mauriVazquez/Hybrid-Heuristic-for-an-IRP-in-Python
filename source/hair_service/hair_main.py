@@ -32,13 +32,10 @@ def execute(horizon_length, capacidad_vehiculo, proveedor, clientes, politica_re
         #Si solucion_prima tiene un costo menor a la mejor_solución
         if solucion_prima.costo() < mejor_solucion.costo():
             #Se aplica Mejorar sobre solucion_prima para encontrar una posible mejora, al resultado se lo almacena como mejor_solucion
-            mejor_solucion = mejorar(solucion_prima)
-            print(f"Mejora ({iterador_principal}): {solucion_prima}")
-            
+            mejor_solucion = mejorar(solucion_prima, iterador_principal)
             #Se reinicializan los triplets
             triplet_manager.__init__()
             iteraciones_sin_mejoras = 0
-            
         else:
             #Se incrementa la cantidad de iteraciones sin mejora en una unidad
             iteraciones_sin_mejoras += 1
@@ -47,16 +44,16 @@ def execute(horizon_length, capacidad_vehiculo, proveedor, clientes, politica_re
         solucion = solucion_prima.clonar()
 
         #Si la cantidad de iteraciones sin mejora es múltiple de JUMP_ITER
-        if iteraciones_sin_mejoras != 0 and iteraciones_sin_mejoras % constantes.jump_iter == 0 and iteraciones_sin_mejoras < constantes.max_iter: 
-            solucion = saltar(solucion, triplet_manager)
-            print(f"Salto ({iterador_principal}): {solucion}")
-            triplet_manager.__init__()
+        if (iteraciones_sin_mejoras != 0) and ((iteraciones_sin_mejoras % constantes.jump_iter) == 0) and (iteraciones_sin_mejoras < constantes.max_iter): 
+            solucion = saltar(solucion, triplet_manager, iterador_principal)
+            alpha.reiniciar()
+            beta.reiniciar()
+            triplet_manager.__init__()      
         elif(iteraciones_sin_mejoras % constantes.jump_iter) > (constantes.jump_iter / 2):
             triplet_manager.eliminar_triplets_solucion(solucion)
         
     print("\n-------------------------------MEJOR SOLUCIÓN-------------------------------\n")
     mejor_solucion.imprimir_detalle()
-
     return mejor_solucion, iterador_principal
     
 def async_execute(recorrido_id, horizon_length, capacidad_vehiculo, proveedor, clientes, user_id):
