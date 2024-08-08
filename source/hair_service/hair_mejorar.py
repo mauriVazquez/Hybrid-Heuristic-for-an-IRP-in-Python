@@ -1,19 +1,21 @@
 from modelos.solucion import Solucion
-from typing import Type
+# from typing import Type
 from modelos.mip1 import Mip1
 from modelos.mip2 import Mip2
 
-from tsp_local.base import TSP
-from tsp_local.kopt import KOpt
+# from tsp_local.base import TSP
+# from tsp_local.kopt import KOpt
 
-from constantes import constantes
-from modelos.ruta import Ruta
-from itertools import permutations
+# from constantes import constantes
+# from modelos.ruta import Ruta
+# from itertools import permutations
+
+from lin_kernighan import execute as lk_execute
 
 
 def mejorar(solucion, iterador_principal):
     do_continue = True
-    solucion_best = _LK(Solucion.obtener_empty_solucion(), solucion)
+    solucion_best = lk_execute(Solucion.obtener_empty_solucion(), solucion)
 
     while do_continue:
         do_continue = False
@@ -21,7 +23,7 @@ def mejorar(solucion, iterador_principal):
         #################### PRIMER TIPO DE MEJORA ##################
         #Se aplica el MIP1 a solucion_best, luego se le aplica LK
         solucion_prima = Mip1.ejecutar(solucion_best)
-        solucion_prima = _LK(solucion_best, solucion_prima)
+        solucion_prima = lk_execute(solucion_best, solucion_prima)
         #Si el costo de la solución encontrada es mejor que el de solucion_best, se actualiza solucion_best
         if solucion_prima.costo() < solucion_best.costo():
             solucion_best = solucion_prima.clonar()
@@ -44,7 +46,7 @@ def mejorar(solucion, iterador_principal):
                 aux_solucion = Mip2.ejecutar(s1)
             #Si el resultado de aplicar el MIP2 a s1 es factible, entonces solucion_prima es una solución óptima
             if aux_solucion.es_factible():
-                solucion_prima = _LK(s1, solucion_prima)
+                solucion_prima = lk_execute(s1, solucion_prima)
                 if solucion_prima.costo() < solucion_merge.costo():
                     solucion_merge = solucion_prima.clonar()
 
@@ -59,7 +61,7 @@ def mejorar(solucion, iterador_principal):
                 aux_solucion = Mip2.ejecutar(s2)
             #Si el resultado de aplicar el MIP2 a s2 es factible, entonces solucion_prima es una solución óptima
             if aux_solucion.es_factible():
-                solucion_prima = _LK(s2, solucion_prima)
+                solucion_prima = lk_execute(s2, solucion_prima)
                 #En este punto solucion_merge es la mejor solución entre solucion_best y la primer parte de esta mejora.
                 if solucion_prima.costo() < solucion_merge.costo():
                     solucion_merge = solucion_prima.clonar()
@@ -72,40 +74,9 @@ def mejorar(solucion, iterador_principal):
         #TERCER TIPO DE MEJORA
         #Se aplica el MIP2 a solucion_best, luego se le aplica LK
         solucion_prima = Mip2.ejecutar(solucion_best)
-        solucion_prima = _LK(solucion_best, solucion_prima)
+        solucion_prima = lk_execute(solucion_best, solucion_prima)
         if solucion_prima.costo() < solucion_best.costo():
             solucion_best = solucion_prima.clonar()
             do_continue = True 
     print(f"Mejora ({iterador_principal}): {solucion_prima}")
     return solucion_best.clonar()
-
-def _LK(solucion: Type["Solucion"], solucion_prima: Type["Solucion"]) -> Type["Solucion"]:
-    aux_solucion = solucion.clonar()
-    
-    if not solucion.es_igual(solucion_prima):
-        aux_solucion = solucion_prima.clonar()
-        for tiempo in range(constantes.horizon_length):
-            tamano_matriz = len(solucion_prima.rutas[tiempo].clientes) + 1
-            matriz =  [[0] * tamano_matriz for _ in range(tamano_matriz)]
-
-            # Proveedor distancia
-            for indice, cliente in enumerate(solucion_prima.rutas[tiempo].clientes):
-                matriz[0][indice+1] = cliente.distancia_proveedor
-                matriz[indice+1][0] = cliente.distancia_proveedor
-
-            # Clientes distancias
-            for indice, c in enumerate(solucion_prima.rutas[tiempo].clientes):
-                for indice2, c2 in enumerate(solucion_prima.rutas[tiempo].clientes):
-                    matriz[indice+1][indice2+1] = constantes.matriz_distancia[c.id][c2.id]
-
-            # Make an instance with all nodes
-            TSP.setEdges(matriz)
-            path, costo = KOpt(range(len(matriz))).optimise()
-            
-            aux_solucion.rutas[tiempo] = Ruta(
-                [solucion_prima.rutas[tiempo].clientes[indice - 1] for indice in path[1:]],
-                [solucion_prima.rutas[tiempo].cantidades[indice - 1] for indice in path[1:]]
-            )
-
-    return aux_solucion if aux_solucion.costo() < solucion_prima.costo() else solucion_prima
-

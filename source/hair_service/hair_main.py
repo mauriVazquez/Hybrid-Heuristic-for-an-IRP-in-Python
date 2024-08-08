@@ -25,7 +25,7 @@ def execute(horizon_length, capacidad_vehiculo, proveedor, clientes, politica_re
         
         #Se aplica el procedimiento mover sobre solucion, para obtener una solución vecina sprima
         solucion_prima = mover(solucion, mejor_solucion, iterador_principal)
-        
+   
         alpha.no_factibles() if solucion_prima.es_excedida_capacidad_vehiculo() else alpha.factible()
         beta.no_factibles() if solucion_prima.proveedor_tiene_desabastecimiento() else beta.factible()
         
@@ -33,6 +33,7 @@ def execute(horizon_length, capacidad_vehiculo, proveedor, clientes, politica_re
         if solucion_prima.costo() < mejor_solucion.costo():
             #Se aplica Mejorar sobre solucion_prima para encontrar una posible mejora, al resultado se lo almacena como mejor_solucion
             mejor_solucion = mejorar(solucion_prima, iterador_principal)
+            
             #Se reinicializan los triplets
             triplet_manager.__init__()
             iteraciones_sin_mejoras = 0
