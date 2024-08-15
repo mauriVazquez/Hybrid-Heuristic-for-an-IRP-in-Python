@@ -3,6 +3,7 @@ from typing import Type
 from random import random
 from modelos.tabulists import tabulists
 from constantes import constantes
+from modelos.penalty_variables import alpha, beta
 
 def mover(solucion, mejor_solucion, iterador_principal) -> Type["Solucion"]:
     # Creación de neighborhood_prima
@@ -92,7 +93,8 @@ def mover(solucion, mejor_solucion, iterador_principal) -> Type["Solucion"]:
     
     respuesta = (solucion if (respuesta is None) else respuesta)
     tabulists.actualizar(solucion, respuesta, iterador_principal)
-
+    alpha.no_factibles() if solucion_prima.es_excedida_capacidad_vehiculo() else alpha.factible()
+    beta.no_factibles() if solucion_prima.proveedor_tiene_desabastecimiento() else beta.factible()
     return respuesta
 
 def _variante_eliminacion(solucion) -> list[Type["Solucion"]]:

@@ -14,9 +14,9 @@ def execute(horizon_length, capacidad_vehiculo, proveedor, clientes, politica_re
     seed(datetime.now().timestamp())
     constantes.inicializar(horizon_length, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento)
     iterador_principal, iteraciones_sin_mejoras = 0, 0
-    solucion = inicializar()
     
     #Se almacena la solución inicial como mejor solución
+    solucion = inicializar()
     mejor_solucion = solucion.clonar()
     
     #Mientras la cantidad de iteraciones sin mejoras de mejor_solucion sea menor o igual a MAX_ITER
@@ -25,9 +25,6 @@ def execute(horizon_length, capacidad_vehiculo, proveedor, clientes, politica_re
         
         #Se aplica el procedimiento mover sobre solucion, para obtener una solución vecina sprima
         solucion_prima = mover(solucion, mejor_solucion, iterador_principal)
-   
-        alpha.no_factibles() if solucion_prima.es_excedida_capacidad_vehiculo() else alpha.factible()
-        beta.no_factibles() if solucion_prima.proveedor_tiene_desabastecimiento() else beta.factible()
         
         #Si solucion_prima tiene un costo menor a la mejor_solución
         if solucion_prima.costo() < mejor_solucion.costo():
@@ -44,17 +41,19 @@ def execute(horizon_length, capacidad_vehiculo, proveedor, clientes, politica_re
         #Se asigna a solucion el contenido de solucion_prima
         solucion = solucion_prima.clonar()
 
-        #Si la cantidad de iteraciones sin mejora es múltiple de JUMP_ITER
-        if (iteraciones_sin_mejoras != 0) and ((iteraciones_sin_mejoras % constantes.jump_iter) == 0) and (iteraciones_sin_mejoras < constantes.max_iter): 
+        #Si la cantidad de iteraciones sin mejora es múltiplo de JUMP_ITER
+        if ((iteraciones_sin_mejoras % constantes.jump_iter) == 0) and (0 < iteraciones_sin_mejoras < constantes.max_iter): 
             solucion = saltar(solucion, triplet_manager, iterador_principal)
             alpha.reiniciar()
             beta.reiniciar()
-            triplet_manager.__init__()      
-        elif(iteraciones_sin_mejoras % constantes.jump_iter) > (constantes.jump_iter / 2):
+            triplet_manager.__init__()   
+           
+        elif iteraciones_sin_mejoras > (constantes.jump_iter / 2):
             triplet_manager.eliminar_triplets_solucion(solucion)
         
     print("\n-------------------------------MEJOR SOLUCIÓN-------------------------------\n")
     mejor_solucion.imprimir_detalle()
+    print(mejor_solucion.costo_real())
     return mejor_solucion, iterador_principal
     
 def async_execute(recorrido_id, horizon_length, capacidad_vehiculo, proveedor, clientes, user_id):

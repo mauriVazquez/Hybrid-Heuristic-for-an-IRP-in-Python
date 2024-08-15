@@ -50,7 +50,7 @@ class TripletManager:
     def eliminar_triplets_solucion(self, solucion: Solucion):
         """
         Remueve los triplets correspondientes dada una solucion.
-        """
+        """        
         self.triplets = [
             triplet for triplet in self.triplets 
             if solucion.rutas[triplet[1]].es_visitado(triplet[0]) and (not solucion.rutas[triplet[2]].es_visitado(triplet[0]))

@@ -112,7 +112,19 @@ class Solucion():
                        for tiempo in range(constantes.horizon_length+1)) * beta.obtener_valor()
        
         return costo_almacenamiento + costo_transporte + penalty1 + penalty2
-
+    
+    def costo_real(self):      
+        proveedor_nivel_inventario = self.obtener_niveles_inventario_proveedor()
+        # First term (costo_almacenamiento)
+        costo_almacenamiento = sum(proveedor_nivel_inventario) * constantes.proveedor.costo_almacenamiento
+        costo_almacenamiento += sum(cliente.costo_almacenamiento * self.obtener_niveles_inventario_cliente(cliente)[tiempo]  
+                for tiempo in range(constantes.horizon_length + 1)
+                for cliente in constantes.clientes)
+            
+        # Second term (costo_transporte)
+        costo_transporte = sum(self.rutas[tiempo].obtener_costo() for tiempo in range(constantes.horizon_length))
+        return costo_almacenamiento + costo_transporte
+    
     def remover_visita(self, cliente, tiempo):
         # Cuando eliminamos una visita al cliente i en el tiempo t, primero eliminamos al cliente i de la ruta del vehículo en el tiempo t, 
         # y su predecesor se enlaza con su sucesor.
