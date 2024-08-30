@@ -1,7 +1,7 @@
 from modelos.solucion import Solucion
 # from typing import Type
-from modelos.mip1 import Mip1
-from modelos.mip2 import Mip2
+from hair.mip1 import Mip1
+from hair.mip2 import Mip2
 
 # from tsp_local.base import TSP
 # from tsp_local.kopt import KOpt

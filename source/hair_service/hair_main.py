@@ -1,21 +1,26 @@
 import requests
-from hair_inicializar import inicializar
-from hair_mover import mover
-from hair_mejorar import mejorar
-from hair_saltar import saltar
-from modelos.penalty_variables import alpha, beta
-from modelos.tripletManager import triplet_manager
-from constantes import constantes
-from random import seed
-from datetime import datetime
+from constantes                 import constantes
+from random                     import seed
+from datetime                   import datetime
+#Parámetros variables (penalización y triplets)
+from modelos.penalty_variables  import alpha, beta
+from modelos.tripletManager     import triplet_manager
+#Procedimientos HAIR
+from hair.inicializar           import inicializar
+from hair.mover                 import mover
+from hair.mejorar               import mejorar
+from hair.saltar                import saltar
 
 def execute(horizon_length, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento = None):
     #Se inicializa la semilla, las constantes globales, iteradores y solución inicial
     seed(datetime.now().timestamp())
     constantes.inicializar(horizon_length, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento)
-    iterador_principal, iteraciones_sin_mejoras = 0, 0
+    triplet_manager.__init__()
+    proximo_salto           = constantes.jump_iter
+    iterador_principal      = 0
+    iteraciones_sin_mejoras = 0
     
-    #Se almacena la solución inicial como mejor solución
+    #Se genera una solución inicial mediante el procedimiento Inicializar, y se almacena como mejor_solucion.
     solucion = inicializar()
     mejor_solucion = solucion.clonar()
     
@@ -30,10 +35,10 @@ def execute(horizon_length, capacidad_vehiculo, proveedor, clientes, politica_re
         if solucion_prima.costo() < mejor_solucion.costo():
             #Se aplica Mejorar sobre solucion_prima para encontrar una posible mejora, al resultado se lo almacena como mejor_solucion
             mejor_solucion = mejorar(solucion_prima, iterador_principal)
-            
-            #Se reinicializan los triplets
+            #Se reinicializan los triplets y las iteraciones sin mejoras
             triplet_manager.__init__()
             iteraciones_sin_mejoras = 0
+            proximo_salto           = constantes.jump_iter
         else:
             #Se incrementa la cantidad de iteraciones sin mejora en una unidad
             iteraciones_sin_mejoras += 1
@@ -42,18 +47,21 @@ def execute(horizon_length, capacidad_vehiculo, proveedor, clientes, politica_re
         solucion = solucion_prima.clonar()
 
         #Si la cantidad de iteraciones sin mejora es múltiplo de JUMP_ITER
-        if ((iteraciones_sin_mejoras % constantes.jump_iter) == 0) and (0 < iteraciones_sin_mejoras < constantes.max_iter): 
+        if iteraciones_sin_mejoras == proximo_salto: 
+            proximo_salto += constantes.jump_iter
             solucion = saltar(solucion, triplet_manager, iterador_principal)
             alpha.reiniciar()
             beta.reiniciar()
-            triplet_manager.__init__()   
-           
-        elif iteraciones_sin_mejoras > (constantes.jump_iter / 2):
-            triplet_manager.eliminar_triplets_solucion(solucion)
+            triplet_manager.__init__()
+        else:
+            salto_anterior = 0 if (proximo_salto == constantes.jump_iter) else (proximo_salto - constantes.jump_iter)
+            if iteraciones_sin_mejoras > ((proximo_salto + salto_anterior)/2):
+                triplet_manager.eliminar_triplets_solucion(solucion)
         
     print("\n-------------------------------MEJOR SOLUCIÓN-------------------------------\n")
     mejor_solucion.imprimir_detalle()
-    print(mejor_solucion.costo_real())
+    
+    # mejor_solucion.graficar_rutas()
     return mejor_solucion, iterador_principal
     
 def async_execute(recorrido_id, horizon_length, capacidad_vehiculo, proveedor, clientes, user_id):

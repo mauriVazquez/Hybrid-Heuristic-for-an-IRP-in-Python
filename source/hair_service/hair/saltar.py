@@ -1,4 +1,4 @@
-from modelos.mip2 import Mip2
+from hair.mip2 import Mip2
 
 def saltar(solucion, triplet_manager, iterador_principal):
     mejor_solucion = solucion.clonar()

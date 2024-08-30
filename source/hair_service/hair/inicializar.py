@@ -22,10 +22,11 @@ def inicializar():
                 # Calcular la máxima cantidad posible de entregar sin sobrepasar la capacidad máxima
                 max_entrega = cliente.nivel_maximo - solucion.obtener_niveles_inventario_cliente(cliente)[t-1]
                 # Insertar visita en el tiempo anterior, entregando una cantidad dependiente a la política de reabastecimiento
-                cantidad_entregada = max_entrega if constantes.politica_reabastecimiento == "OU" else randint(cliente.nivel_demanda, max_entrega)
+                cantidad_entregada = max_entrega if (constantes.politica_reabastecimiento == "OU") else randint(cliente.nivel_demanda, max_entrega)
                 solucion.rutas[t-1].insertar_visita(cliente, cantidad_entregada, len(solucion.rutas[t-1].clientes))
                 # Actualizar el stock del cliente después de la entrega
                 stock_cliente += cantidad_entregada
     # Imprimir el detalle de la solución
+    solucion.imprimir_detalle()
     return solucion
 

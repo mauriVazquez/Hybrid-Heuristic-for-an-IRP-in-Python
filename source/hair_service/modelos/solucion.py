@@ -1,4 +1,4 @@
-from graph import Graph
+# import matplotlib.pyplot as plt
 from modelos.ruta import Ruta
 from typing import Type
 from modelos.penalty_variables import alpha, beta
@@ -112,19 +112,7 @@ class Solucion():
                        for tiempo in range(constantes.horizon_length+1)) * beta.obtener_valor()
        
         return costo_almacenamiento + costo_transporte + penalty1 + penalty2
-    
-    def costo_real(self):      
-        proveedor_nivel_inventario = self.obtener_niveles_inventario_proveedor()
-        # First term (costo_almacenamiento)
-        costo_almacenamiento = sum(proveedor_nivel_inventario) * constantes.proveedor.costo_almacenamiento
-        costo_almacenamiento += sum(cliente.costo_almacenamiento * self.obtener_niveles_inventario_cliente(cliente)[tiempo]  
-                for tiempo in range(constantes.horizon_length + 1)
-                for cliente in constantes.clientes)
-            
-        # Second term (costo_transporte)
-        costo_transporte = sum(self.rutas[tiempo].obtener_costo() for tiempo in range(constantes.horizon_length))
-        return costo_almacenamiento + costo_transporte
-    
+        
     def remover_visita(self, cliente, tiempo):
         # Cuando eliminamos una visita al cliente i en el tiempo t, primero eliminamos al cliente i de la ruta del vehículo en el tiempo t, 
         # y su predecesor se enlaza con su sucesor.
@@ -239,10 +227,23 @@ class Solucion():
                 return 25
         return 0
 
-    def draw_rutas(self):
-        clients_coords = []
-        for tiempo in range(constantes.horizon_length):
-            x = [cliente.coord_x for cliente in self.rutas[tiempo].clientes]
-            y = [cliente.coord_y for cliente in self.rutas[tiempo].clientes]
-            clients_coords.append([x,y])
-        Graph.draw_rutas(clients_coords,[constantes.proveedor.coord_x, constantes.proveedor.coord_y])
+    # def graficar_rutas(self):
+    #     clients_coords = []
+    #     for tiempo in range(constantes.horizon_length):
+    #         x = [cliente.coord_x for cliente in self.rutas[tiempo].clientes]
+    #         y = [cliente.coord_y for cliente in self.rutas[tiempo].clientes]
+    #         clients_coords.append([x,y])
+ 
+    #     # Create a figure and subplots
+    #     fig, axes = plt.subplots(2, 2, figsize=(10, 6))  # Adjust rows, columns, and figure size
+
+    #     # Generate and display plots in each subplot
+    #     for i, (ax, client_coord) in enumerate(zip(axes.flat, clients_coords)):
+    #         x = [constantes.proveedor.coord_x]+client_coord[0]+[constantes.proveedor.coord_x]
+    #         y = [constantes.proveedor.coord_y]+client_coord[1]+[constantes.proveedor.coord_y]
+    #         ax.plot(x,y)
+    #         ax.set_title(f"Ruta {i+1}")
+
+    #     # Adjust layout and display all plots at once
+    #     plt.tight_layout()
+    #     plt.show()
