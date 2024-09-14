@@ -42,7 +42,7 @@ class Mip1():
                     solucion_modificada = solucion_actual.clonar()
                     costo_mip = Mip1.costo(solucion_modificada, cliente, tiempo)
                     
-                    solucion_modificada.remover_visita(cliente, tiempo)
+                    q = solucion_modificada.rutas[tiempo].remover_visita(cliente)
                     cumple_restricciones = solucion_modificada.cumple_restricciones(1)
                     
                     if ((costo_mip < costo_minimo) and (cumple_restricciones == 0)):

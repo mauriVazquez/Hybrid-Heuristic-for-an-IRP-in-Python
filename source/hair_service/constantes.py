@@ -58,8 +58,8 @@ class Constantes():
     # Compute the distancia matriz
     def compute_matriz_distancia(self):
         return {
-            c.id: {
-                c2.id: self.compute_dist(c.coord_x, c2.coord_x, c.coord_y, c2.coord_y)
+            c: {
+                c2: self.compute_dist(c.coord_x, c2.coord_x, c.coord_y, c2.coord_y)
                 for c2 in self.clientes
             }
             for c in self.clientes

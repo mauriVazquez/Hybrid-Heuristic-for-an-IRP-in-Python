@@ -4,14 +4,83 @@ from random import random
 from modelos.tabulists import tabulists
 from constantes import constantes
 from modelos.penalty_variables import alpha, beta
+import concurrent.futures
 
-def mover(solucion, mejor_solucion, iterador_principal) -> Type["Solucion"]:
-    # Creación de neighborhood_prima
-    neighborhood_prima  = _variante_eliminacion(solucion)
-    neighborhood_prima += _variante_insercion(solucion)
-    neighborhood_prima += _variante_mover_visita(solucion)
-    neighborhood_prima += _variante_intercambiar_visitas(solucion)
+def mover(solucion: Type["Solucion"], iterador_principal : int) -> Type["Solucion"]:
+    """
+    Realiza un movimiento sobre la solución actual, explora su vecindario y devuelve una nueva solución.
+    Evalúa el vecindario y actualiza la lista tabú con la mejor solución permitida o con un mínimo absoluto.
     
+    Args:
+        solucion (Solucion): La solución actual.
+        mejor_solucion (Solucion): La mejor solución encontrada hasta ahora.
+        iterador_principal (int): El número de iteraciones del algoritmo.
+
+    Returns:
+        Solucion: La mejor solución encontrada para el vecindario de la solución ingresada.
+    """
+    # Creación de neighborhood_prima de solucion s (N'(s))
+    neighborhood_prima = _crear_n_prima(solucion)
+    
+    # Creación de neighborhood de solucion s (N(s)) a partir de N'(s)
+    neighborhood = _crear_n(solucion, neighborhood_prima)
+
+    respuesta = solucion.clonar()
+    for neighbor in neighborhood:
+        permitido       = tabulists.movimiento_permitido(solucion, neighbor)   
+        if neighbor.costo() < (respuesta.costo() if permitido else (0.85 * respuesta.costo())):
+            respuesta = neighbor.clonar()
+
+    tabulists.actualizar(solucion, respuesta, iterador_principal)
+    alpha.no_factibles() if respuesta.es_excedida_capacidad_vehiculo() else alpha.factible()
+    beta.no_factibles() if respuesta.proveedor_tiene_desabastecimiento() else beta.factible()
+    return respuesta
+
+def _crear_n_prima(solucion: Type["Solucion"]) -> list[Type["Solucion"]]:
+    """
+    Crea el vecindario primario (N'(s)) aplicando diferentes variaciones sobre la solución actual.
+    Las variaciones se ejecutan en paralelo usando hilos.
+
+    Args:
+        solucion (Solucion): La solución actual.
+
+    Returns:
+        list[Solucion]: Lista de soluciones generadas por las variaciones.
+    """
+    
+    # TODO Probar rendimiento sin paralelismo 
+    # neighborhood_prima  = _variante_eliminacion(solucion)
+    # neighborhood_prima += _variante_insercion(solucion)
+    # neighborhood_prima += _variante_mover_visita(solucion)
+    # neighborhood_prima += _variante_intercambiar_visitas(solucion)
+    
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        # Ejecutar las variantes en hilos separados
+        futuro_eliminacion   = executor.submit(_variante_eliminacion, solucion)
+        futuro_insercion     = executor.submit(_variante_insercion, solucion)
+        futuro_mover_visita  = executor.submit(_variante_mover_visita, solucion)
+        futuro_intercambiar  = executor.submit(_variante_intercambiar_visitas, solucion)
+
+        # Esperar a que todas las tareas finalicen y recolectar los resultados
+        neighborhood_prima = []
+        neighborhood_prima += futuro_eliminacion.result()
+        neighborhood_prima += futuro_insercion.result()
+        neighborhood_prima += futuro_mover_visita.result()
+        neighborhood_prima += futuro_intercambiar.result()
+    
+    return neighborhood_prima
+
+def _crear_n(solucion : Type["Solucion"], neighborhood_prima : list[Type["Solucion"]]):
+    """
+    Crea el vecindario (N(s)) a partir del vecindario primario N'(s), aplicando políticas de reabastecimiento.
+    
+    Args:
+        solucion (Solucion): La solución actual.
+        neighborhood_prima (list[Solucion]): El vecindario primario generado.
+
+    Returns:
+        list[Solucion]: Vecindario final tras aplicar las políticas de reabastecimiento.
+    """
     # Creación de neighborhood a partir de neighborhood_prima
     neighborhood = []
     #Por cada solución en N'(S)
@@ -32,9 +101,9 @@ def mover(solucion, mejor_solucion, iterador_principal) -> Type["Solucion"]:
                         if constantes.politica_reabastecimiento == "OU":
                             # Definir s" como la solucion obtenida al remover la visita al cliente en el tiempo t de s'
                             solucion_dosprima = solucion_prima.clonar()
-                            solucion_dosprima.rutas[t].remover_visita(cliente)
+                            solucion_dosprima.remover_visita(cliente, t)
                             # Si s" es admisible y f(s") < f(s') 
-                            if solucion_dosprima.es_admisible() and (solucion_dosprima.costo() < solucion_prima.costo()):
+                            if (solucion_dosprima.es_admisible() and (solucion_dosprima.costo() < solucion_prima.costo())):
                                 # Asignar s" a s' y se agrega j a A. 
                                 solucion_prima = solucion_dosprima.clonar()
                                 conjunto_A.append(cliente)   
@@ -77,62 +146,82 @@ def mover(solucion, mejor_solucion, iterador_principal) -> Type["Solucion"]:
                             solucion_dosprima.rutas[t].agregar_cantidad_cliente(cliente, (cliente.nivel_maximo - y))
 
                             if solucion_dosprima.costo() < solucion_prima.costo():
-                                solucion_prima = solucion_dosprima.clonar()
-                                
+                                solucion_prima = solucion_dosprima.clonar()                              
         neighborhood.append(solucion_prima.clonar()) 
+    return neighborhood
 
-    respuesta = None
-    for neighbor in neighborhood:
-        if (str(neighbor) != str(solucion)):
-            # Si aún no se setea respuesta, la seteo si el movimiento está permitido o si la solucion es mejor que sbest.
-            if ((respuesta is None) and  ((tabulists.movimiento_permitido(solucion, neighbor)) or (neighbor.costo() < mejor_solucion.costo()))):
-                respuesta = neighbor.clonar()
-            elif ((respuesta is not None) and (neighbor.costo() < respuesta.costo())):
-                if ((tabulists.movimiento_permitido(solucion, neighbor)) or (neighbor.costo() < mejor_solucion.costo())):
-                    respuesta = neighbor.clonar()             
-    
-    respuesta = (solucion if (respuesta is None) else respuesta)
-    tabulists.actualizar(solucion, respuesta, iterador_principal)
-    alpha.no_factibles() if solucion_prima.es_excedida_capacidad_vehiculo() else alpha.factible()
-    beta.no_factibles() if solucion_prima.proveedor_tiene_desabastecimiento() else beta.factible()
-    return respuesta
+def _variante_eliminacion(solucion : Type["Solucion"]) -> list[Type["Solucion"]]:
+    """
+    Genera soluciones eliminando visitas de clientes en la solución actual.
 
-def _variante_eliminacion(solucion) -> list[Type["Solucion"]]:
+    Args:
+        solucion (Solucion): La solución actual.
+
+    Returns:
+        list[Solucion]: Lista de soluciones tras aplicar la variante de eliminación.
+    """
     neighborhood_prima = []
-    for index, rutas in enumerate(solucion.rutas):
-        for cliente in solucion.rutas[index].clientes:
+    for cliente in constantes.clientes:
+        for t in solucion.T(cliente):
             solucion_copy = solucion.clonar()
-            solucion_copy = _remover_visita(solucion_copy, cliente, index)  
+            solucion_copy.remover_visita(cliente, t)
             if solucion_copy.es_admisible():
-                neighborhood_prima.append(solucion_copy.clonar())
+                neighborhood_prima.append(solucion_copy)
     return neighborhood_prima
 
-def _variante_insercion(solucion) -> list[Type["Solucion"]]:
+def _variante_insercion(solucion : Type["Solucion"]) -> list[Type["Solucion"]]:
+    """
+    Genera soluciones insertando nuevas visitas a clientes en la solución actual.
+
+    Args:
+        solucion (Solucion): La solución actual.
+
+    Returns:
+        list[Solucion]: Lista de soluciones tras aplicar la variante de inserción.
+    """
     neighborhood_prima = []
-    for index, rutas in enumerate(solucion.rutas):
+    for index in range(len(solucion.rutas)):
         for cliente in constantes.clientes:
             if (not solucion.rutas[index].es_visitado(cliente)):
                 solucion_copy = solucion.clonar()
-                solucion_copy = _insertar_visita(solucion_copy, cliente, index)
+                solucion_copy.insertar_visita(cliente, index)
                 if solucion_copy.es_admisible():
                     neighborhood_prima.append(solucion_copy)
     return neighborhood_prima
 
-def _variante_mover_visita(solucion) -> list[Type["Solucion"]]:
+def _variante_mover_visita(solucion : Type["Solucion"]) -> list[Type["Solucion"]]:
+    """
+    Genera soluciones moviendo visitas de un cliente entre diferentes tiempos de entrega.
+
+    Args:
+        solucion (Solucion): La solución actual.
+
+    Returns:
+        list[Solucion]: Lista de soluciones tras aplicar la variante de mover visitas.
+    """
     neighborhood_prima = []
     for cliente in constantes.clientes:
         set_t_visitado = solucion.T(cliente)
         for t_visitado in set_t_visitado:
             new_solucion = solucion.clonar()
-            new_solucion = _remover_visita(new_solucion, cliente, t_visitado)
-            for t_not_visitado in set(range(constantes.horizon_length)) - set(set_t_visitado):
+            new_solucion.remover_visita(cliente, t_visitado)
+            for t_not_visitado in (set(range(constantes.horizon_length)) - set(set_t_visitado)):
                 solucion_copy = new_solucion.clonar()
-                solucion_copy = _insertar_visita(solucion_copy, cliente, t_not_visitado)
+                solucion_copy.insertar_visita(cliente, t_not_visitado)
                 if solucion_copy.es_admisible():
                     neighborhood_prima.append(solucion_copy)
     return neighborhood_prima
 
-def _variante_intercambiar_visitas(solucion) -> list[Type["Solucion"]]:
+def _variante_intercambiar_visitas(solucion : Type["Solucion"]) -> list[Type["Solucion"]]:
+    """
+    Genera soluciones intercambiando visitas entre dos clientes en diferentes tiempos de entrega.
+
+    Args:
+        solucion (Solucion): La solución actual.
+
+    Returns:
+        list[Solucion]: Lista de soluciones tras aplicar la variante de intercambiar visitas.
+    """
     neighborhood_prima = []
     for cliente1 in constantes.clientes:
         for cliente2 in list(set(constantes.clientes) -set([cliente1])):
@@ -140,63 +229,13 @@ def _variante_intercambiar_visitas(solucion) -> list[Type["Solucion"]]:
                 for iter_tprima in (set(solucion.T(cliente2)) - set(solucion.T(cliente1))):
                     solucion_copy = solucion.clonar()
                     # Remover visitas
-                    solucion_copy = _remover_visita(solucion_copy, cliente1, iter_t)
-                    solucion_copy = _remover_visita(solucion_copy, cliente2, iter_tprima)
+                    solucion_copy.remover_visita(cliente1, iter_t)
+                    solucion_copy.remover_visita(cliente2, iter_tprima)
                     #Añadir nuevas visitas
-                    solucion_copy = _insertar_visita(solucion_copy, cliente1,iter_tprima)
-                    solucion_copy = _insertar_visita(solucion_copy, cliente2,iter_t)
+                    solucion_copy.insertar_visita(cliente1,iter_tprima)
+                    solucion_copy.insertar_visita(cliente2,iter_t)
                     
                     if solucion_copy.es_admisible():
                         neighborhood_prima.append(solucion_copy)                                           
     return neighborhood_prima
-
-def _insertar_visita(self, cliente, tiempo):
-    # Añadimos una vista al cliente en el tiempo t usando el método de inserción más barato.
-    if constantes.politica_reabastecimiento == "OU":
-    # La cantidad entregada se establece como Ui - Iit; La misma cantidad se elimina de la siguiente visita al cliente (si la hay).
-        cantidad_entregada = (cliente.nivel_maximo - self.obtener_niveles_inventario_cliente(cliente)[tiempo])
-        self.rutas[tiempo].insertar_visita(cliente, cantidad_entregada, None)
-        for t in range(tiempo + 1, constantes.horizon_length):
-            if self.rutas[t].es_visitado(cliente):
-                self.rutas[t].quitar_cantidad_cliente(cliente, cantidad_entregada)
-                if self.rutas[t].obtener_cantidad_entregada(cliente) < 0:
-                    self.rutas[t].remover_visita(cliente)
-                break
-            
-    # La cantidad entregada al cliente en el tiempo t es la mínima entre la cantidad máxima que puede entregarse sin exceder la capacidad 
-    # máxima Ui, la capacidad residual del vehículo, y la cantidad disponible en el proveedor. 
-    # Si este mínimo es igual a 0, entonces se entrega una cantidad igual a la demanda del cliente, lo que podrá crear desabastecimiento 
-    # en el proveedor o una violación de la restricción de capacidad del vehículo, pero la solución seguirá siendo admisible.
-    elif constantes.politica_reabastecimiento == "ML":
-        cantidad_entregada = min(
-            cliente.nivel_maximo - self.obtener_niveles_inventario_cliente(cliente)[tiempo],
-            constantes.capacidad_vehiculo - self.rutas[tiempo].obtener_total_entregado(),
-            self.obtener_niveles_inventario_proveedor()[tiempo]
-        )
-        cantidad_entregada = cantidad_entregada if cantidad_entregada > 0 else cliente.nivel_demanda
-        self.rutas[tiempo].insertar_visita(cliente, cantidad_entregada, None)
-    return self.clonar()
-        
-def _remover_visita(self, cliente, tiempo):
-    # Primero eliminamos al cliente i de la ruta del vehículo en el tiempo t y su predecesor se enlaza con su sucesor.
-    nueva_solucion = self.clonar()
-    cantidad_eliminado = nueva_solucion.rutas[tiempo].remover_visita(cliente)
-    
-    # La cantidad entregada al cliente en el tiempo t se transfiere a la visita siguiente (si la hay). 
-    # Tal eliminación se realiza solo si no crea un desabastecimiento en el cliente i para mantener la solución admisible.
-    if constantes.politica_reabastecimiento == "OU":
-        for t in range(tiempo + 1, constantes.horizon_length):
-            if nueva_solucion.rutas[t].es_visitado(cliente):
-                nueva_solucion.rutas[t].agregar_cantidad_cliente(cliente, cantidad_eliminado)
-                break
-            
-    # Si se genera desabastecimiento en el cliente la eliminación sólo se realiza si puede evitarse aumentando la cantidad entregada
-    # en la visita anterior a un valor no mayor que la capacidad máxima Ui. 
-    if constantes.politica_reabastecimiento == "ML" and nueva_solucion.cliente_tiene_desabastecimiento():
-        for t in range(tiempo, -1, -1):
-            if nueva_solucion.rutas[t].es_visitado(cliente):
-                cantidad = (cliente.nivel_maximo - nueva_solucion.obtener_niveles_inventario_cliente(cliente)[t])
-                nueva_solucion.rutas[t].agregar_cantidad_cliente(cliente, cantidad)
-                break
-    return nueva_solucion.clonar()
     

@@ -29,7 +29,7 @@ def execute(horizon_length, capacidad_vehiculo, proveedor, clientes, politica_re
         iterador_principal += 1
         
         #Se aplica el procedimiento mover sobre solucion, para obtener una solución vecina sprima
-        solucion_prima = mover(solucion, mejor_solucion, iterador_principal)
+        solucion_prima = mover(solucion, iterador_principal)
         
         #Si solucion_prima tiene un costo menor a la mejor_solución
         if solucion_prima.costo() < mejor_solucion.costo():

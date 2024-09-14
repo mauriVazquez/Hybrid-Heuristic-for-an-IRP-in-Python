@@ -10,7 +10,7 @@ class Solucion():
         self.rutas = rutas if rutas else [Ruta for _ in range(constantes.horizon_length)]
         
     def __str__(self) -> str:
-        return "".join("T"+str(i+1)+"= "+ruta.__str__()+"    " for i, ruta in enumerate(self.rutas)) + 'Costo:' + str(self.costo())
+        return "".join("T"+str(i+1)+"= "+ruta.__str__()+"    " for i, ruta in enumerate(self.rutas)) + 'Costo:' + str(self.costo()) + (" F" if self.es_factible() else (" A"  if self.es_admisible() else " N"))
 
     def obtener_empty_solucion() -> Type["Solucion"]:
         return Solucion([Ruta(ruta[0], ruta[1]) for ruta in [[[], []] for _ in range(constantes.horizon_length)]])
@@ -112,20 +112,58 @@ class Solucion():
                        for tiempo in range(constantes.horizon_length+1)) * beta.obtener_valor()
        
         return costo_almacenamiento + costo_transporte + penalty1 + penalty2
+    
+    def remover_visita(self, cliente, tiempo) -> None:
+        # En primer lugar guardo los tiempos en que el cliente fue visitado
+        tiempos_cliente = self.T(cliente)
+
+        if (tiempo in tiempos_cliente):
+            # Guardo el indice del tiempo de la eliminación, para despues acceder fácilmente al anterior y al posterior.
+            index = tiempos_cliente.index(tiempo)
+            
+            # Primero eliminamos al cliente i de la ruta del vehículo en el tiempo t y su predecesor se enlaza con su sucesor.
+            cantidad_eliminado = self.rutas[tiempo].remover_visita(cliente)
+            
+            # La cantidad entregada al cliente en el tiempo t se transfiere a la visita siguiente (si la hay). 
+            # Tal eliminación se realiza solo si no crea un desabastecimiento en el cliente i para mantener la solución admisible.
+            if (constantes.politica_reabastecimiento == "OU"):
+                # Si no era el último, transfiero la cantidad entregada a la siguiente visita
+                if index < len(tiempos_cliente) - 1:
+                    self.rutas[index+1].agregar_cantidad_cliente(cliente, cantidad_eliminado)
+                
+            # Si se genera desabastecimiento en el cliente la eliminación sólo se realiza si puede evitarse aumentando la cantidad entregada
+            # en la visita anterior a un valor no mayor que la capacidad máxima Ui. 
+            if (constantes.politica_reabastecimiento == "ML") and self.cliente_tiene_desabastecimiento():
+                # Si no era el primero, se intenta aumentar la cantidad entregada a la visita anterior a un valor que no supere Ui
+                if index > 0:
+                    cantidad = (cliente.nivel_maximo - self.obtener_niveles_inventario_cliente(cliente)[tiempos_cliente[index-1]])
+                    self.rutas[tiempos_cliente[index-1]].agregar_cantidad_cliente(cliente, cantidad)
         
-    def remover_visita(self, cliente, tiempo):
-        # Cuando eliminamos una visita al cliente i en el tiempo t, primero eliminamos al cliente i de la ruta del vehículo en el tiempo t, 
-        # y su predecesor se enlaza con su sucesor.
-        self.rutas[tiempo].remover_visita(cliente)
-        
-    # Cuando insertamos una visita al cliente en el tiempo t, primero añadimos al cliente a la ruta del vehículo en el tiempo t usando el método de inserción más barato.
-    def insertar_visita(self, cliente, tiempo):
-        cantidad_entregada = min(
-            cliente.nivel_maximo - self.obtener_niveles_inventario_cliente(cliente)[tiempo],
-            constantes.capacidad_vehiculo - self.rutas[tiempo].obtener_total_entregado(),
-            self.obtener_niveles_inventario_proveedor()[tiempo]
-        )
-        self.rutas[tiempo].insertar_visita(cliente, (cantidad_entregada if (cantidad_entregada > 0) else cliente.nivel_demanda), None)
+    def insertar_visita(self, cliente, tiempo) -> None:
+        # Añadimos una vista al cliente en el tiempo t usando el método de inserción más barato.
+        if constantes.politica_reabastecimiento == "OU":
+        # La cantidad entregada se establece como Ui - Iit; La misma cantidad se elimina de la siguiente visita al cliente (si la hay).
+            cantidad_entregada = (cliente.nivel_maximo - self.obtener_niveles_inventario_cliente(cliente)[tiempo])
+            self.rutas[tiempo].insertar_visita(cliente, cantidad_entregada, None)
+            for t in range(tiempo + 1, constantes.horizon_length):
+                if self.rutas[t].es_visitado(cliente):
+                    self.rutas[t].quitar_cantidad_cliente(cliente, cantidad_entregada)
+                    if self.rutas[t].obtener_cantidad_entregada(cliente) < 0:
+                        self.rutas[t].remover_visita(cliente)
+                    break
+                
+        # La cantidad entregada al cliente en el tiempo t es la mínima entre la cantidad máxima que puede entregarse sin exceder la capacidad 
+        # máxima Ui, la capacidad residual del vehículo, y la cantidad disponible en el proveedor. 
+        # Si este mínimo es igual a 0, entonces se entrega una cantidad igual a la demanda del cliente, lo que podrá crear desabastecimiento 
+        # en el proveedor o una violación de la restricción de capacidad del vehículo, pero la solución seguirá siendo admisible.
+        elif constantes.politica_reabastecimiento == "ML":
+            cantidad_entregada = min(
+                cliente.nivel_maximo - self.obtener_niveles_inventario_cliente(cliente)[tiempo],
+                constantes.capacidad_vehiculo - self.rutas[tiempo].obtener_total_entregado(),
+                self.obtener_niveles_inventario_proveedor()[tiempo]
+            )
+            cantidad_entregada = cantidad_entregada if cantidad_entregada > 0 else cliente.nivel_demanda
+            self.rutas[tiempo].insertar_visita(cliente, cantidad_entregada, None)
 
     def merge_rutas(self, rutabase_indice, rutasecondary_indice) -> None:
         for cliente in self.rutas[rutasecondary_indice].clientes:
