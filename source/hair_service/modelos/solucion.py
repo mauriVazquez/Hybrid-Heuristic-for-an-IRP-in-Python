@@ -20,7 +20,7 @@ class Solucion():
     def imprimir_detalle(self) -> str:
         resp = "Clientes visitados:"+" ".join("T"+str(i+1)+"= "+ruta.__str__()+"\t" for i, ruta in enumerate(self.rutas)) + "\n"
         resp += 'Inventario de proveedor: ' + str(self.obtener_niveles_inventario_proveedor()) + "\n"
-        resp += 'Inventario de clientes: ' + str(self.obtener_niveles_inventario_clientes()) + "\n"
+        resp += 'Inventario de clientes: ' + str([self.obtener_niveles_inventario_cliente(cliente) for cliente in constantes.clientes]) + "\n"
         resp += '¿Admisible? : ' + ('SI' if self.es_admisible() else 'NO') + "\n"
         resp += '¿Factible? : ' + ('SI' if self.es_factible() else 'NO') + "\n"
         resp += 'Función objetivo: ' + str(self.costo()) + "\n"
@@ -90,9 +90,6 @@ class Solucion():
             nivel_almacenamiento += self.rutas[t-1].obtener_cantidad_entregada(cliente) - cliente.nivel_demanda
             cliente_inventario.append(nivel_almacenamiento)          
         return cliente_inventario
-           
-    def obtener_niveles_inventario_clientes(self):
-        return [self.obtener_niveles_inventario_cliente(cliente) for cliente in constantes.clientes]
 
     # Retorna el conjunto de tiempos donde un cliente es visitado en una solucion dada.
     def T(self, cliente):
@@ -179,7 +176,7 @@ class Solucion():
 
     def cumple_restricciones(self, MIP, MIPcliente = None, MIPtiempo = None, operation = None):
         B   = self.obtener_niveles_inventario_proveedor()
-        I   = self.obtener_niveles_inventario_clientes()
+        I   = [self.obtener_niveles_inventario_cliente(cliente) for cliente in constantes.clientes]
         r0  = [constantes.proveedor.nivel_produccion for t in range(constantes.horizon_length+1)]
         ri  = [c.nivel_demanda for c in constantes.clientes]
         x   = [
@@ -187,12 +184,24 @@ class Solucion():
             for c in constantes.clientes
         ]
         x_np = np.array(x)
-        
         theta = [
             [(1 if self.rutas[t].es_visitado(c) else 0) for t in range(constantes.horizon_length)]
             for c in constantes.clientes
         ]
         
+        # Variables MIP 2
+        v   = [
+            [ (1 if ((operation == "INSERT") and (MIPtiempo == t) and (MIPcliente == c)) else 0 ) for t in range(constantes.horizon_length)]
+            for c in constantes.clientes
+        ]
+        w   = [
+            [ (1 if ((operation == "REMOVE") and (MIPtiempo == t) and (MIPcliente == c)) else 0 ) for t in range(constantes.horizon_length)]
+            for c in constantes.clientes
+        ]
+        sigma = [
+            [(1 if self.rutas[t].es_visitado(c) else 0) for t in range(constantes.horizon_length)]
+            for c in constantes.clientes
+        ]
        
         # Restricción 2: Definición del nivel de inventario del proveedor.
         if (not all([(B[t] == (B[t-1] + r0[t-1] - np.sum( x_np[:, t-1]))) for t in range(1, constantes.horizon_length+1)])):
@@ -234,8 +243,6 @@ class Solucion():
         if (not all([np.sum( x_np[:, t]) <= constantes.capacidad_vehiculo for t in range(constantes.horizon_length)])):
             return 8
         
-        #TO DO: 9 10 11 12 13 (Sólo MIP1)
-        
         # Restricción 14: La cantidad entregada a los clientes siempre debe ser mayor o igual a cero
         if not np.all(x_np >= 0):
             return 14
@@ -244,35 +251,27 @@ class Solucion():
         if not all(value in [0, 1] for fila in theta for value in fila):
             return 17
         
+        #If MIP == 1:
+        #TO DO: 9 10 11 12 13 (Sólo MIP1)
         #TO DO: 18 19 (Sólo MIP1)
-        
-        
-        if MIP == 2:
-            v   = [
-                [ (1 if ((operation == "INSERT") and (MIPtiempo == t) and (MIPcliente == c)) else 0 ) for t in range(constantes.horizon_length)]
-                for c in constantes.clientes
-            ]
-            w   = [
-                [ (1 if ((operation == "REMOVE") and (MIPtiempo == t) and (MIPcliente == c)) else 0 ) for t in range(constantes.horizon_length)]
-                for c in constantes.clientes
-            ]
-            
-            # Restricción 21: v_it no puede ser 1 y theta 1, implicaría que se insertó y está presente ¿¿??
-            if not all([ ( v[c][t] <= ( 1 - theta[c][t]) )
+          
+        if MIP == 2:            
+            # Restricción 21: v_it no puede ser 1 y sigma 1, implicaría que se insertó y está presente ¿¿??
+            if not all([ ( v[c][t] <= ( 1 - sigma[c][t]) )
                 for c in range(len(constantes.clientes))
                 for t in range(constantes.horizon_length)]
             ):
                 return 21
             
-            # Restricción 22:  w_it no puede ser 1 y theta 0, implicaría que se borró y no está presente ¿¿??
-            if not all([ ( w[c][t] <= theta[c][t] )
+            # Restricción 22:  w_it no puede ser 1 y sigma 0, implicaría que se borró y no está presente ¿¿??
+            if not all([ ( w[c][t] <= sigma[c][t] )
                 for c in range(len(constantes.clientes))
                 for t in range(constantes.horizon_length)]
             ):
                 return 22
     
             # Restricción 23: La cantidad entregada al cliente i no puede ser mayor a la capacidad máxima
-            if not all([ ( x[c][t] <= (cliente.nivel_maximo * (theta[c][t] + v[c][t] - w[c][t])))
+            if not all([ ( x[c][t] <= (cliente.nivel_maximo * (sigma[c][t] + v[c][t] - w[c][t])))
                 for c, cliente in enumerate(constantes.clientes)
                 for t in range(constantes.horizon_length)]
             ):
