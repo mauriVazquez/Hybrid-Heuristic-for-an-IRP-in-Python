@@ -36,7 +36,7 @@ def mejorar(solucion : Type["Solucion"], iterador_principal : int) -> Type["Solu
         solucion_prima = Mip1.ejecutar(solucion_best)
         solucion_prima = lk(solucion_best, solucion_prima)
         #Si el costo de la solución encontrada es mejor que el de solucion_best, se actualiza solucion_best
-        if solucion_prima.costo() < solucion_best.costo():
+        if (solucion_prima.costo() < solucion_best.costo()):
             solucion_best = solucion_prima.clonar()
             do_continue = True
 
@@ -86,7 +86,7 @@ def mejorar(solucion : Type["Solucion"], iterador_principal : int) -> Type["Solu
         #Se aplica el MIP2 a solucion_best, luego se le aplica LK
         solucion_prima = Mip2.ejecutar(solucion_best)
         solucion_prima = lk(solucion_best, solucion_prima)
-        if solucion_prima.costo() < solucion_best.costo():
+        if(solucion_prima.costo() < solucion_best.costo()):
             solucion_best = solucion_prima.clonar()
             do_continue = True 
             
