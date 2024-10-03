@@ -15,7 +15,7 @@
             display: none !important;
         }
     </style>
-
+    <!-- Incluir D3.js (o Cytoscape.js) -->
     @filamentStyles
     @vite('resources/css/app.css')
 </head>
@@ -25,6 +25,7 @@
 
     @filamentScripts
     @vite('resources/js/app.js')
+    @stack('scripts')
 </body>
 
 </html>

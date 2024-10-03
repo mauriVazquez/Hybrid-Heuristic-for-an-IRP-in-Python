@@ -20,6 +20,8 @@ class Solucion extends Model
         'recorrido_id',
     ];
 
+    protected $with = ['rutas.visitas.cliente', 'proveedor'];
+
     public function vehiculo()
     {
         return $this->belongsTo(Vehiculo::class);

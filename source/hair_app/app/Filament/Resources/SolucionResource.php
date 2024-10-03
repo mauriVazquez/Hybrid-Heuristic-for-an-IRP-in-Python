@@ -28,12 +28,16 @@ class SolucionResource extends Resource
         return $table
             ->columns([
                 //
+                Tables\Columns\TextColumn::make('recorrido_id')->label('Recorrido'),
+                Tables\Columns\TextColumn::make('costo')->label('Costo'),
+                Tables\Columns\TextColumn::make('created_at')->label('fecha')->since(),
             ])
             ->filters([
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                // Tables\Actions\EditAction::make(),
+                Tables\Actions\ViewAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -55,6 +59,7 @@ class SolucionResource extends Resource
             'index' => Pages\ListSolucions::route('/'),
             'create' => Pages\CreateSolucion::route('/create'),
             'edit' => Pages\EditSolucion::route('/{record}/edit'),
+            'view' => Pages\ViewSolucion::route('/{record}'),
         ];
     }
 
