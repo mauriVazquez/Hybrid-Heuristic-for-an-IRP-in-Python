@@ -69,7 +69,6 @@ class EntidadSeeder extends Seeder
     public function cargar_cliente($data, $localidad_id, $zona_id)
     {
         $faker = \Faker\Factory::create();
-        
         $cliente = Cliente::firstOrCreate(
             ['coord_x' => $data[1], 'coord_y' => $data[2]],
             [
