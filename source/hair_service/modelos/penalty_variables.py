@@ -41,10 +41,10 @@ class BaseAlphaBeta:
         Maneja el comportamiento cuando una solución no es factible.
         """
         self.no_factibles_contador += 1
-        self.factibles_contador = 0
-        if self.no_factibles_contador == 10:
+        if (self.factibles_contador + self.no_factibles_contador) == 10:
             if self.value <= constantes.penalty_factor_min:
                 self.actualizar(2)
+            self.factibles_contador = 0
             self.no_factibles_contador = 0
 
     def factible(self):
@@ -52,11 +52,11 @@ class BaseAlphaBeta:
         Maneja el comportamiento cuando una solución es factible.
         """
         self.factibles_contador += 1
-        self.no_factibles_contador = 0
-        if self.factibles_contador == 10:
+        if (self.factibles_contador + self.no_factibles_contador) == 10:
             if self.value >= constantes.penalty_factor_min:
                 self.actualizar(1/2)
             self.factibles_contador = 0
+            self.no_factibles_contador = 0
 
     def obtener_valor(self):
         """

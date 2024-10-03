@@ -41,4 +41,9 @@ class Solucion extends Model
     {
         return $this->belongsTo(Recorrido::class);
     }
+
+    // public function clientes()
+    // {
+    //     return $this->hasManyThrough(Cliente::class, Ruta::class, 'id', 'id', 'id');
+    // }
 }

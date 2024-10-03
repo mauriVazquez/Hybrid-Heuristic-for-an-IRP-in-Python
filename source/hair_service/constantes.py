@@ -8,7 +8,6 @@ class Constantes():
         config = configparser.ConfigParser()
         config.read('config.ini')
         self.politica_reabastecimiento = config['App']['politica_reabastecimiento']
-        self.multiplicador_tolerancia = float(config['App']['multiplicador_tolerancia'])
         self.taboo_len = int(config['Taboo']['list_length'])
         self.lambda_ttl = float(config['Taboo']['lambda_ttl'])
         self.penalty_factor_min = float(config['Penalty_factor']['min_limit'])
@@ -58,18 +57,21 @@ class Constantes():
 
     # Compute the distancia matriz
     def compute_matriz_distancia(self):
-        return {c.id: {c2.id: self.compute_dist(c.coord_x, c2.coord_x,c.coord_y,c2.coord_y) 
-                       for c2 in self.clientes} 
-                for c in self.clientes}
-       
-
+        return {
+            c: {
+                c2: self.compute_dist(c.coord_x, c2.coord_x, c.coord_y, c2.coord_y)
+                for c2 in self.clientes
+            }
+            for c in self.clientes
+        }
+        
     # Calcular distancias al proveedor
     def calcular_distancia_proveedor(self, coord_x, coord_y):
         return self.compute_dist(self.proveedor.coord_x, coord_x, self.proveedor.coord_y, coord_y) 
 
     #Distancia entre dos puntos
     def compute_dist(self, xi, xj, yi, yj):
-        return round(math.sqrt(math.pow(xi - xj, 2) + math.pow(yi - yj, 2)))
+        return math.sqrt(math.pow(xi - xj, 2) + math.pow(yi - yj, 2))
 
 
 constantes = Constantes()

@@ -37,6 +37,7 @@ class TabuLists:
     - __str__(): Representación en cadena de la instancia.
     - esta_prohibido_agregar(i, t): Verifica si un movimiento de tipo "add" está prohibido.
     - esta_prohibido_quitar(i, t): Verifica si un movimiento de tipo "remove" está prohibido.
+    - movimiento_permitido(s, s_prima): Dada dos soluciones verifica si los movimientos para llegar de una a otra están permitidos.
     """
     def __init__(self) -> None:
         """
@@ -117,7 +118,7 @@ class TabuLists:
         self.lista_r += [[[cliente.id, t], main_iterator + obtener_ttl()] for t in elementos_a_agregar
                          if not tabulists.esta_en_lista(self.lista_r, [cliente.id, t])]
 
-    def esta_prohibido_agregar(self, i: int, t: int) -> bool:
+    def esta_prohibido_agregar(self, i, t: int) -> bool:
         """
         Verifica si un movimiento de tipo "add" está prohibido.
 
@@ -128,9 +129,12 @@ class TabuLists:
         Retorna:
         - bool: True si el movimiento está prohibido, False en caso contrario.
         """
-        return any(elemento[0] == [i, t] for elemento in self.lista_a)
+        for item in self.lista_a:
+           if item[0][0] == i.id and item[0][1] == t:
+               return True
+        return False 
 
-    def esta_prohibido_quitar(self, i: int, t: int) -> bool:
+    def esta_prohibido_quitar(self, i, t: int) -> bool:
         """
         Verifica si un movimiento de tipo "remove" está prohibido.
 
@@ -141,6 +145,33 @@ class TabuLists:
         Retorna:
         - bool: True si el movimiento está prohibido, False en caso contrario.
         """
-        return any(elemento[0] == [i, t] for elemento in self.lista_r)
+        for item in self.lista_r:
+            if item[0][0] == i.id and item[0][1] == t:
+               return True
+        return False 
 
+    def movimiento_permitido(self, s, s_prima) -> bool:
+        """
+        Dada dos soluciones verifica si los movimientos para llegar de una a otra están permitidos.
+
+        Parameters:
+        - s: solucion original
+        - s_prima: solucion obtenida
+
+        Retorna:
+        - bool: True si el movimiento está permitido, False en caso contrario.
+        """
+        for cliente in constantes.clientes:
+            conjuntoT_s = s.T(cliente)
+            conjuntoT_sprima = s_prima.T(cliente)
+           
+            for t in ( set(conjuntoT_s) - set(conjuntoT_sprima) ):        
+                if tabulists.esta_en_lista(self.lista_r, [cliente.id, t]):
+                    return False
+            
+            for t in ( set(conjuntoT_sprima) - set(conjuntoT_s) ):        
+                if tabulists.esta_en_lista(self.lista_a, [cliente.id, t]):
+                    return False
+        return True 
+    
 tabulists = TabuLists()
