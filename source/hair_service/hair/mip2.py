@@ -1,4 +1,6 @@
 from constantes import constantes
+from modelos.solucion import Solucion
+from typing import Type
 
 class Mip2():
     """
@@ -12,7 +14,7 @@ class Mip2():
         No hay atributos públicos, la clase utiliza métodos estáticos.
     """
     @staticmethod
-    def ejecutar(solucion):
+    def ejecutar(solucion: Type["Solucion"]) -> Type["Solucion"]:
         """
         Ejecuta el algoritmo MIP2 para mejorar la solución.
 
@@ -22,27 +24,27 @@ class Mip2():
         Retorna:
             TipoDeSolucion: La solución mejorada obtenida mediante el algoritmo MIP2.
         """
-        costo_minimo = float("inf")
-        costo_minimo_solucion = solucion.clonar()
-
+        solucion_costo_minimo   = solucion.clonar()
+        costo_minimo            = float("inf")
+        
         for cliente in constantes.clientes:
             for tiempo in range(constantes.horizon_length):
                 solucion_aux = solucion.clonar()
-                operacion = "REMOVE" if solucion.rutas[tiempo].es_visitado(cliente) else "INSERT"
-                costo_mip = Mip2.costo(solucion_aux, cliente, tiempo, operacion)
+                operacion = "REMOVE" if solucion.es_visitado(cliente, tiempo) else "INSERT"
+                costo_mip = Mip2.funcion_objetivo(solucion_aux, cliente, tiempo, operacion)
                 if operacion == "REMOVE":
                     solucion_aux.remover_visita(cliente,tiempo)
                 else:
                     solucion_aux.insertar_visita(cliente, tiempo)
                 if (costo_mip < costo_minimo) and (solucion_aux.cumple_restricciones(2, cliente, tiempo, operacion) == 0):
                     costo_minimo = costo_mip
-                    costo_minimo_solucion = solucion_aux.clonar()
+                    solucion_costo_minimo = solucion_aux.clonar()
         
-        #print(f"SALIDA MIP2 {costo_minimo_solucion}")
-        return costo_minimo_solucion
+        # print(f"SALIDA MIP2 {solucion_costo_minimo}")
+        return solucion_costo_minimo
 
     @staticmethod
-    def costo(solucion, cliente, tiempo, operation):
+    def funcion_objetivo(solucion, cliente, tiempo, operation):
         """
         Calcula el costo asociado a una solución.
 
@@ -55,16 +57,15 @@ class Mip2():
         Retorna:
             float: El costo total asociado a la solución después de realizar la operación.
         """
-        if not any(len(ruta.clientes) > 0 for ruta in solucion.rutas):
-            return float("inf")
+        niveles_proveedor = solucion.inventario_proveedor
         
-        term_1 = sum([constantes.proveedor.costo_almacenamiento * solucion.obtener_niveles_inventario_proveedor()[t]
-                      for t in range(constantes.horizon_length+1)])
+        term_1 = constantes.proveedor.costo_almacenamiento * sum(niveles_proveedor)
 
-        term_2 = sum([sum([cliente.costo_almacenamiento * solucion.obtener_niveles_inventario_cliente(cliente)[t]
-                    for t in range(constantes.horizon_length)])
-                    for cliente in constantes.clientes])
-
+        term_2 = sum([
+            (cliente.costo_almacenamiento * sum(solucion.inventario_clientes[cliente.id - 1]))
+            for cliente in constantes.clientes
+        ])
+        
         if operation != "REMOVE":
             term_3 = 0
         else:

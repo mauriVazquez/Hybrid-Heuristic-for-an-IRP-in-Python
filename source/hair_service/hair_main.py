@@ -5,6 +5,7 @@ from datetime                   import datetime
 #Parámetros variables (penalización y triplets)
 from modelos.penalty_variables  import alpha, beta
 from modelos.tripletManager     import triplet_manager
+from modelos.tabulists          import tabulists
 #Procedimientos HAIR
 from hair.inicializar           import inicializar
 from hair.mover                 import mover
@@ -15,7 +16,7 @@ def execute(horizon_length, capacidad_vehiculo, proveedor, clientes, politica_re
     #Se inicializa la semilla, las constantes globales, iteradores y solución inicial
     seed(datetime.now().timestamp())
     constantes.inicializar(horizon_length, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento)
-    triplet_manager.__init__()
+    
     proximo_salto           = constantes.jump_iter
     iterador_principal      = 0
     iteraciones_sin_mejoras = 0
@@ -30,13 +31,13 @@ def execute(horizon_length, capacidad_vehiculo, proveedor, clientes, politica_re
         
         #Se aplica el procedimiento mover sobre solucion, para obtener una solución vecina sprima
         solucion_prima = mover(solucion, iterador_principal)
-        
+
         #Si solucion_prima tiene un costo menor a la mejor_solución
-        if solucion_prima.costo() < mejor_solucion.costo():
+        if solucion_prima.costo < mejor_solucion.costo:
             #Se aplica Mejorar sobre solucion_prima para encontrar una posible mejora, al resultado se lo almacena como mejor_solucion
             mejor_solucion = mejorar(solucion_prima, iterador_principal)
             #Se reinicializan los triplets y las iteraciones sin mejoras
-            triplet_manager.__init__()
+            triplet_manager.reiniciar()
             iteraciones_sin_mejoras = 0
             proximo_salto           = constantes.jump_iter
         else:
@@ -49,10 +50,10 @@ def execute(horizon_length, capacidad_vehiculo, proveedor, clientes, politica_re
         #Si la cantidad de iteraciones sin mejora es múltiplo de JUMP_ITER
         if iteraciones_sin_mejoras == proximo_salto: 
             proximo_salto += constantes.jump_iter
-            solucion = saltar(solucion, triplet_manager, iterador_principal)
+            solucion = saltar(solucion, iterador_principal)
             alpha.reiniciar()
             beta.reiniciar()
-            triplet_manager.__init__()
+            tabulists.reiniciar()
         else:
             salto_anterior = 0 if (proximo_salto == constantes.jump_iter) else (proximo_salto - constantes.jump_iter)
             if iteraciones_sin_mejoras > ((proximo_salto + salto_anterior)/2):

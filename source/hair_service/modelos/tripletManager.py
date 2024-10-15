@@ -37,6 +37,17 @@ class TripletManager:
             if tiempo != tiempo_prima
         ]
 
+    def reiniciar(self) -> None:
+        """
+        Inicializa la lista de triplet.
+        """
+        self.triplets = [
+            [cliente, tiempo, tiempo_prima] 
+            for cliente in constantes.clientes
+            for tiempo in range(constantes.horizon_length)
+            for tiempo_prima in range(constantes.horizon_length)
+            if tiempo != tiempo_prima
+        ]
 
     def obtener_triplet_aleatorio(self):
         """
@@ -50,9 +61,10 @@ class TripletManager:
     def eliminar_triplets_solucion(self, solucion: Solucion):
         """
         Remueve los triplets correspondientes dada una solucion.
-        """        
+        """     
         self.triplets = [
             triplet for triplet in self.triplets 
-            if solucion.rutas[triplet[1]].es_visitado(triplet[0]) and (not solucion.rutas[triplet[2]].es_visitado(triplet[0]))
+            if solucion.es_visitado(triplet[0], triplet[1]) and (not solucion.es_visitado(triplet[0], triplet[2]))
         ]
+        
 triplet_manager = TripletManager()

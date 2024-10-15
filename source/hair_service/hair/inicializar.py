@@ -21,7 +21,9 @@ def inicializar() -> Type["Solucion"]:
                 # Insertar visita en el tiempo actual, entregando una cantidad dependiente a la política de reabastecimiento
                 cantidad_entregada = max_entrega if (constantes.politica_reabastecimiento == "OU") else randint(cliente.nivel_demanda, max_entrega)
                 solucion.rutas[t].insertar_visita(cliente, cantidad_entregada, len(solucion.rutas[t].clientes))
+                solucion.refrescar()
                 stock += cantidad_entregada
+    solucion.refrescar()
     print(f"Inicial: {solucion}")
     return solucion
 

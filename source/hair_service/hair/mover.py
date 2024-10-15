@@ -6,7 +6,7 @@ from constantes import constantes
 from modelos.penalty_variables import alpha, beta
 import concurrent.futures
 
-def mover(solucion: Type["Solucion"], iterador_principal : int) -> Type["Solucion"]:
+def mover(solucion_original: Type["Solucion"], iterador_principal : int) -> Type["Solucion"]:
     """
     Realiza un movimiento sobre la solución actual, explora su vecindario y devuelve una nueva solución.
     Evalúa el vecindario y actualiza la lista tabú con la mejor solución permitida o con un mínimo absoluto.
@@ -19,17 +19,26 @@ def mover(solucion: Type["Solucion"], iterador_principal : int) -> Type["Solucio
     Returns:
         Solucion: La mejor solución encontrada para el vecindario de la solución ingresada.
     """
+    solucion = solucion_original.clonar()
+    
     # Creación de neighborhood_prima de solucion s (N'(s))
     neighborhood_prima = _crear_n_prima(solucion)
     
     # Creación de neighborhood de solucion s (N(s)) a partir de N'(s)
     neighborhood = _crear_n(solucion, neighborhood_prima)
 
-    respuesta = solucion.clonar()
+    respuesta        = solucion.clonar()
+    costo_respuesta  = float("inf")
+    
     for neighbor in neighborhood:
-        permitido       = tabulists.movimiento_permitido(solucion, neighbor)   
-        if neighbor.costo() < (respuesta.costo() if permitido else (0.85 * respuesta.costo())):
+        if tabulists.movimiento_permitido(solucion, neighbor) and (neighbor.costo < costo_respuesta):
             respuesta = neighbor.clonar()
+            costo_respuesta = respuesta.costo
+    
+    for neighbor in neighborhood:
+        if ((not tabulists.movimiento_permitido(solucion, neighbor)) and ( neighbor.costo < (0.7 * costo_respuesta))): 
+            respuesta = neighbor.clonar()
+            costo_respuesta = respuesta.costo
 
     tabulists.actualizar(solucion, respuesta, iterador_principal)
     alpha.no_factibles() if respuesta.es_excedida_capacidad_vehiculo() else alpha.factible()
@@ -47,13 +56,6 @@ def _crear_n_prima(solucion: Type["Solucion"]) -> list[Type["Solucion"]]:
     Returns:
         list[Solucion]: Lista de soluciones generadas por las variaciones.
     """
-    
-    # TODO Probar rendimiento sin paralelismo 
-    # neighborhood_prima  = _variante_eliminacion(solucion)
-    # neighborhood_prima += _variante_insercion(solucion)
-    # neighborhood_prima += _variante_mover_visita(solucion)
-    # neighborhood_prima += _variante_intercambiar_visitas(solucion)
-    
     with concurrent.futures.ThreadPoolExecutor() as executor:
         # Ejecutar las variantes en hilos separados
         futuro_eliminacion   = executor.submit(_variante_eliminacion, solucion)
@@ -96,14 +98,14 @@ def _crear_n(solucion : Type["Solucion"], neighborhood_prima : list[Type["Soluci
             for t in solucion_prima.T(cliente_removido):
                 for cliente in solucion_prima.rutas[t].clientes:
                     # Verificar si hj > h0, Qt(s') > C o Bt(s') < 0 
-                    if (cliente.costo_almacenamiento > constantes.proveedor.costo_almacenamiento) or (solucion_prima.rutas[t].obtener_total_entregado() > constantes.capacidad_vehiculo) or (solucion_prima.obtener_niveles_inventario_proveedor()[t] < 0):
+                    if (cliente.costo_almacenamiento > constantes.proveedor.costo_almacenamiento) or (solucion_prima.rutas[t].obtener_total_entregado() > constantes.capacidad_vehiculo) or (solucion_prima.inventario_proveedor[t] < 0):
                         # Política OU
                         if constantes.politica_reabastecimiento == "OU":
                             # Definir s" como la solucion obtenida al remover la visita al cliente en el tiempo t de s'
                             solucion_dosprima = solucion_prima.clonar()
                             solucion_dosprima.remover_visita(cliente, t)
                             # Si s" es admisible y f(s") < f(s') 
-                            if (solucion_dosprima.es_admisible() and (solucion_dosprima.costo() < solucion_prima.costo())):
+                            if (solucion_dosprima.es_admisible and (solucion_dosprima.costo < solucion_prima.costo)):
                                 # Asignar s" a s' y se agrega j a A. 
                                 solucion_prima = solucion_dosprima.clonar()
                                 conjunto_A.append(cliente)   
@@ -112,7 +114,7 @@ def _crear_n(solucion : Type["Solucion"], neighborhood_prima : list[Type["Soluci
                         if constantes.politica_reabastecimiento == "ML":
                             # y ← min{xjt, min t'>t Ijt'}.        
                             xjt = solucion_prima.rutas[t].obtener_cantidad_entregada(cliente)
-                            niveles_inventario = solucion_prima.obtener_niveles_inventario_cliente(cliente)
+                            niveles_inventario = solucion_prima.inventario_clientes[cliente.id - 1]
                             ijt = niveles_inventario[(t+1):-1]
                             y = min(xjt, min((ijt if (ijt != []) else [xjt])))
                             
@@ -121,13 +123,15 @@ def _crear_n(solucion : Type["Solucion"], neighborhood_prima : list[Type["Soluci
                             solucion_dosprima = solucion_prima.clonar()
                             if y == xjt:
                                 solucion_dosprima.rutas[t].remover_visita(cliente)
+                                solucion_dosprima.refrescar()
                             else:
                                 solucion_dosprima.rutas[t].quitar_cantidad_cliente(cliente, y)
+                                solucion_dosprima.refrescar()
                                 
                             # Si f(s") < f(s'), asignar s" a s'
-                            if solucion_dosprima.costo() < solucion_prima.costo():
+                            if solucion_dosprima.costo < solucion_prima.costo:
                                 # Agregar el cliente al conjunto A si el cliente no es visitado en el tiempo t en s'
-                                if not solucion_prima.rutas[t].es_visitado(cliente):
+                                if not solucion_prima.es_visitado(cliente, t):
                                     conjunto_A.append(cliente)
                                 solucion_prima = solucion_dosprima.clonar()
 
@@ -136,7 +140,7 @@ def _crear_n(solucion : Type["Solucion"], neighborhood_prima : list[Type["Soluci
                     for cliente in solucion_prima.rutas[t].clientes:
                         if cliente.costo_almacenamiento < constantes.proveedor.costo_almacenamiento:
                             # Sea y ← max t'≥t(Ijt' + xjt'). 
-                            niveles_inventario_cliente = solucion_prima.obtener_niveles_inventario_cliente(cliente)
+                            niveles_inventario_cliente = solucion_prima.inventario_clientes[cliente.id - 1]
                             entregas = [(solucion_prima.rutas[t2].obtener_cantidad_entregada(cliente) + niveles_inventario_cliente[t2]) 
                                 for t2 in range(t, constantes.horizon_length )]
                             y = max(entregas) if entregas else 0
@@ -144,10 +148,12 @@ def _crear_n(solucion : Type["Solucion"], neighborhood_prima : list[Type["Soluci
                             # Sea s" la solución obtenida desde s' tras añadir Uj − y unidades de entrega al cliente en el tiempo t
                             solucion_dosprima = solucion_prima.clonar()
                             solucion_dosprima.rutas[t].agregar_cantidad_cliente(cliente, (cliente.nivel_maximo - y))
-
-                            if solucion_dosprima.costo() < solucion_prima.costo():
-                                solucion_prima = solucion_dosprima.clonar()                              
-        neighborhood.append(solucion_prima.clonar()) 
+                            solucion_dosprima.refrescar()
+                            
+                            if solucion_dosprima.costo < solucion_prima.costo:
+                                solucion_prima = solucion_dosprima.clonar() 
+        if not solucion_prima.es_igual(solucion):
+            neighborhood.append(solucion_prima.clonar()) 
     return neighborhood
 
 def _variante_eliminacion(solucion : Type["Solucion"]) -> list[Type["Solucion"]]:
@@ -165,7 +171,7 @@ def _variante_eliminacion(solucion : Type["Solucion"]) -> list[Type["Solucion"]]
         for t in solucion.T(cliente):
             solucion_copy = solucion.clonar()
             solucion_copy.remover_visita(cliente, t)
-            if solucion_copy.es_admisible():
+            if solucion_copy.es_admisible:
                 neighborhood_prima.append(solucion_copy)
     return neighborhood_prima
 
@@ -182,10 +188,10 @@ def _variante_insercion(solucion : Type["Solucion"]) -> list[Type["Solucion"]]:
     neighborhood_prima = []
     for index in range(len(solucion.rutas)):
         for cliente in constantes.clientes:
-            if (not solucion.rutas[index].es_visitado(cliente)):
+            if (not solucion.es_visitado(cliente, index)):
                 solucion_copy = solucion.clonar()
                 solucion_copy.insertar_visita(cliente, index)
-                if solucion_copy.es_admisible():
+                if solucion_copy.es_admisible:
                     neighborhood_prima.append(solucion_copy)
     return neighborhood_prima
 
@@ -208,7 +214,7 @@ def _variante_mover_visita(solucion : Type["Solucion"]) -> list[Type["Solucion"]
             for t_not_visitado in (set(range(constantes.horizon_length)) - set(set_t_visitado)):
                 solucion_copy = new_solucion.clonar()
                 solucion_copy.insertar_visita(cliente, t_not_visitado)
-                if solucion_copy.es_admisible():
+                if solucion_copy.es_admisible:
                     neighborhood_prima.append(solucion_copy)
     return neighborhood_prima
 
@@ -235,7 +241,7 @@ def _variante_intercambiar_visitas(solucion : Type["Solucion"]) -> list[Type["So
                     solucion_copy.insertar_visita(cliente1,iter_tprima)
                     solucion_copy.insertar_visita(cliente2,iter_t)
                     
-                    if solucion_copy.es_admisible():
+                    if solucion_copy.es_admisible:
                         neighborhood_prima.append(solucion_copy)                                           
     return neighborhood_prima
     

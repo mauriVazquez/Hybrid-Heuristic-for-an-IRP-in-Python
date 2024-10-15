@@ -26,13 +26,13 @@ class Mip1():
         Retorna:
             TipoDeSolucion: La solución mejorada obtenida mediante el algoritmo MIP1.
         """
-        solucion_costo_minimo = solucion_original.clonar()
-        costo_minimo = Mip1.funcion_objetivo(solucion_costo_minimo, 0)
+        solucion_costo_minimo   = solucion_original.clonar()
+        costo_minimo            = float("inf")
 
         # Se realizan todas las permutaciones posibles
         for perm in permutations(range(constantes.horizon_length)):
-            # if perm == tuple(range(constantes.horizon_length)):
-            #     continue  # Omitir la permutación (0, 1, 2)
+            if perm == tuple(range(constantes.horizon_length)):
+                continue  # Omitir la permutación (0, 1, 2)
         
             solucion_actual = Solucion([
                 Ruta(list(solucion_original.rutas[i].clientes), list(solucion_original.rutas[i].cantidades)) for i in perm
@@ -43,7 +43,7 @@ class Mip1():
             
             # Se calcula la funcion objetivo de la permutacion, que sea menor que el mejor hasta el momento, se asigna como nuevo mejor.
             if (cumple_restricciones == 0):
-                costo_mip = Mip1.funcion_objetivo(solucion_actual, 0)
+                costo_mip = Mip1.funcion_objetivo(solucion_actual)
                 if (costo_mip < costo_minimo):
                     costo_minimo = costo_mip
                     solucion_costo_minimo = solucion_actual.clonar()
@@ -55,30 +55,30 @@ class Mip1():
 
                     # Se veirifica que cumpla con las restricciones, retorna 0 si cumple con todas
                     cumple_restricciones = solucion_modificada.cumple_restricciones(1)
-                    if(cumple_restricciones == 0):
+                    if((cumple_restricciones == 0) and solucion_modificada.es_factible):
                         # Se calcula la funcion objetivo de la permutacion, que sea menor que el mejor hasta el momento, se asigna como nuevo mejor.
                         ahorro = solucion_actual.rutas[tiempo].obtener_costo() - solucion_modificada.rutas[tiempo].obtener_costo()
                         costo_mip = Mip1.funcion_objetivo(solucion_modificada, ahorro)
                         if (costo_mip < costo_minimo):
                             costo_minimo = costo_mip
                             solucion_costo_minimo = solucion_modificada.clonar()
+        # print(f"SALIDA MIP1 {solucion_costo_minimo}")
         return solucion_costo_minimo
 
     @staticmethod
-    def funcion_objetivo(solucion, ahorro):
+    def funcion_objetivo(solucion, ahorro = 0) -> float:
         """
         Calcula el costo asociado a una solución.
 
         Args:
             solucion (TipoDeSolucion): La solución para la cual calcular el costo.
-            cliente_eliminado (Cliente, optional): Cliente eliminado de la solución.
-            eliminado_tiempo (int, optional): Tiempo en el cual se eliminó el cliente.
+            ahorro (float, optional): El ahorro en costo de transporte al eliminar al cliente.
 
         Retorna:
             float: El costo total asociado a la solución.
         """
-        term_1 = constantes.proveedor.costo_almacenamiento * sum(solucion.obtener_niveles_inventario_proveedor())
-        term_2 = sum([(c.costo_almacenamiento * sum(solucion.obtener_niveles_inventario_cliente(c))) for c in constantes.clientes])
+        term_1 = constantes.proveedor.costo_almacenamiento * sum(solucion.inventario_proveedor)
+        term_2 = sum([(c.costo_almacenamiento * sum(solucion.inventario_clientes[c.id - 1])) for c in constantes.clientes])
         term_3 = ahorro
         return (term_1 + term_2 - term_3)
     

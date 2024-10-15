@@ -45,6 +45,13 @@ class TabuLists:
         """
         self.lista_r = []
         self.lista_a = []
+    
+    def reiniciar(self) -> None:
+        """
+        Inicializa las listas tabú.
+        """
+        self.lista_r = []
+        self.lista_a = []
 
     def __str__(self) -> str:
         """

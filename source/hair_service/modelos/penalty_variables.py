@@ -40,6 +40,7 @@ class BaseAlphaBeta:
         """
         Maneja el comportamiento cuando una solución no es factible.
         """
+        self.factibles_contador += 1
         self.no_factibles_contador += 1
         if (self.factibles_contador + self.no_factibles_contador) == 10:
             if self.value <= constantes.penalty_factor_min:
@@ -51,6 +52,7 @@ class BaseAlphaBeta:
         """
         Maneja el comportamiento cuando una solución es factible.
         """
+        self.no_factibles_contador += 0
         self.factibles_contador += 1
         if (self.factibles_contador + self.no_factibles_contador) == 10:
             if self.value >= constantes.penalty_factor_min:
