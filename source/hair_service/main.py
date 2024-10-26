@@ -3,14 +3,10 @@ from typing import List
 from fastapi import FastAPI, BackgroundTasks
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
-from hair_main import async_execute
+from hair.main import async_execute
 import json
 
 app = FastAPI()
-
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
 
 class Proveedor(BaseModel):
     id: str

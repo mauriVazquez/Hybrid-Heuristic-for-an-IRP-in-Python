@@ -30,12 +30,15 @@ class Mip2():
         for cliente in constantes.clientes:
             for tiempo in range(constantes.horizon_length):
                 solucion_aux = solucion.clonar()
-                operacion = "REMOVE" if solucion.es_visitado(cliente, tiempo) else "INSERT"
-                costo_mip = Mip2.funcion_objetivo(solucion_aux, cliente, tiempo, operacion)
-                if operacion == "REMOVE":
-                    solucion_aux.remover_visita(cliente,tiempo)
-                else:
-                    solucion_aux.insertar_visita(cliente, tiempo)
+                if solucion.es_visitado(cliente, tiempo):
+                    #Remover = 1   
+                    operacion = "REMOVE"
+                    costo_mip = Mip2.funcion_objetivo(solucion_aux, cliente, tiempo, operacion)
+                else: 
+                    #Insertar = 2
+                    operacion = "INSERT"
+                    costo_mip = Mip2.funcion_objetivo(solucion_aux, cliente, tiempo, 2)
+
                 if (costo_mip < costo_minimo) and (solucion_aux.cumple_restricciones(2, cliente, tiempo, operacion) == 0):
                     costo_minimo = costo_mip
                     solucion_costo_minimo = solucion_aux.clonar()
@@ -44,7 +47,7 @@ class Mip2():
         return solucion_costo_minimo
 
     @staticmethod
-    def funcion_objetivo(solucion, cliente, tiempo, operation):
+    def funcion_objetivo(solucion, cliente, tiempo, operacion):
         """
         Calcula el costo asociado a una solución.
 
@@ -52,33 +55,26 @@ class Mip2():
             solucion (TipoDeSolucion): La solución para la cual calcular el costo.
             cliente (Cliente): El cliente involucrado en la operación.
             tiempo (int): El tiempo en el cual se realiza la operación.
-            operation (str): Tipo de operación, "INSERT" o "REMOVE".
+            operacion (str): Tipo de operación, "REMOVE" o "INSERT".
 
         Retorna:
             float: El costo total asociado a la solución después de realizar la operación.
         """
-        niveles_proveedor = solucion.inventario_proveedor
-        
-        term_1 = constantes.proveedor.costo_almacenamiento * sum(niveles_proveedor)
-
-        term_2 = sum([
-            (cliente.costo_almacenamiento * sum(solucion.inventario_clientes[cliente.id - 1]))
-            for cliente in constantes.clientes
-        ])
-        
-        if operation != "REMOVE":
-            term_3 = 0
-        else:
-            aux_ruta = solucion.rutas[tiempo].clonar()
-            aux_ruta.remover_visita(cliente)
-            term_3 = solucion.rutas[tiempo].obtener_costo() - aux_ruta.obtener_costo()
-            
-
-        if operation != "INSERT":
+        costo_ruta_original = solucion.rutas[tiempo].obtener_costo()
+        if operacion == "REMOVE":
+            solucion.remover_visita(cliente, tiempo)
+            term_3 = costo_ruta_original - solucion.rutas[tiempo].obtener_costo()
             term_4 = 0
         else:
-            solucion_aux = solucion.clonar()
-            solucion_aux.insertar_visita(cliente, tiempo)
-            term_4 = solucion_aux.rutas[tiempo].obtener_costo() - solucion.rutas[tiempo].obtener_costo()
+            solucion.insertar_visita(cliente, tiempo)
+            term_3 = 0
+            term_4 = solucion.rutas[tiempo].obtener_costo() - costo_ruta_original
+        
+        term_1 = constantes.proveedor.costo_almacenamiento * sum(solucion.inventario_proveedor)
 
+        term_2 = sum([
+            (cliente.costo_almacenamiento * sum(solucion.inventario_clientes.get(cliente.id)))
+            for i, cliente in enumerate(constantes.clientes)
+        ])
+        
         return term_1 + term_2 - term_3 + term_4

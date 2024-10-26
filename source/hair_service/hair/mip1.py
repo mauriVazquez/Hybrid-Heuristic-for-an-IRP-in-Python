@@ -78,7 +78,7 @@ class Mip1():
             float: El costo total asociado a la solución.
         """
         term_1 = constantes.proveedor.costo_almacenamiento * sum(solucion.inventario_proveedor)
-        term_2 = sum([(c.costo_almacenamiento * sum(solucion.inventario_clientes[c.id - 1])) for c in constantes.clientes])
+        term_2 = sum([(c.costo_almacenamiento * sum(solucion.inventario_clientes.get(c.id, None))) for c in constantes.clientes])
         term_3 = ahorro
         return (term_1 + term_2 - term_3)
     

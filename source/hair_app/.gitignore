@@ -1,5 +1,7 @@
 /.phpunit.cache
 /node_modules
+/public/css/filament/*
+/public/js/filament/*
 /public/build
 /public/hot
 /public/storage

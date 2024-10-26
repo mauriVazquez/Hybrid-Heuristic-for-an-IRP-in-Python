@@ -10,7 +10,10 @@ class Solucion():
   
     def __init__(self,  rutas: list[Ruta] = None) -> None:
         self.rutas                  = rutas if rutas else [Ruta for _ in range(constantes.horizon_length)]
-        self.inventario_clientes    = [self._obtener_niveles_inventario_cliente(cliente) for cliente in constantes.clientes]
+        self.inventario_clientes    = {
+            cliente.id: self._obtener_niveles_inventario_cliente(cliente) 
+            for cliente in constantes.clientes
+        }
         self.inventario_proveedor   = self._obtener_niveles_inventario_proveedor()
         self.es_factible            = self._es_factible()
         self.es_admisible           = self._es_admisible()
@@ -21,12 +24,16 @@ class Solucion():
 
     def refrescar(self : Type["Solucion"]):
         self.rutas                  = self.rutas
-        self.inventario_clientes    = [self._obtener_niveles_inventario_cliente(cliente) for cliente in constantes.clientes]
+        self.inventario_clientes    = {
+            cliente.id: self._obtener_niveles_inventario_cliente(cliente) 
+            for cliente in constantes.clientes
+        }
         self.inventario_proveedor   = self._obtener_niveles_inventario_proveedor()
         self.es_factible            = self._es_factible()
         self.es_admisible           = self._es_admisible()
         self.costo                  = self._costo()
-        
+    
+    @staticmethod 
     def obtener_empty_solucion() -> Type["Solucion"]:
         return Solucion([Ruta(ruta[0], ruta[1]) for ruta in [[[], []] for _ in range(constantes.horizon_length)]])
 
@@ -83,12 +90,12 @@ class Solucion():
         return any(constantes.capacidad_vehiculo < ruta.obtener_total_entregado() for ruta in self.rutas)
 
     def cliente_tiene_desabastecimiento(self) -> bool:
-        return any(self.inventario_clientes[cliente.id - 1][tiempo] < 0
+        return any(self.inventario_clientes.get(cliente.id, None)[tiempo] < cliente.nivel_minimo
                    for cliente in constantes.clientes
                    for tiempo in range(constantes.horizon_length))
 
     def cliente_tiene_sobreabastecimiento(self) -> bool:
-        return any(self.inventario_clientes[cliente.id - 1][tiempo] > cliente.nivel_maximo
+        return any(self.inventario_clientes.get(cliente.id, None)[tiempo] > cliente.nivel_maximo
                    for cliente in constantes.clientes
                    for tiempo in range(constantes.horizon_length))
     
@@ -122,7 +129,7 @@ class Solucion():
         proveedor_nivel_inventario = self.inventario_proveedor
         # First term (costo_almacenamiento)
         costo_almacenamiento = sum(proveedor_nivel_inventario) * constantes.proveedor.costo_almacenamiento
-        costo_almacenamiento += sum(cliente.costo_almacenamiento * self.inventario_clientes[cliente.id - 1][tiempo]  
+        costo_almacenamiento += sum(cliente.costo_almacenamiento * self.inventario_clientes.get(cliente.id, None)[tiempo]  
                 for tiempo in range(constantes.horizon_length + 1)
                 for cliente in constantes.clientes)
             
@@ -164,7 +171,7 @@ class Solucion():
             if (constantes.politica_reabastecimiento == "ML") and self.cliente_tiene_desabastecimiento():
                 # Si no era el primero, se intenta aumentar la cantidad entregada a la visita anterior a un valor que no supere Ui
                 if index > 0:
-                    cantidad = (cliente.nivel_maximo - self.inventario_clientes[cliente.id - 1][tiempos_cliente[index-1]])
+                    cantidad = (cliente.nivel_maximo - self.inventario_clientes.get(cliente.id, None)[tiempos_cliente[index-1]])
                     self.rutas[tiempos_cliente[index-1]].agregar_cantidad_cliente(cliente, cantidad)
                     self.refrescar()
         
@@ -172,7 +179,7 @@ class Solucion():
         # Añadimos una vista al cliente en el tiempo t usando el método de inserción más barato.
         if constantes.politica_reabastecimiento == "OU":
         # La cantidad entregada se establece como Ui - Iit; La misma cantidad se elimina de la siguiente visita al cliente (si la hay).
-            cantidad_entregada = (cliente.nivel_maximo - self.inventario_clientes[cliente.id - 1][tiempo])
+            cantidad_entregada = (cliente.nivel_maximo - self.inventario_clientes.get(cliente.id, None)[tiempo])
             self.rutas[tiempo].insertar_visita(cliente, cantidad_entregada, None)
             self.refrescar()
             for t in range(tiempo + 1, constantes.horizon_length):
@@ -190,7 +197,7 @@ class Solucion():
         # en el proveedor o una violación de la restricción de capacidad del vehículo, pero la solución seguirá siendo admisible.
         elif constantes.politica_reabastecimiento == "ML":
             cantidad_entregada = min(
-                cliente.nivel_maximo - self.inventario_clientes[cliente.id - 1][tiempo],
+                cliente.nivel_maximo - self.inventario_clientes.get(cliente.id, None)[tiempo],
                 constantes.capacidad_vehiculo - self.rutas[tiempo].obtener_total_entregado(),
                 self.inventario_proveedor[tiempo]
             )
@@ -208,7 +215,7 @@ class Solucion():
 
     def cumple_restricciones(self, MIP, MIPcliente = None, MIPtiempo = None, operation = None):
         B   = self.inventario_proveedor
-        I   = [self.inventario_clientes[cliente.id - 1] for cliente in constantes.clientes]
+        I   = [self.inventario_clientes.get(cliente.id, None) for cliente in constantes.clientes]
         r0  = [constantes.proveedor.nivel_produccion for t in range(constantes.horizon_length+1)]
         ri  = [c.nivel_demanda for c in constantes.clientes]
         x   = [
@@ -290,19 +297,19 @@ class Solucion():
         #TO DO: 9 10 11 12 13 18 19 (Sólo MIP1)
           
         if MIP == 2:            
-            # Restricción 21: v_it no puede ser 1 y sigma 1, implicaría que se insertó y está presente ¿¿??
-            if not all([ ( v[c][t] <= ( 1 - sigma[c][t]) )
-                for c in range(len(constantes.clientes))
-                for t in range(constantes.horizon_length)]
-            ):
-                return 21
+            # # Restricción 21: v_it no puede ser 1 y sigma 1, implicaría que se insertó y está presente ¿¿??
+            # if not all([ ( v[c][t] <= ( 1 - sigma[c][t]) )
+            #     for c in range(len(constantes.clientes))
+            #     for t in range(constantes.horizon_length)]
+            # ):
+            #     return 21
             
-            # Restricción 22:  w_it no puede ser 1 y sigma 0, implicaría que se borró y no está presente ¿¿??
-            if not all([ ( w[c][t] <= sigma[c][t] )
-                for c in range(len(constantes.clientes))
-                for t in range(constantes.horizon_length)]
-            ):
-                return 22
+            # # Restricción 22:  w_it no puede ser 1 y sigma 0, implicaría que se borró y no está presente ¿¿??
+            # if not all([ ( w[c][t] <= sigma[c][t] )
+            #     for c in range(len(constantes.clientes))
+            #     for t in range(constantes.horizon_length)]
+            # ):
+            #     return 22
     
             # Restricción 23: La cantidad entregada al cliente i no puede ser mayor a la capacidad máxima
             if not all([ ( x[c][t] <= (cliente.nivel_maximo * (sigma[c][t] + v[c][t] - w[c][t])))

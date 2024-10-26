@@ -1,6 +1,6 @@
 from constantes import constantes
 
-class BaseAlphaBeta:
+class FactorPenalizacion:
     """
     Clase base para Alpha y Beta que maneja la lógica común.
 
@@ -12,7 +12,7 @@ class BaseAlphaBeta:
 
     def __init__(self) -> None:
         """
-        Constructor de la clase BaseAlphaBeta.
+        Constructor de la clase FactorPenalizacion.
         Inicializa los atributos value, factibles_contador y no_factibles_contador.
         """
         self.value = 1
@@ -26,15 +26,32 @@ class BaseAlphaBeta:
         self.value = 1
         self.factibles_contador = 0
         self.no_factibles_contador = 0
-
-    def actualizar(self, multiplicator):
+        
+    @staticmethod
+    def actualizar_metricas_factibilidad(solucion):
         """
-        Actualiza el valor multiplicando por el multiplicador dado.
+        Actualiza las métricas de factibilidad basadas en las restricciones de capacidad de los vehículos y 
+        la disponibilidad de stock en los proveedores.
 
-        Parameters:
-        - multiplicator: Valor multiplicador.
+        Si la solución excede la capacidad del vehículo, se marcará como no factible en el componente `alpha`.
+        Si hay desabastecimiento en los proveedores, se marcará como no factible en el componente `beta`.
+
+        Args:
+            solucion (Solucion): La solución que se evalúa para determinar su factibilidad.
+            
+        Efectos:
+            - Actualiza las métricas `alpha` y `beta` dependiendo de si la solución es factible o no con respecto
+            a la capacidad del vehículo y la disponibilidad de stock en los proveedores.
         """
-        self.value = self.value * multiplicator
+        if solucion.es_excedida_capacidad_vehiculo():
+            alpha.no_factibles()
+        else:
+            alpha.factible()
+
+        if solucion.proveedor_tiene_desabastecimiento():
+            beta.no_factibles()
+        else:
+            beta.factible()
 
     def no_factibles(self):
         """
@@ -44,7 +61,7 @@ class BaseAlphaBeta:
         self.no_factibles_contador += 1
         if (self.factibles_contador + self.no_factibles_contador) == 10:
             if self.value <= constantes.penalty_factor_min:
-                self.actualizar(2)
+                self.value = self.value * 2
             self.factibles_contador = 0
             self.no_factibles_contador = 0
 
@@ -56,7 +73,7 @@ class BaseAlphaBeta:
         self.factibles_contador += 1
         if (self.factibles_contador + self.no_factibles_contador) == 10:
             if self.value >= constantes.penalty_factor_min:
-                self.actualizar(1/2)
+                self.value = self.value * 0.5
             self.factibles_contador = 0
             self.no_factibles_contador = 0
 
@@ -69,15 +86,15 @@ class BaseAlphaBeta:
         """
         return self.value
 
-class Alpha(BaseAlphaBeta):
+class Alpha(FactorPenalizacion):
     """
-    Clase Alpha que hereda de BaseAlphaBeta.
+    Clase Alpha que hereda de FactorPenalizacion.
     """
     pass
 
-class Beta(BaseAlphaBeta):
+class Beta(FactorPenalizacion):
     """
-    Clase Beta que hereda de BaseAlphaBeta.
+    Clase Beta que hereda de FactorPenalizacion.
     """
     pass
 

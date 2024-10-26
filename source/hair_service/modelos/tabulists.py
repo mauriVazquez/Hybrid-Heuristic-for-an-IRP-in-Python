@@ -94,8 +94,8 @@ class TabuLists:
         for cliente in constantes.clientes:
             conjuntoT_s = solucion.T(cliente)
             conjuntoT_sprima = solucion_prima.T(cliente)
-            self._agregar_a_lista_a(cliente, conjuntoT_s, conjuntoT_sprima, main_iterator)
             self._agregar_a_lista_r(cliente, conjuntoT_s, conjuntoT_sprima, main_iterator)
+            self._agregar_a_lista_a(cliente, conjuntoT_s, conjuntoT_sprima, main_iterator)
 
     def _agregar_a_lista_a(self, cliente, conjuntoT_s, conjuntoT_sprima, main_iterator: int) -> None:
         """

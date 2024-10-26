@@ -4,11 +4,14 @@ class Ruta():
     @staticmethod
     def obtener_costo_recorrido(clientes) -> float:
         #Distancia del primer cliente al proveedor + distancia del último al proveedor, mas distancia entre clientes
-        return 0 if not clientes else (
-            clientes[0].distancia_proveedor
-            + sum(constantes.compute_dist(c1.coord_x, c0.coord_x, c1.coord_y, c0.coord_y) for c0, c1 in zip(clientes, clientes[1:]))
-            + clientes[-1].distancia_proveedor 
-    )
+        if not clientes:
+            return 0.0
+        else:
+            return (
+                clientes[0].distancia_proveedor
+                + sum(constantes.compute_dist(c1.coord_x, c0.coord_x, c1.coord_y, c0.coord_y) for c0, c1 in zip(clientes, clientes[1:]))
+                + clientes[-1].distancia_proveedor 
+             )
     
     def __init__(self, clientes, cantidades) -> None:
         self.clientes = clientes if clientes else []  # Lista de clientes en la ruta

@@ -64,7 +64,7 @@ class TripletManager:
         """     
         self.triplets = [
             triplet for triplet in self.triplets 
-            if solucion.es_visitado(triplet[0], triplet[1]) and (not solucion.es_visitado(triplet[0], triplet[2]))
+            if not (solucion.es_visitado(triplet[0], triplet[1]) and solucion.es_visitado(triplet[0], triplet[2]))
         ]
         
 triplet_manager = TripletManager()

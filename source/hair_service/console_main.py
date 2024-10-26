@@ -1,8 +1,7 @@
-from hair_main import execute
+from hair.main import execute
 import math
 import argparse
 from modelos.entidad import Cliente, Proveedor
-from random import seed
 
 def read_input_irp(filename, horizon_len):
     file_it = iter(read_elem(filename))
@@ -23,7 +22,6 @@ def read_input_irp(filename, horizon_len):
     
     proveedor = Proveedor(0, coord_x, coord_y, nivel_almacenamiento, nivel_produccion, costo_almacenamiento)
    
-
     clientes = []
     for i in range(1, nb_clientes+1):
         next(file_it)
@@ -49,15 +47,12 @@ def read_elem(filename):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--instancia", type=str, required=True)
-    parser.add_argument("--horizon_len", type=int)
     parser.add_argument("--politica_reabastecimiento", type=str)
-    parser.add_argument("--multiplicador_tolerancia", type=float)
+    parser.add_argument("--horizon_len", type=int)
     args = parser.parse_args()
     instancia = args.instancia
     horizon_len = args.horizon_len
     politica_reabastecimiento = args.politica_reabastecimiento
-    multiplicador_tolerancia = args.multiplicador_tolerancia
-    seed()
     horizon_len, proveedor, clientes, capacidad_vehiculo = read_input_irp(instancia, horizon_len)
     
     response = execute(horizon_len, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento)
