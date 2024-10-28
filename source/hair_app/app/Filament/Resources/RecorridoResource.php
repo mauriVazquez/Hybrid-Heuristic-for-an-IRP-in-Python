@@ -2,20 +2,21 @@
 
 namespace App\Filament\Resources;
 
-use App\enums\EstadosRecorrido;
+use App\enums\EstadosEnum;
 use App\Filament\Resources\RecorridoResource\Pages;
-use App\Filament\Resources\RecorridoResource\RelationManagers;
+use App\Models\Cliente;
+use App\Models\Proveedor;
 use App\Models\Recorrido;
+use App\Models\Vehiculo;
+use App\Models\Zona;
 use App\Services\HairService;
-use Filament\Actions\Action;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class RecorridoResource extends Resource
 {
@@ -27,7 +28,49 @@ class RecorridoResource extends Resource
     {
         return $form
             ->schema([
-                //
+                Forms\Components\Select::make('zona_id')
+                    ->label('Zona')
+                    ->options(fn() => Zona::all()->pluck('nombre', 'id'))
+                    ->searchable()
+                    ->live(),
+                Forms\Components\TextInput::make('horizonte_tiempo')
+                    ->label('Horizonte de tiempo')
+                    ->numeric()
+                    ->integer()
+                    ->default(3)
+                    ->required(),
+                Forms\Components\Section::make()
+                    ->schema([
+                        Forms\Components\Select::make('vehiculo_id')
+                            ->label('Vehículo')
+                            ->options(fn() => Vehiculo::all()->pluck('patente', 'id'))
+                            ->searchable()
+                            ->required(),
+                        Forms\Components\Select::make('proveedor_id')
+                            ->label('Proveedor')
+                            ->options(fn() => Proveedor::all()->pluck('nombre', 'id'))
+                            ->searchable()
+                            ->required(),
+                        Forms\Components\Select::make('clientes')
+                            ->label('Clientes')
+                            ->options(function (Get $get) {
+                                $zona_id = $get('zona_id');
+                                $clientes = $get('clientes');
+                                if (!$zona_id)
+                                    return Cliente::all()->pluck('nombre', 'id');
+
+                                return Cliente::where('zona_id', $zona_id)->when(
+                                    !empty($clientes),
+                                    function ($query) use ($clientes) {
+                                        $query->orWhereIn('id', $clientes);
+                                    }
+                                )->get()->pluck('nombre', 'id');
+                            })
+                            ->relationship('clientes')
+                            ->multiple()
+                            ->required(),
+                    ])
+                    ->columns(1),
             ]);
     }
 
@@ -36,17 +79,19 @@ class RecorridoResource extends Resource
         return $table
             ->columns([
                 //
-                Tables\Columns\TextColumn::make('id'),
+                // Tables\Columns\TextColumn::make('id'),
+                Tables\Columns\TextColumn::make('zona.nombre'),
                 Tables\Columns\TextColumn::make('proveedor.nombre'),
+                Tables\Columns\TextColumn::make('horizonte_tiempo'),
                 Tables\Columns\TextColumn::make('clientes_count')->label('Cant. clientes')->counts('clientes'),
                 Tables\Columns\TextColumn::make('estado')
                     ->label('Estado')
                     ->badge()
-                    ->color(fn ($state): string => match ($state) {
-                        EstadosRecorrido::Pendiente => 'gray',
-                        EstadosRecorrido::Procesando => 'warning',
-                        EstadosRecorrido::Resuelto => 'success',
-                        EstadosRecorrido::Rechazado => 'danger',
+                    ->color(fn($state): string => match ($state) {
+                        EstadosEnum::Pendiente => 'gray',
+                        EstadosEnum::Procesando => 'warning',
+                        EstadosEnum::Resuelto => 'success',
+                        EstadosEnum::Rechazado => 'danger',
                     }),
             ])
             ->filters([
@@ -54,11 +99,10 @@ class RecorridoResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\Action::make('Ejecutar')->action(function (Recorrido $record) {
-
+                Tables\Actions\Action::make('Ejecutar')->action(function (Recorrido $record) {       
+                    info("enviar");
                     $hairService = new HairService;
-                    $response = $hairService->enviarSolicitudEjecucion($record->id, $record->proveedor, $record->clientes->pluck('id'), $record->vehiculo, $record->horizon_length);
-
+                    $response = $hairService->enviarSolicitudEjecucion($record->id, $record->proveedor, $record->clientes->pluck('id'), $record->vehiculo, $record->horizonte_tiempo);
                     Notification::make('Solicitud Enviada')
                         ->title('Solicitud enviada')
                         ->body("Se está procesando la ruta")
@@ -85,7 +129,7 @@ class RecorridoResource extends Resource
         return [
             'index' => Pages\ListRecorridos::route('/'),
             'create' => Pages\CreateRecorrido::route('/nuevo-recorrido'),
-            // 'edit' => Pages\EditRecorrido::route('/{record}/edit'),
+            'edit' => Pages\EditRecorrido::route('/{record}/edit'),
         ];
     }
 }

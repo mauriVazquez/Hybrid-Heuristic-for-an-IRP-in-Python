@@ -32,8 +32,8 @@ class Cliente extends Model
     {
         return $this->belongsTo(Localidad::class);
     }
-    public function formulariosEjecucion()
+    public function recorridos()
     {
-        return $this->belongsToMany(FormularioEjecucion::class);
+        return $this->belongsToMany(Recorrido::class);
     }
 }

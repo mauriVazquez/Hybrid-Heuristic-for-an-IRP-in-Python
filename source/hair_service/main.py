@@ -29,7 +29,7 @@ class Cliente(BaseModel):
 class Param(BaseModel):
     recorrido_id: str = Field(default="id recorrido no encontrado")
     user_id: int = Field(default= 0)
-    horizon_length: int = Field(default=None)
+    horizonte_tiempo: int = Field(default=None)
     capacidad_vehiculo: int = Field(default=None)
     proveedor: Proveedor = Field(default=None)
     clientes: List[Cliente] = Field(default=None)
@@ -38,7 +38,7 @@ class Param(BaseModel):
 async def procesar_solicitud(param: Param, background_tasks: BackgroundTasks):
     print(f"Se recibió la solicitud para ejecutar el algoritmo en el recorrido {param.recorrido_id}")
     try:
-        background_tasks.add_task(async_execute, param.recorrido_id, param.horizon_length,
+        background_tasks.add_task(async_execute, param.recorrido_id, param.horizonte_tiempo,
                                   param.capacidad_vehiculo, param.proveedor, param.clientes, param.user_id)
         return JSONResponse(content={"message": "Solicitud de procesamiento de recorrido recibida", "recorrido_id": param.recorrido_id})
     except Exception as e:

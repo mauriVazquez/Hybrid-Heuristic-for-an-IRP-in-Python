@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\enums\EstadosRecorrido;
+use App\enums\EstadosEnum;
 use App\Models\Recorrido;
 use App\Models\Ruta;
 use App\Models\Solucion;
@@ -47,7 +47,7 @@ class RecorridoController extends Controller
             }
 
             $recorrido->update([
-                'estado' => EstadosRecorrido::Resuelto,
+                'estado' => EstadosEnum::Resuelto,
             ]);
 
             Notification::make()

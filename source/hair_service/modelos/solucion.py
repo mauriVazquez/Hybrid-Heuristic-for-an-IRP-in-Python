@@ -9,7 +9,7 @@ import copy
 class Solucion():
   
     def __init__(self,  rutas: list[Ruta] = None) -> None:
-        self.rutas                  = rutas if rutas else [Ruta for _ in range(constantes.horizon_length)]
+        self.rutas                  = rutas if rutas else [Ruta for _ in range(constantes.horizonte_tiempo)]
         self.inventario_clientes    = {
             cliente.id: self._obtener_niveles_inventario_cliente(cliente) 
             for cliente in constantes.clientes
@@ -35,7 +35,7 @@ class Solucion():
     
     @staticmethod 
     def obtener_empty_solucion() -> Type["Solucion"]:
-        return Solucion([Ruta(ruta[0], ruta[1]) for ruta in [[[], []] for _ in range(constantes.horizon_length)]])
+        return Solucion([Ruta(ruta[0], ruta[1]) for ruta in [[[], []] for _ in range(constantes.horizonte_tiempo)]])
 
     def imprimir_detalle(self) -> str:
         resp = "Clientes visitados:"        +" ".join("T"+str(i+1)+"= "+ruta.__str__()+"\t" for i, ruta in enumerate(self.rutas)) + "\n"
@@ -66,7 +66,7 @@ class Solucion():
         return clonacion
 
     def es_igual(self, solution2) -> bool:
-        return all(self.rutas[i].es_igual(solution2.rutas[i]) for i in range(constantes.horizon_length))
+        return all(self.rutas[i].es_igual(solution2.rutas[i]) for i in range(constantes.horizonte_tiempo))
     
     def es_visitado(self, cliente, t) -> bool :
         return self.rutas[t].es_visitado(cliente)
@@ -92,12 +92,12 @@ class Solucion():
     def cliente_tiene_desabastecimiento(self) -> bool:
         return any(self.inventario_clientes.get(cliente.id, None)[tiempo] < cliente.nivel_minimo
                    for cliente in constantes.clientes
-                   for tiempo in range(constantes.horizon_length))
+                   for tiempo in range(constantes.horizonte_tiempo))
 
     def cliente_tiene_sobreabastecimiento(self) -> bool:
         return any(self.inventario_clientes.get(cliente.id, None)[tiempo] > cliente.nivel_maximo
                    for cliente in constantes.clientes
-                   for tiempo in range(constantes.horizon_length))
+                   for tiempo in range(constantes.horizonte_tiempo))
     
     def proveedor_tiene_desabastecimiento(self) -> bool:
         return any(nivel_inventario < 0 for nivel_inventario in self.inventario_proveedor)
@@ -106,7 +106,7 @@ class Solucion():
         proveedor = constantes.proveedor
         nivel_almacenamiento = proveedor.nivel_almacenamiento
         niveles = [nivel_almacenamiento]
-        for t in range(1, constantes.horizon_length + 1):
+        for t in range(1, constantes.horizonte_tiempo + 1):
             nivel_almacenamiento += proveedor.nivel_produccion - self.rutas[t-1].obtener_total_entregado()
             niveles.append(nivel_almacenamiento)
         nivel_almacenamiento += proveedor.nivel_produccion
@@ -116,33 +116,33 @@ class Solucion():
     def _obtener_niveles_inventario_cliente(self, cliente):
         nivel_almacenamiento = cliente.nivel_almacenamiento
         cliente_inventario = [nivel_almacenamiento]
-        for t in range(1, constantes.horizon_length + 1):
+        for t in range(1, constantes.horizonte_tiempo + 1):
             nivel_almacenamiento += self.rutas[t-1].obtener_cantidad_entregada(cliente) - cliente.nivel_demanda
             cliente_inventario.append(nivel_almacenamiento)          
         return cliente_inventario
 
     # Retorna el conjunto de tiempos donde un cliente es visitado en una solucion dada.
     def T(self, cliente):
-        return [tiempo for tiempo in range(constantes.horizon_length) if self.es_visitado(cliente, tiempo)]
+        return [tiempo for tiempo in range(constantes.horizonte_tiempo) if self.es_visitado(cliente, tiempo)]
    
     def _costo(self):      
         proveedor_nivel_inventario = self.inventario_proveedor
         # First term (costo_almacenamiento)
         costo_almacenamiento = sum(proveedor_nivel_inventario) * constantes.proveedor.costo_almacenamiento
         costo_almacenamiento += sum(cliente.costo_almacenamiento * self.inventario_clientes.get(cliente.id, None)[tiempo]  
-                for tiempo in range(constantes.horizon_length + 1)
+                for tiempo in range(constantes.horizonte_tiempo + 1)
                 for cliente in constantes.clientes)
             
         # Second term (costo_transporte)
-        costo_transporte = sum(self.rutas[tiempo].obtener_costo() for tiempo in range(constantes.horizon_length))
+        costo_transporte = sum(self.rutas[tiempo].obtener_costo() for tiempo in range(constantes.horizonte_tiempo))
 
         # Third term (penalty 1)
         penalty1 = sum(max(0,self.rutas[tiempo].obtener_total_entregado() - constantes.capacidad_vehiculo) 
-                       for tiempo in range(constantes.horizon_length)) * alpha.obtener_valor() 
+                       for tiempo in range(constantes.horizonte_tiempo)) * alpha.obtener_valor() 
         
         # Fourth term
         penalty2 = sum(max(0, -proveedor_nivel_inventario[tiempo]) 
-                       for tiempo in range(constantes.horizon_length+1)) * beta.obtener_valor()
+                       for tiempo in range(constantes.horizonte_tiempo+1)) * beta.obtener_valor()
        
         return costo_almacenamiento + costo_transporte + penalty1 + penalty2
     
@@ -182,7 +182,7 @@ class Solucion():
             cantidad_entregada = (cliente.nivel_maximo - self.inventario_clientes.get(cliente.id, None)[tiempo])
             self.rutas[tiempo].insertar_visita(cliente, cantidad_entregada, None)
             self.refrescar()
-            for t in range(tiempo + 1, constantes.horizon_length):
+            for t in range(tiempo + 1, constantes.horizonte_tiempo):
                 if self.es_visitado(cliente, t):
                     self.rutas[t].quitar_cantidad_cliente(cliente, cantidad_entregada)
                     self.refrescar()
@@ -216,44 +216,44 @@ class Solucion():
     def cumple_restricciones(self, MIP, MIPcliente = None, MIPtiempo = None, operation = None):
         B   = self.inventario_proveedor
         I   = [self.inventario_clientes.get(cliente.id, None) for cliente in constantes.clientes]
-        r0  = [constantes.proveedor.nivel_produccion for t in range(constantes.horizon_length+1)]
+        r0  = [constantes.proveedor.nivel_produccion for t in range(constantes.horizonte_tiempo+1)]
         ri  = [c.nivel_demanda for c in constantes.clientes]
         x   = [
-            [self.rutas[t].obtener_cantidad_entregada(c) for t in range(constantes.horizon_length)]
+            [self.rutas[t].obtener_cantidad_entregada(c) for t in range(constantes.horizonte_tiempo)]
             for c in constantes.clientes
         ]
         x_np = np.array(x)
         theta = [
-            [(1 if self.es_visitado(c, t) else 0) for t in range(constantes.horizon_length)]
+            [(1 if self.es_visitado(c, t) else 0) for t in range(constantes.horizonte_tiempo)]
             for c in constantes.clientes
         ]
         
         # Variables MIP 2
         v   = [
-            [ (1 if ((operation == "INSERT") and (MIPtiempo == t) and (MIPcliente == c)) else 0 ) for t in range(constantes.horizon_length)]
+            [ (1 if ((operation == "INSERT") and (MIPtiempo == t) and (MIPcliente == c)) else 0 ) for t in range(constantes.horizonte_tiempo)]
             for c in constantes.clientes
         ]
         w   = [
-            [ (1 if ((operation == "REMOVE") and (MIPtiempo == t) and (MIPcliente == c)) else 0 ) for t in range(constantes.horizon_length)]
+            [ (1 if ((operation == "REMOVE") and (MIPtiempo == t) and (MIPcliente == c)) else 0 ) for t in range(constantes.horizonte_tiempo)]
             for c in constantes.clientes
         ]
         sigma = [
-            [(1 if self.es_visitado(c, t) else 0) for t in range(constantes.horizon_length)]
+            [(1 if self.es_visitado(c, t) else 0) for t in range(constantes.horizonte_tiempo)]
             for c in constantes.clientes
         ]
        
         # Restricción 2: Definición del nivel de inventario del proveedor.
-        if (not all([(B[t] == (B[t-1] + r0[t-1] - np.sum( x_np[:, t-1]))) for t in range(1, constantes.horizon_length+1)])):
+        if (not all([(B[t] == (B[t-1] + r0[t-1] - np.sum( x_np[:, t-1]))) for t in range(1, constantes.horizonte_tiempo+1)])):
             return 2            
         
         # Restricción 3: El nivel de inventario del proveedor debe poder satisfacer la demanda en el tiempo t.
-        if (not all(B[t] >= np.sum( x_np[:, t]) for t in range(constantes.horizon_length))):
+        if (not all(B[t] >= np.sum( x_np[:, t]) for t in range(constantes.horizonte_tiempo))):
             return 3
         
         # Restricción 4: Definición del nivel de inventario de los clientes
         if (not all([(I[c][t] == (I[c][t-1] + x[c][t-1] - ri[c] ))
                 for c in range(len(constantes.clientes))
-                for t in range(1, constantes.horizon_length+1)]
+                for t in range(1, constantes.horizonte_tiempo+1)]
         )):
             return 4
         
@@ -261,14 +261,14 @@ class Solucion():
             # Restricción 5: La cantidad entregada al cliente no es menos de la necesaria para llenar el inventario.
             if (not all([(x[c][t] >= ((cliente.nivel_maximo * theta[c][t]) - I[c][t]))
                 for c, cliente in enumerate(constantes.clientes)
-                for t in range(constantes.horizon_length)]
+                for t in range(constantes.horizonte_tiempo)]
             )):
                 return 5
         
         # Restricción 6: La cantidad entregada al cliente no debe generar sobreabastecimiento en el cliente.
         if (not all([( x[c][t] <= (cliente.nivel_maximo - I[c][t]) )
             for c, cliente in enumerate(constantes.clientes)
-            for t in range(constantes.horizon_length)]
+            for t in range(constantes.horizonte_tiempo)]
         )):
             return 6
         
@@ -276,12 +276,12 @@ class Solucion():
             # Restricción 7: La cantidad entregada a un cliente es menor o igual al nivel máximo de inventario si es que lo visita.
             if  (not all([( x[c][t] <= (cliente.nivel_maximo * theta[c][t]) )
                 for c, cliente in enumerate(constantes.clientes)
-                for t in range(constantes.horizon_length)]
+                for t in range(constantes.horizonte_tiempo)]
             )):
                 return 7
             
         # Restricción 8: La cantidad entregada a los clientes en un t dado, es menor o igual a la capacidad del camión.
-        if (not all([np.sum( x_np[:, t]) <= constantes.capacidad_vehiculo for t in range(constantes.horizon_length)])):
+        if (not all([np.sum( x_np[:, t]) <= constantes.capacidad_vehiculo for t in range(constantes.horizonte_tiempo)])):
             return 8
         
         # Restricción 14: La cantidad entregada a los clientes siempre debe ser mayor o igual a cero
@@ -300,21 +300,21 @@ class Solucion():
             # # Restricción 21: v_it no puede ser 1 y sigma 1, implicaría que se insertó y está presente ¿¿??
             # if not all([ ( v[c][t] <= ( 1 - sigma[c][t]) )
             #     for c in range(len(constantes.clientes))
-            #     for t in range(constantes.horizon_length)]
+            #     for t in range(constantes.horizonte_tiempo)]
             # ):
             #     return 21
             
             # # Restricción 22:  w_it no puede ser 1 y sigma 0, implicaría que se borró y no está presente ¿¿??
             # if not all([ ( w[c][t] <= sigma[c][t] )
             #     for c in range(len(constantes.clientes))
-            #     for t in range(constantes.horizon_length)]
+            #     for t in range(constantes.horizonte_tiempo)]
             # ):
             #     return 22
     
             # Restricción 23: La cantidad entregada al cliente i no puede ser mayor a la capacidad máxima
             if not all([ ( x[c][t] <= (cliente.nivel_maximo * (sigma[c][t] + v[c][t] - w[c][t])))
                 for c, cliente in enumerate(constantes.clientes)
-                for t in range(constantes.horizon_length)]
+                for t in range(constantes.horizonte_tiempo)]
             ):
                 return 23
             
@@ -330,7 +330,7 @@ class Solucion():
             
     # def graficar_rutas(self):
     #     clients_coords = []
-    #     for tiempo in range(constantes.horizon_length):
+    #     for tiempo in range(constantes.horizonte_tiempo):
     #         x = [cliente.coord_x for cliente in self.rutas[tiempo].clientes]
     #         y = [cliente.coord_y for cliente in self.rutas[tiempo].clientes]
     #         clients_coords.append([x,y])

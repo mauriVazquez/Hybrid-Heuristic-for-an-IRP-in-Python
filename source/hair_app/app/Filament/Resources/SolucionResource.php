@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources;
 
-use App\enums\EstadosRecorrido;
+use App\enums\EstadosEnum;
 use App\Filament\Resources\SolucionResource\Pages;
 use App\Models\Proveedor;
 use App\Models\Solucion;

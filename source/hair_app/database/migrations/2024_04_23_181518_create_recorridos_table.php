@@ -13,9 +13,10 @@ return new class extends Migration
     {
         Schema::create('recorridos', function (Blueprint $table) {
             $table->uuid('id')->primary();
+            $table->foreignUuid('zona_id')->constrained('zonas');
             $table->foreignUuid('proveedor_id')->constrained('proveedores');
             $table->foreignUuid('vehiculo_id')->constrained('vehiculos');
-            $table->integer('horizon_length')->default(3);
+            $table->integer('horizonte_tiempo')->default(3);
             $table->integer('estado');
             $table->timestamps();
         });

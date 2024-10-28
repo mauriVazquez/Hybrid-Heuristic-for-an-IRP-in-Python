@@ -32,8 +32,8 @@ class TripletManager:
         self.triplets = [
             [cliente, tiempo, tiempo_prima] 
             for cliente in constantes.clientes
-            for tiempo in range(constantes.horizon_length)
-            for tiempo_prima in range(constantes.horizon_length)
+            for tiempo in range(constantes.horizonte_tiempo)
+            for tiempo_prima in range(constantes.horizonte_tiempo)
             if tiempo != tiempo_prima
         ]
 
@@ -44,8 +44,8 @@ class TripletManager:
         self.triplets = [
             [cliente, tiempo, tiempo_prima] 
             for cliente in constantes.clientes
-            for tiempo in range(constantes.horizon_length)
-            for tiempo_prima in range(constantes.horizon_length)
+            for tiempo in range(constantes.horizonte_tiempo)
+            for tiempo_prima in range(constantes.horizonte_tiempo)
             if tiempo != tiempo_prima
         ]
 

@@ -30,8 +30,8 @@ class Mip1():
         costo_minimo            = float("inf")
 
         # Se realizan todas las permutaciones posibles
-        for perm in permutations(range(constantes.horizon_length)):
-            if perm == tuple(range(constantes.horizon_length)):
+        for perm in permutations(range(constantes.horizonte_tiempo)):
+            if perm == tuple(range(constantes.horizonte_tiempo)):
                 continue  # Omitir la permutación (0, 1, 2)
         
             solucion_actual = Solucion([

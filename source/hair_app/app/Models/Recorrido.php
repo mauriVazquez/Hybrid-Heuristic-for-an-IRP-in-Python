@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\enums\EstadosRecorrido;
+use App\enums\EstadosEnum;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -16,17 +16,23 @@ class Recorrido extends Model
     protected $fillable = [
         'proveedor_id',
         'vehiculo_id',
-        'horizon_length',
+        'zona_id',
+        'horizonte_tiempo',
         'estado'
     ];
 
     protected $casts = [
-        'estado' => EstadosRecorrido::class
+        'estado' => EstadosEnum::class
     ];
 
     public function proveedor()
     {
         return $this->belongsTo(Proveedor::class);
+    }
+    
+    public function zona()
+    {
+        return $this->belongsTo(Zona::class);
     }
 
     public function vehiculo()

@@ -29,7 +29,7 @@ def inicializacion() -> Type["Solucion"]:
     # Obtener una solución vacía inicial
     solucion = Solucion.obtener_empty_solucion()
     for index, cliente in enumerate(constantes.clientes):
-        for t in range(constantes.horizon_length):
+        for t in range(constantes.horizonte_tiempo):
             stock = solucion.inventario_clientes.get(cliente.id)[t]
             if solucion.inventario_clientes.get(cliente.id)[t] <= cliente.nivel_minimo:
                 #  Calcular la máxima cantidad posible de entregar sin sobrepasar la capacidad máxima
@@ -121,7 +121,7 @@ def mejora(solucion_original : Type["Solucion"], iterador_principal : int) -> Ty
         #################### SEGUNDO TIPO DE MEJORA ####################
         solucion_merge = mejor_solucion.clonar()
 
-        for i in range(constantes.horizon_length - 1):
+        for i in range(constantes.horizonte_tiempo - 1):
             # Por cada par de rutas, se crea una solución s1 que resulta de trasladar las visitas de r2 a r1
             s1 = mejor_solucion.clonar()
             s1.merge_rutas(i, i+1)
@@ -205,7 +205,7 @@ def lk(solucion: Type["Solucion"], solucion_prima: Type["Solucion"]) -> Type["So
         aux_solucion = solucion.clonar()
     else:
         aux_solucion = solucion_prima.clonar()
-        for tiempo in range(constantes.horizon_length):
+        for tiempo in range(constantes.horizonte_tiempo):
             tamano_matriz = len(solucion_prima.rutas[tiempo].clientes)+1
             matriz =  [[0] * tamano_matriz for _ in range(tamano_matriz)]
 
@@ -328,7 +328,7 @@ def _crear_n(solucion : Type["Solucion"], neighborhood_prima : list[Type["Soluci
                             # Sea y ← max t'≥t(Ijt' + xjt'). 
                             niveles_inventario_cliente = solucion_prima.inventario_clientes.get(cliente.id, None)
                             entregas = [(solucion_prima.rutas[t2].obtener_cantidad_entregada(cliente) + niveles_inventario_cliente[t2]) 
-                                for t2 in range(t, constantes.horizon_length )]
+                                for t2 in range(t, constantes.horizonte_tiempo )]
                             y = max(entregas) if entregas else 0
                             
                             # Sea s" la solución obtenida desde s' tras añadir Uj − y unidades de entrega al cliente en el tiempo t
@@ -397,7 +397,7 @@ def _variante_mover_visita(solucion : Type["Solucion"]) -> list[Type["Solucion"]
         for t_visitado in set_t_visitado:
             new_solucion = solucion.clonar()
             new_solucion.remover_visita(cliente, t_visitado)
-            for t_not_visitado in (set(range(constantes.horizon_length)) - set(set_t_visitado)):
+            for t_not_visitado in (set(range(constantes.horizonte_tiempo)) - set(set_t_visitado)):
                 solucion_copy = new_solucion.clonar()
                 solucion_copy.insertar_visita(cliente, t_not_visitado)
                 if solucion_copy.es_admisible:

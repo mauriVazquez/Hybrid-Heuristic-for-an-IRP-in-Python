@@ -4,7 +4,7 @@ namespace App\enums;
 
 use Filament\Support\Contracts\HasLabel;
 
-enum EstadosRecorrido: int implements HasLabel
+enum EstadosEnum: int implements HasLabel
 {
     case Pendiente = 1;
     case Procesando = 2;

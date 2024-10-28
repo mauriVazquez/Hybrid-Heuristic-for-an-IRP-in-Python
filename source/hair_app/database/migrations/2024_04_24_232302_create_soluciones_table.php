@@ -18,6 +18,7 @@ return new class extends Migration
             $table->float('costo');
             $table->foreignUuid('vehiculo_id')->constrained('vehiculos');
             $table->foreignUuid('proveedor_id')->constrained('proveedores');
+            $table->foreignUuid('recorrido_id')->references('id')->on('recorridos');
             $table->timestamps();
         });
     }

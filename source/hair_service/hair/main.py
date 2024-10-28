@@ -9,12 +9,12 @@ from modelos.tabulists          import tabulists
 #Procedimientos HAIR
 from hair.procedures        import inicializacion, movimiento, mejora, salto
 
-def execute(horizon_length, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento = None):
+def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento = None):
     # Se inicializa la semilla
     seed(datetime.now().timestamp())
     
     # Se inicializan las constantes globales
-    constantes.inicializar(horizon_length, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento)
+    constantes.inicializar(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento)
     
     # Se inicializan iteradores
     iterador_principal      = 0
@@ -66,9 +66,9 @@ def execute(horizon_length, capacidad_vehiculo, proveedor, clientes, politica_re
     # mejor_solucion.graficar_rutas()
     return mejor_solucion, iterador_principal
     
-def async_execute(recorrido_id, horizon_length, capacidad_vehiculo, proveedor, clientes, user_id):
+def async_execute(recorrido_id, horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, user_id):
     print(f"iniciado procesamiento del recorrido id: {recorrido_id}")
-    mejor_solucion, iterador_principal = execute(horizon_length, capacidad_vehiculo, proveedor, clientes)
+    mejor_solucion, iterador_principal = execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes)
     
     url = f"http://hair-app-nginx/api/recorridos/{recorrido_id}/solucion"
     data = {"mejor_solucion": mejor_solucion.to_json(tag="Mejor Solución",iteration=iterador_principal), 'user_id': user_id}

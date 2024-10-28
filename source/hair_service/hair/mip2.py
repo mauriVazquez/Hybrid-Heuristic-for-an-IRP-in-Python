@@ -28,7 +28,7 @@ class Mip2():
         costo_minimo            = float("inf")
         
         for cliente in constantes.clientes:
-            for tiempo in range(constantes.horizon_length):
+            for tiempo in range(constantes.horizonte_tiempo):
                 solucion_aux = solucion.clonar()
                 if solucion.es_visitado(cliente, tiempo):
                     #Remover = 1   

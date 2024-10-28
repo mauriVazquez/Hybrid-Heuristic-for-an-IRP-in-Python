@@ -12,13 +12,13 @@ use Illuminate\Support\Facades\Http;
 
 class PythonController extends Controller
 {
-    public static function runPythonScript($proveedor_id, $clientes_id, $vehiculo_id,$horizon_length)
+    public static function runPythonScript($proveedor_id, $clientes_id, $vehiculo_id,$horizonte_tiempo)
     {
         $data = [
             'proveedor'=> ProveedorPythonResource::make(Proveedor::find($proveedor_id)),
             'clientes' => ClientePythonCollection::make(Cliente::whereIn('id', $clientes_id)->get()),
             'vehiculo' => VehiculoPythonResource::make(Vehiculo::find($vehiculo_id)),
-            'horizon_length' => $horizon_length,
+            'horizonte_tiempo' => $horizonte_tiempo,
         ];
         
         try {

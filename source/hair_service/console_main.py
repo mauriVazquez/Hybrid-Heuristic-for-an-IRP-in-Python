@@ -3,13 +3,13 @@ import math
 import argparse
 from modelos.entidad import Cliente, Proveedor
 
-def read_input_irp(filename, horizon_len):
+def read_input_irp(filename, horizonte_tiempo):
     file_it = iter(read_elem(filename))
     nb_clientes = int(next(file_it)) - 1
 
-    #Tomo el horizon_len del config sólo si no viene por parámetro. Mantenerlo en dos líneas (siempre tiene que ejecutar el next).
-    config_horizon_len = int(next(file_it))
-    horizon_len = horizon_len if not(horizon_len is None) else config_horizon_len
+    #Tomo el horizonte_tiempo del config sólo si no viene por parámetro. Mantenerlo en dos líneas (siempre tiene que ejecutar el next).
+    config_horizonte_tiempo = int(next(file_it))
+    horizonte_tiempo = horizonte_tiempo if not(horizonte_tiempo is None) else config_horizonte_tiempo
     
     capacidad_vehiculo = int(next(file_it))
     
@@ -35,7 +35,7 @@ def read_input_irp(filename, horizon_len):
         distancia_proveedor = compute_dist(coord_x, proveedor.coord_x, coord_y, proveedor.coord_y)
         clientes.append(Cliente(i, coord_x, coord_y, nivel_almacenamiento, nivel_maximo, nivel_minimo, nivel_demanda, costo_almacenamiento, distancia_proveedor))
 
-    return horizon_len, proveedor, clientes, capacidad_vehiculo
+    return horizonte_tiempo, proveedor, clientes, capacidad_vehiculo
 
 def compute_dist(xi, xj, yi, yj):
     return round(math.sqrt(math.pow(xi - xj, 2) + math.pow(yi - yj, 2)))
@@ -48,11 +48,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--instancia", type=str, required=True)
     parser.add_argument("--politica_reabastecimiento", type=str)
-    parser.add_argument("--horizon_len", type=int)
+    parser.add_argument("--horizonte_tiempo", type=int)
     args = parser.parse_args()
     instancia = args.instancia
-    horizon_len = args.horizon_len
+    horizonte_tiempo = args.horizonte_tiempo
     politica_reabastecimiento = args.politica_reabastecimiento
-    horizon_len, proveedor, clientes, capacidad_vehiculo = read_input_irp(instancia, horizon_len)
+    horizonte_tiempo, proveedor, clientes, capacidad_vehiculo = read_input_irp(instancia, horizonte_tiempo)
     
-    response = execute(horizon_len, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento)
+    response = execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento)

@@ -17,14 +17,14 @@ class Constantes():
         self.jump_iter = 0
         self.proveedor = None
         self.capacidad_vehiculo = None
-        self.horizon_length = None
+        self.horizonte_tiempo = None
         self.clientes = []
         self.matriz_distancia = []
      
-    def inicializar(self,horizon_length, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento) -> None:
+    def inicializar(self,horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento) -> None:
         self.capacidad_vehiculo = capacidad_vehiculo
-        self.horizon_length = horizon_length
-        self.max_iter = 200 * len(clientes)  * horizon_length
+        self.horizonte_tiempo = horizonte_tiempo
+        self.max_iter = 200 * len(clientes)  * horizonte_tiempo
         self.jump_iter = self.max_iter // 2
         self.politica_reabastecimiento = self.politica_reabastecimiento if politica_reabastecimiento == None else politica_reabastecimiento
         

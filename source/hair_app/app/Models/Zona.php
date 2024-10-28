@@ -27,8 +27,8 @@ class Zona extends Model
     {
         return $this->hasMany(Vehiculo::class);
     }
-    public function formulariosEjecucion()
+    public function recorridos()
     {
-        return $this->hasMany(FormularioEjecucion::class);
+        return $this->hasMany(Recorrido::class);
     }
 }

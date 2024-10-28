@@ -35,7 +35,7 @@ class HairService
         $data = [
             'recorrido_id' => $recorrido_id,
             'user_id' => auth()->id(), 
-            'horizon_length' => $horizonLength,
+            'horizonte_tiempo' => $horizonLength,
             'capacidad_vehiculo' => $vehiculo->capacidad,
             'proveedor' => ProveedorPythonResource::make($proveedor),
             'clientes' => ClientePythonResource::collection(Cliente::whereIn('id', $clientes)->get()),
