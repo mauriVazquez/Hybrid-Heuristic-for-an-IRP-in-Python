@@ -12,8 +12,8 @@ def obtener_ttl() -> int:
    
     lambda_ttl = constantes.lambda_ttl
     cant_clientes = len(constantes.clientes)
-    horizon_len = constantes.horizon_length
-    return constantes.taboo_len + randint(0, math.floor(lambda_ttl * math.sqrt(cant_clientes * horizon_len)))
+    horizonte_tiempo = constantes.horizonte_tiempo
+    return constantes.taboo_len + randint(0, math.floor(lambda_ttl * math.sqrt(cant_clientes * horizonte_tiempo)))
 
 class TabuLists:
     @staticmethod
