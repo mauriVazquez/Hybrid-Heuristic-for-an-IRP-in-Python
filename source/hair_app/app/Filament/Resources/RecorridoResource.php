@@ -66,7 +66,7 @@ class RecorridoResource extends Resource
                                     }
                                 )->get()->pluck('nombre', 'id');
                             })
-                            ->relationship('clientes')
+                            ->relationship('clientes', 'nombre')
                             ->multiple()
                             ->required(),
                     ])

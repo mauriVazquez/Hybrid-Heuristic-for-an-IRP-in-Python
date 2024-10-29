@@ -18,7 +18,7 @@ class RecorridoController extends Controller
     public function guardarSolucion(Request $request, Recorrido $recorrido)
     {
         $solucion = $request->input('mejor_solucion');
-        $user_id = $request->input('user_id');
+        $user_id  = $request->input('user_id');
         DB::transaction(function () use ($solucion, $recorrido, $user_id) {
             $nuevaSolucion = Solucion::create([
                 'recorrido_id' => $recorrido->id,
@@ -50,15 +50,16 @@ class RecorridoController extends Controller
                 'estado' => EstadosEnum::Resuelto,
             ]);
 
+            $user = User::find($user_id);
             Notification::make()
-                ->title('Procesamiento de recorrido finalizado')
-                ->body('Ya puedes ver la ruta propuesta')
-                ->success()
                 ->actions([
-                    Action::make('ver')
-                        ->button(),
+                    Action::make('view')->label('Ver solución')
+                        ->button()
+                        ->url('soluciones/'.$nuevaSolucion->id),
                 ])
-                ->broadcast(User::find($user_id));
+                ->title('Optimización de recorrido finalizada.')
+                ->success()
+                ->broadcast($user);
         });
     }
 }

@@ -18,6 +18,11 @@ class SolucionResource extends Resource
     protected static ?string $pluralModelLabel = 'Soluciones';
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
    
+    public static function getSlug(): string
+    {
+        return 'soluciones'; // Cambia la URL del recurso de 'users' a 'usuarios'.
+    }
+
     public static function form(Form $form): Form
     {
         return $form
