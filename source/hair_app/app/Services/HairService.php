@@ -30,10 +30,10 @@ class HairService
         return $this->httpClient;
     }
 
-    public function enviarSolicitudEjecucion($recorrido_id, Proveedor $proveedor, $clientes, Vehiculo $vehiculo, $horizonLength)
+    public function enviarSolicitudEjecucion($plantilla_id, Proveedor $proveedor, $clientes, Vehiculo $vehiculo, $horizonLength)
     {
         $data = [
-            'recorrido_id' => $recorrido_id,
+            'plantilla_id' => $plantilla_id,
             'user_id' => auth()->id(), 
             'horizonte_tiempo' => $horizonLength,
             'capacidad_vehiculo' => $vehiculo->capacidad,

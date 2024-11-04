@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\RecorridoController;
+use App\Http\Controllers\PlantillaController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -19,4 +19,4 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::post('/recorridos/{recorrido}/solucion', [RecorridoController::class, 'guardarSolucion']);
+Route::post('/plantillas/{plantilla}/solucion', [PlantillaController::class, 'guardarSolucion']);

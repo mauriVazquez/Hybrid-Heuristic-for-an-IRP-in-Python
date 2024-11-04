@@ -3,10 +3,10 @@
 namespace App\Filament\Resources;
 
 use App\enums\EstadosEnum;
-use App\Filament\Resources\RecorridoResource\Pages;
+use App\Filament\Resources\PlantillaResource\Pages;
 use App\Models\Cliente;
 use App\Models\Proveedor;
-use App\Models\Recorrido;
+use App\Models\Plantilla;
 use App\Models\Vehiculo;
 use App\Models\Zona;
 use App\Services\HairService;
@@ -18,9 +18,9 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 
-class RecorridoResource extends Resource
+class PlantillaResource extends Resource
 {
-    protected static ?string $model = Recorrido::class;
+    protected static ?string $model = Plantilla::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
@@ -99,7 +99,7 @@ class RecorridoResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\Action::make('Ejecutar')->action(function (Recorrido $record) {       
+                Tables\Actions\Action::make('Ejecutar')->action(function (Plantilla $record) {       
                     info("enviar");
                     $hairService = new HairService;
                     $response = $hairService->enviarSolicitudEjecucion($record->id, $record->proveedor, $record->clientes->pluck('id'), $record->vehiculo, $record->horizonte_tiempo);
@@ -127,9 +127,9 @@ class RecorridoResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListRecorridos::route('/'),
-            'create' => Pages\CreateRecorrido::route('/nuevo-recorrido'),
-            'edit' => Pages\EditRecorrido::route('/{record}/edit'),
+            'index' => Pages\ListPlantillas::route('/'),
+            'create' => Pages\CreatePlantilla::route('/nuevo-plantilla'),
+            'edit' => Pages\EditPlantilla::route('/{record}/edit'),
         ];
     }
 }

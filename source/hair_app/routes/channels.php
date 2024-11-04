@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Recorrido;
+use App\Models\Plantilla;
 use Illuminate\Support\Facades\Broadcast;
 
 /*
@@ -18,6 +18,6 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
     return (int) $user->id === (int) $id;
 });
 
-Broadcast::channel('recorridos.{recorrido}', function ($user, Recorrido $recorrido) {
+Broadcast::channel('plantillas.{plantilla}', function ($user, Plantilla $plantilla) {
     return true;
 });

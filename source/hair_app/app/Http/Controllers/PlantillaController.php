@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\enums\EstadosEnum;
-use App\Models\Recorrido;
+use App\Models\Plantilla;
 use App\Models\Ruta;
 use App\Models\Solucion;
 use App\Models\User;
@@ -13,19 +13,20 @@ use Filament\Notifications\Actions\Action;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-class RecorridoController extends Controller
+class PlantillaController extends Controller
 {
-    public function guardarSolucion(Request $request, Recorrido $recorrido)
+    public function guardarSolucion(Request $request, Plantilla $plantilla)
     {
+        info("Vuelta");
         $solucion = $request->input('mejor_solucion');
         $user_id  = $request->input('user_id');
-        DB::transaction(function () use ($solucion, $recorrido, $user_id) {
+        DB::transaction(function () use ($solucion, $plantilla, $user_id) {
             $nuevaSolucion = Solucion::create([
-                'recorrido_id' => $recorrido->id,
+                'plantilla_id' => $plantilla->id,
                 'estado' => 0,
                 'politica_reabastecimiento' => 'ML',
-                'vehiculo_id' => $recorrido->vehiculo_id,
-                'proveedor_id' => $recorrido->proveedor_id,
+                'vehiculo_id' => $plantilla->vehiculo_id,
+                'proveedor_id' => $plantilla->proveedor_id,
                 'costo' => $solucion['costo'],
             ]);
 
@@ -46,7 +47,7 @@ class RecorridoController extends Controller
                 }
             }
 
-            $recorrido->update([
+            $plantilla->update([
                 'estado' => EstadosEnum::Resuelto,
             ]);
 
@@ -57,7 +58,7 @@ class RecorridoController extends Controller
                         ->button()
                         ->url('soluciones/'.$nuevaSolucion->id),
                 ])
-                ->title('Optimización de recorrido finalizada.')
+                ->title('Optimización de plantilla finalizada.')
                 ->success()
                 ->broadcast($user);
         });

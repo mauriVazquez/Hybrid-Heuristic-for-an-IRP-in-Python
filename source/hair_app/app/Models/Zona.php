@@ -27,8 +27,8 @@ class Zona extends Model
     {
         return $this->hasMany(Vehiculo::class);
     }
-    public function recorridos()
+    public function plantillas()
     {
-        return $this->hasMany(Recorrido::class);
+        return $this->hasMany(Plantilla::class);
     }
 }

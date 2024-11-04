@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('recorridos', function (Blueprint $table) {
+        Schema::create('plantillas', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('zona_id')->constrained('zonas');
             $table->foreignUuid('proveedor_id')->constrained('proveedores');
@@ -27,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('recorridos');
+        Schema::dropIfExists('plantillas');
     }
 };

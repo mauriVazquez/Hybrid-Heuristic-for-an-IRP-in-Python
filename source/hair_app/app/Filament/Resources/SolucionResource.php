@@ -44,7 +44,7 @@ class SolucionResource extends Resource
         return $table
             ->columns([
                 //
-                Tables\Columns\TextColumn::make('recorrido_id')->label('Recorrido'),
+                Tables\Columns\TextColumn::make('plantilla_id')->label('Plantilla'),
                 Tables\Columns\TextColumn::make('costo')->label('Costo'),
                 Tables\Columns\TextColumn::make('created_at')->label('fecha')->since(),
             ])

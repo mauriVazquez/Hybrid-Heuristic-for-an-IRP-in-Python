@@ -17,7 +17,7 @@ class Solucion extends Model
         'politica_reabastecimiento',
         'vehiculo_id',
         'proveedor_id',
-        'recorrido_id',
+        'plantilla_id',
     ];
 
     protected $with = ['rutas.visitas.cliente', 'proveedor'];
@@ -37,9 +37,9 @@ class Solucion extends Model
         return $this->belongsTo(Proveedor::class);
     }
 
-    public function recorrido()
+    public function plantilla()
     {
-        return $this->belongsTo(Recorrido::class);
+        return $this->belongsTo(Plantilla::class);
     }
 
     // public function clientes()

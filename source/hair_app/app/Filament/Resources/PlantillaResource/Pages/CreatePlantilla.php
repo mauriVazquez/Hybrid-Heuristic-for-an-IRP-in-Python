@@ -1,15 +1,15 @@
 <?php
 
-namespace App\Filament\Resources\RecorridoResource\Pages;
+namespace App\Filament\Resources\PlantillaResource\Pages;
 
 use App\enums\EstadosEnum;
-use App\Filament\Resources\RecorridoResource;
+use App\Filament\Resources\PlantillaResource;
 use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
 
-class CreateRecorrido extends CreateRecord
+class CreatePlantilla extends CreateRecord
 {
-    protected static string $resource = RecorridoResource::class;
+    protected static string $resource = PlantillaResource::class;
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {

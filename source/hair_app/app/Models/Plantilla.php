@@ -7,11 +7,11 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Recorrido extends Model
+class Plantilla extends Model
 {
     use HasFactory, HasUuids;
 
-    protected $table = 'recorridos';
+    protected $table = 'plantillas';
 
     protected $fillable = [
         'proveedor_id',
@@ -42,7 +42,7 @@ class Recorrido extends Model
 
     public function clientes()
     {
-        return $this->belongsToMany(Cliente::class, 'clientes_recorridos');
+        return $this->belongsToMany(Cliente::class, 'clientes_plantillas');
     }
 
     public function solucion()

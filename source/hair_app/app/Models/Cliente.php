@@ -32,8 +32,8 @@ class Cliente extends Model
     {
         return $this->belongsTo(Localidad::class);
     }
-    public function recorridos()
+    public function plantillas()
     {
-        return $this->belongsToMany(Recorrido::class);
+        return $this->belongsToMany(Plantilla::class);
     }
 }
