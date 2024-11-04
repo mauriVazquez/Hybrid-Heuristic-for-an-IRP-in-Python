@@ -46,7 +46,7 @@ class Ruta():
 
     def remover_visita(self, cliente) -> int:
         indice = next((i for i, c in enumerate(self.clientes) if c == cliente), None)
-        if indice is not None:
+        if indice:
             cantidad_removida = self.cantidades.pop(indice)
             self.clientes.pop(indice)
             return cantidad_removida

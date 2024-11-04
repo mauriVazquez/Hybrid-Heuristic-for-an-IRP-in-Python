@@ -22,11 +22,12 @@ class Constantes():
         self.matriz_distancia = []
      
     def inicializar(self,horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento) -> None:
-        self.capacidad_vehiculo = capacidad_vehiculo
-        self.horizonte_tiempo = horizonte_tiempo
-        self.max_iter = 200 * len(clientes)  * horizonte_tiempo
-        self.jump_iter = self.max_iter // 2
-        self.politica_reabastecimiento = self.politica_reabastecimiento if politica_reabastecimiento == None else politica_reabastecimiento
+        self.capacidad_vehiculo         = capacidad_vehiculo
+        self.horizonte_tiempo           = horizonte_tiempo
+        self.max_iter                   = 200 * len(clientes)  * horizonte_tiempo
+        self.jump_iter                  = self.max_iter // 2
+        if politica_reabastecimiento:     
+            self.politica_reabastecimiento = politica_reabastecimiento
         
         self.proveedor = Proveedor(
             proveedor.id,

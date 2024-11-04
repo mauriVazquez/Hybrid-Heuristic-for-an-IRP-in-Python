@@ -28,12 +28,12 @@ def inicializacion() -> Type["Solucion"]:
     """
     # Obtener una solución vacía inicial
     solucion = Solucion.obtener_empty_solucion()
-    for index, cliente in enumerate(constantes.clientes):
+    for cliente in constantes.clientes:
         for t in range(constantes.horizonte_tiempo):
-            stock = solucion.inventario_clientes.get(cliente.id)[t]
-            if solucion.inventario_clientes.get(cliente.id)[t] <= cliente.nivel_minimo:
+            nivel_inventario = solucion.inventario_clientes.get(cliente.id)[t]
+            if nivel_inventario <= cliente.nivel_minimo:
                 #  Calcular la máxima cantidad posible de entregar sin sobrepasar la capacidad máxima
-                max_entrega = cliente.nivel_maximo - stock
+                max_entrega = cliente.nivel_maximo - nivel_inventario
                 # Insertar visita en el tiempo actual, entregando una cantidad dependiente a la política de reabastecimiento
                 cantidad_entregada = max_entrega if (constantes.politica_reabastecimiento == "OU") else randint(cliente.nivel_demanda, max_entrega)
                 solucion.rutas[t].insertar_visita(cliente, cantidad_entregada, None)
@@ -56,6 +56,7 @@ def movimiento(solucion: Type["Solucion"], iterador_principal : int) -> Type["So
     """
     # Paso 1: Creación de neighborhood_prima de solucion s (N'(s))
     neighborhood_prima  = _crear_n_prima(solucion)
+        
     # Paso 2: Creación de neighborhood de solucion s (N(s))
     neighborhood        = _crear_n(solucion, neighborhood_prima)
 
@@ -63,13 +64,12 @@ def movimiento(solucion: Type["Solucion"], iterador_principal : int) -> Type["So
     costo_respuesta  = float("inf")
     
     for neighbor in neighborhood:
-        neighbor.refrescar()
         if tabulists.movimiento_permitido(solucion, neighbor) and (neighbor.costo < costo_respuesta):
             respuesta = neighbor.clonar()
             costo_respuesta = respuesta.costo
     
     for neighbor in neighborhood:
-        if ((not tabulists.movimiento_permitido(solucion, neighbor)) and ( neighbor.costo < (0.7 * costo_respuesta))):
+        if ((not tabulists.movimiento_permitido(solucion, neighbor)) and ( neighbor.costo < (0.75 * costo_respuesta))):
             respuesta = neighbor.clonar()
             costo_respuesta = respuesta.costo
     

@@ -19,11 +19,11 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
     # Se inicializan iteradores
     iterador_principal      = 0
     iteraciones_sin_mejoras = 0
-    iteraciones_sin_saltar = 0
+    iteraciones_sin_saltar  = 0
     
     #Se genera una solución inicial mediante el procedimiento inicializacion, y se almacena como mejor_solucion.
-    solucion = inicializacion()
-    mejor_solucion = solucion.clonar()
+    solucion        = inicializacion()
+    mejor_solucion  = solucion.clonar()
     
     #Mientras la cantidad de iteraciones sin mejoras de mejor_solucion sea menor o igual a MAX_ITER
     while iteraciones_sin_mejoras < constantes.max_iter:
@@ -66,10 +66,10 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
     # mejor_solucion.graficar_rutas()
     return mejor_solucion, iterador_principal
     
-def async_execute(recorrido_id, horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, user_id):
-    print(f"iniciado procesamiento del recorrido id: {recorrido_id}")
+def async_execute(plantilla_id, horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, user_id):
+    print(f"iniciado procesamiento del plantilla id: {plantilla_id}")
     mejor_solucion, iterador_principal = execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes)
     
-    url = f"http://hair-app-nginx/api/recorridos/{recorrido_id}/solucion"
+    url = f"http://hair-app-nginx/api/plantillas/{plantilla_id}/solucion"
     data = {"mejor_solucion": mejor_solucion.to_json(tag="Mejor Solución",iteration=iterador_principal), 'user_id': user_id}
     requests.post(url,json=data)

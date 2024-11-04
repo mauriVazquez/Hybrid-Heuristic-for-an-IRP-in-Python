@@ -27,7 +27,7 @@ class Cliente(BaseModel):
     nivel_demanda: int
 
 class Param(BaseModel):
-    recorrido_id: str = Field(default="id recorrido no encontrado")
+    plantilla_id: str = Field(default="id plantilla no encontrado")
     user_id: int = Field(default= 0)
     horizonte_tiempo: int = Field(default=None)
     capacidad_vehiculo: int = Field(default=None)
@@ -36,11 +36,11 @@ class Param(BaseModel):
 
 @app.post("/solicitud-ejecucion")
 async def procesar_solicitud(param: Param, background_tasks: BackgroundTasks):
-    print(f"Se recibió la solicitud para ejecutar el algoritmo en el recorrido {param.recorrido_id}")
+    print(f"Se recibió la solicitud para ejecutar el algoritmo en el plantilla {param.plantilla_id}")
     try:
-        background_tasks.add_task(async_execute, param.recorrido_id, param.horizonte_tiempo,
+        background_tasks.add_task(async_execute, param.plantilla_id, param.horizonte_tiempo,
                                   param.capacidad_vehiculo, param.proveedor, param.clientes, param.user_id)
-        return JSONResponse(content={"message": "Solicitud de procesamiento de recorrido recibida", "recorrido_id": param.recorrido_id})
+        return JSONResponse(content={"message": "Solicitud de procesamiento de plantilla recibida", "plantilla_id": param.plantilla_id})
     except Exception as e:
         print(f"Error al añadir la tarea en segundo plano: {e}")
         return JSONResponse(content={"message": "Error al procesar la solicitud", "error": str(e)}, status_code=500)
