@@ -6,6 +6,7 @@ use App\enums\EstadosEnum;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Plantilla extends Model
 {
@@ -35,7 +36,7 @@ class Plantilla extends Model
         return $this->belongsTo(Zona::class);
     }
 
-    public function vehiculo()
+    public function vehiculo() : BelongsTo
     {
         return $this->belongsTo(Vehiculo::class);
     }

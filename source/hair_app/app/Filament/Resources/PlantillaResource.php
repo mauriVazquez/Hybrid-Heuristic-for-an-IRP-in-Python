@@ -11,6 +11,7 @@ use App\Models\Vehiculo;
 use App\Models\Zona;
 use App\Services\HairService;
 use Filament\Forms;
+use Filament\Forms\Components\Builder;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Notifications\Notification;
@@ -43,30 +44,24 @@ class PlantillaResource extends Resource
                     ->schema([
                         Forms\Components\Select::make('vehiculo_id')
                             ->label('Vehículo')
-                            ->options(fn() => Vehiculo::all()->pluck('patente', 'id'))
-                            ->searchable()
+                            ->options(fn(Get $get) => Vehiculo::where('zona_id', $get('zona_id'))->pluck('patente', 'id'))
                             ->required(),
                         Forms\Components\Select::make('proveedor_id')
                             ->label('Proveedor')
-                            ->options(fn() => Proveedor::all()->pluck('nombre', 'id'))
+                            ->options(fn(Get $get) => Proveedor::where('zona_id', $get('zona_id'))->pluck('nombre', 'id'))
                             ->searchable()
                             ->required(),
                         Forms\Components\Select::make('clientes')
                             ->label('Clientes')
-                            ->options(function (Get $get) {
-                                $zona_id = $get('zona_id');
-                                $clientes = $get('clientes');
-                                if (!$zona_id)
-                                    return Cliente::all()->pluck('nombre', 'id');
-
-                                return Cliente::where('zona_id', $zona_id)->when(
-                                    !empty($clientes),
-                                    function ($query) use ($clientes) {
-                                        $query->orWhereIn('id', $clientes);
-                                    }
-                                )->get()->pluck('nombre', 'id');
-                            })
-                            ->relationship('clientes', 'nombre')
+                            // ->options(fn(Get $get) => Cliente::where('zona_id', $get('zona_id'))->pluck('nombre', 'id'))
+                            ->relationship(
+                                name: 'clientes', 
+                                titleAttribute: 'nombre',
+                                modifyQueryUsing: function($query, $get){
+                                    $zona_id = $get('zona_id');
+                                    return $query->where('zona_id', $zona_id);
+                                }
+                            )
                             ->multiple()
                             ->required(),
                     ])
@@ -98,8 +93,7 @@ class PlantillaResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\Action::make('Ejecutar')->action(function (Plantilla $record) {       
+                Tables\Actions\Action::make('Ejecutar')->action(function (Plantilla $record) {
                     info("enviar");
                     $hairService = new HairService;
                     $response = $hairService->enviarSolicitudEjecucion($record->id, $record->proveedor, $record->clientes->pluck('id'), $record->vehiculo, $record->horizonte_tiempo);
@@ -129,7 +123,8 @@ class PlantillaResource extends Resource
         return [
             'index' => Pages\ListPlantillas::route('/'),
             'create' => Pages\CreatePlantilla::route('/nuevo-plantilla'),
-            'edit' => Pages\EditPlantilla::route('/{record}/edit'),
+            'view' => Pages\ViewPlantilla::route('/{record}'),
+            // 'edit' => Pages\EditPlantilla::route('/{record}/edit'),
         ];
     }
 }
