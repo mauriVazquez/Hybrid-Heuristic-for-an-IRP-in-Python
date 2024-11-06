@@ -244,18 +244,18 @@ def _crear_n_prima(solucion: Type["Solucion"]) -> list[Type["Solucion"]]:
         list[Solucion]: Lista de soluciones generadas por las variaciones.
     """
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        # Ejecutar las variantes en hilos separados
-        futuro_eliminacion   = executor.submit(_variante_eliminacion, solucion)
-        futuro_insercion     = executor.submit(_variante_insercion, solucion)
-        futuro_mover_visita  = executor.submit(_variante_mover_visita, solucion)
-        futuro_intercambiar  = executor.submit(_variante_intercambiar_visitas, solucion)
+        # # Ejecutar las variantes en hilos separados
+        # futuro_eliminacion   = executor.submit(_variante_eliminacion, solucion)
+        # futuro_insercion     = executor.submit(_variante_insercion, solucion)
+        # futuro_mover_visita  = executor.submit(_variante_mover_visita, solucion)
+        # futuro_intercambiar  = executor.submit(_variante_intercambiar_visitas, solucion)
 
         # Esperar a que todas las tareas finalicen y recolectar los resultados
         neighborhood_prima = []
-        neighborhood_prima += futuro_eliminacion.result()
-        neighborhood_prima += futuro_insercion.result()
-        neighborhood_prima += futuro_mover_visita.result()
-        neighborhood_prima += futuro_intercambiar.result()
+        neighborhood_prima += _variante_eliminacion(solucion)
+        neighborhood_prima += _variante_insercion(solucion)
+        neighborhood_prima += _variante_mover_visita(solucion)
+        neighborhood_prima += _variante_intercambiar_visitas(solucion)
     return neighborhood_prima
 
 def _crear_n(solucion : Type["Solucion"], neighborhood_prima : list[Type["Solucion"]]):

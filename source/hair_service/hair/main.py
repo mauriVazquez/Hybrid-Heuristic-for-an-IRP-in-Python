@@ -12,7 +12,7 @@ from hair.procedures        import inicializacion, movimiento, mejora, salto
 def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento = None):
     # Se inicializa la semilla
     seed(datetime.now().timestamp())
-    
+    start = datetime.now()    
     # Se inicializan las constantes globales
     constantes.inicializar(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento)
     
@@ -62,13 +62,14 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
         
     print("\n-------------------------------MEJOR SOLUCIÓN-------------------------------\n")
     mejor_solucion.imprimir_detalle()
-    
+    execution_time = datetime.now() - start
+
     # mejor_solucion.graficar_rutas()
-    return mejor_solucion, iterador_principal
+    return mejor_solucion, iterador_principal,  execution_time
     
 def async_execute(plantilla_id, horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, user_id):
     print(f"iniciado procesamiento del plantilla id: {plantilla_id}")
-    mejor_solucion, iterador_principal = execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes)
+    mejor_solucion, iterador_principal, execution_time = execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes)
     
     url = f"http://hair-app-nginx/api/plantillas/{plantilla_id}/solucion"
     data = {"mejor_solucion": mejor_solucion.to_json(tag="Mejor Solución",iteration=iterador_principal), 'user_id': user_id}
