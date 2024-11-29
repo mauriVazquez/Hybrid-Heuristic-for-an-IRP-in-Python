@@ -20,9 +20,9 @@ services:
     networks:
       - app-network
 
-  db:
+  mysql:
     image: mysql:8.2
-    container_name: hair-app-db
+    container_name: mysql
     environment:
       MYSQL_DATABASE: ${DB_DATABASE}
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
@@ -38,17 +38,17 @@ services:
 
   pma:
     image: phpmyadmin/phpmyadmin:latest
-    container_name: hair-app-pma
+    container_name: pma
     environment:
       - MAX_EXECUTION_TIME=600
       - UPLOAD_LIMIT=800M
-      - PMA_HOST=hair-app-db
+      - PMA_HOST=mysql
       - PMA_PORT=3306
       - PMA_ARBITRARY=1
       - PMA_PASSWORD= ${DB_PASSWORD}
       - PMA_CONTROLPASS= ${DB_PASSWORD}
     depends_on:
-      - db
+      - mysql
     ports:
       - 8008:80
     networks:
@@ -56,7 +56,7 @@ services:
 
   nginx:
     image: nginx:alpine
-    container_name: hair-app-nginx
+    container_name: nginx
     ports:
       - 8000:80
     volumes:
@@ -86,36 +86,10 @@ services:
         - USER_NAME=$USER
         - USER_ID=$USER_ID
         - DOCKERFILE=local
-    ports:
-      - 8003:80
     volumes:
       - ./source/hair_service:/usr/src/app
     networks:
       - app-network
-
-  # node:
-  #   #https://vitejs.dev/config/server-options.html 
-  #   build: 
-  #     context: ./config
-  #     dockerfile: node.dockerfile
-  #   container_name: "hair-app-node"
-  #   environment:
-  #     - NODE_ENV="development"
-  #   volumes:
-  #     - ./source/hair_app:/var/www
-  #     - vendor:/var/www/vendor
-  #     - node_modules:/var/www/node_modules
-  #   command:
-  #     - sh
-  #     - -c
-  #     - |
-  #       npm install --quit
-  #       #npm update --quit
-  #       npm run dev
-  #   ports:
-  #     - 5173:5173
-  #   networks:
-  #     - app-network
 
 networks:
   app-network:

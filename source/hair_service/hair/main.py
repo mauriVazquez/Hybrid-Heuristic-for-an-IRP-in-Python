@@ -71,6 +71,6 @@ def async_execute(plantilla_id, horizonte_tiempo, capacidad_vehiculo, proveedor,
     print(f"iniciado procesamiento del plantilla id: {plantilla_id}")
     mejor_solucion, iterador_principal, execution_time = execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes)
     
-    url = f"http://hair-app-nginx/api/plantillas/{plantilla_id}/solucion"
+    url = f"http://nginx/api/plantillas/{plantilla_id}/solucion"
     data = {"mejor_solucion": mejor_solucion.to_json(tag="Mejor Solución",iteration=iterador_principal), 'user_id': user_id}
     requests.post(url,json=data)
