@@ -1,4 +1,4 @@
-from constantes import constantes
+from hair.constantes import constantes
 from modelos.solucion import Solucion
 from typing import Type
 

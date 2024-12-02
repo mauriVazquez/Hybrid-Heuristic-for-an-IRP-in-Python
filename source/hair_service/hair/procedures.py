@@ -1,5 +1,4 @@
-import concurrent.futures
-from constantes import constantes
+from hair.constantes import constantes
 from modelos.solucion import Solucion
 from modelos.ruta import Ruta
 from random import random, randint
@@ -11,7 +10,6 @@ from tsp_local.base import TSP
 from tsp_local.kopt import KOpt
 
 from modelos.tabulists import tabulists
-from modelos.penalty_variables import FactorPenalizacion
 
 from modelos.tripletManager import triplet_manager
 
@@ -41,46 +39,48 @@ def inicializacion() -> Type["Solucion"]:
     print(f"Inicial: {solucion}")
     return solucion
 
-def movimiento(solucion: Type["Solucion"], iterador_principal : int) -> Type["Solucion"]:
+def movimiento(solucion: Type["Solucion"], iterador_principal: int) -> Type["Solucion"]:
     """
     Realiza un movimiento sobre la solución actual, explora su vecindario y devuelve una nueva solución.
-    Evalúa el vecindario y actualiza la lista tabú con la mejor solución permitida o con un mínimo absoluto.
-    
+    Evalúa el vecindario y actualiza la lista tabú con la mejor solución permitida o una que minimice el costo absoluto.
+
     Args:
         solucion (Solucion): La solución actual.
-        mejor_solucion (Solucion): La mejor solución encontrada hasta ahora.
         iterador_principal (int): El número de iteraciones del algoritmo.
 
     Returns:
         Solucion: La mejor solución encontrada para el vecindario de la solución ingresada.
     """
-    # Paso 1: Creación de neighborhood_prima de solucion s (N'(s))
-    neighborhood_prima  = _crear_n_prima(solucion)
-        
-    # Paso 2: Creación de neighborhood de solucion s (N(s))
-    neighborhood        = _crear_n(solucion, neighborhood_prima)
+    # Paso 1: Creación del vecindario reducido (N'(s))
+    vecindario_prima = _crear_n_prima(solucion)
 
-    respuesta        = solucion.clonar()
-    costo_respuesta  = float("inf")
-    
-    for neighbor in neighborhood:
-        if tabulists.movimiento_permitido(solucion, neighbor) and (neighbor.costo < costo_respuesta):
-            respuesta = neighbor.clonar()
-            costo_respuesta = respuesta.costo
-    
-    for neighbor in neighborhood:
-        if ((not tabulists.movimiento_permitido(solucion, neighbor)) and ( neighbor.costo < (0.75 * costo_respuesta))):
-            respuesta = neighbor.clonar()
-            costo_respuesta = respuesta.costo
+    # Paso 2: Creación del vecindario completo (N(s))
+    vecindario = _crear_n(solucion, vecindario_prima)
+
+    # Inicializar la respuesta con la solución actual
+    respuesta = solucion.clonar()
+    costo_respuesta = float("inf")
+
+    # Buscar la mejor solución permitida
+    for vecino in vecindario:
+        if tabulists.movimiento_permitido(solucion, vecino) and vecino.costo < costo_respuesta:
+            respuesta = vecino.clonar()
+            costo_respuesta = vecino.costo
+
+    # Ajustar el costo mínimo para considerar soluciones no permitidas
+    umbral_costo = 0.75 * min(solucion.costo, costo_respuesta)
+    for vecino in vecindario:
+        if not tabulists.movimiento_permitido(solucion, vecino) and vecino.costo < umbral_costo:
+            respuesta = vecino.clonar()
+            costo_respuesta = 0.75 * vecino.costo
     
     # Actualizar la lista tabú con la solución seleccionada
     tabulists.actualizar(solucion, respuesta, iterador_principal)
 
-    # Actualizar métricas según restricciones de capacidad y desabastecimiento
-    FactorPenalizacion.actualizar_metricas_factibilidad(respuesta)
-
+    # Refrescar la solución final
     respuesta.refrescar()
     return respuesta
+
 
 def mejora(solucion_original : Type["Solucion"], iterador_principal : int) -> Type["Solucion"]:
     """
@@ -232,7 +232,6 @@ def lk(solucion: Type["Solucion"], solucion_prima: Type["Solucion"]) -> Type["So
     return aux_solucion
 
 # Satélites de MOVER
-
 def _crear_n_prima(solucion: Type["Solucion"]) -> list[Type["Solucion"]]:
     """
     Crea el vecindario primario (N'(s)) aplicando diferentes variaciones sobre la solución actual.
@@ -243,7 +242,7 @@ def _crear_n_prima(solucion: Type["Solucion"]) -> list[Type["Solucion"]]:
     Returns:
         list[Solucion]: Lista de soluciones generadas por las variaciones.
     """
-    with concurrent.futures.ThreadPoolExecutor() as executor:
+    # with concurrent.futures.ThreadPoolExecutor() as executor:
         # # Ejecutar las variantes en hilos separados
         # futuro_eliminacion   = executor.submit(_variante_eliminacion, solucion)
         # futuro_insercion     = executor.submit(_variante_insercion, solucion)
@@ -251,28 +250,28 @@ def _crear_n_prima(solucion: Type["Solucion"]) -> list[Type["Solucion"]]:
         # futuro_intercambiar  = executor.submit(_variante_intercambiar_visitas, solucion)
 
         # Esperar a que todas las tareas finalicen y recolectar los resultados
-        neighborhood_prima = []
-        neighborhood_prima += _variante_eliminacion(solucion)
-        neighborhood_prima += _variante_insercion(solucion)
-        neighborhood_prima += _variante_mover_visita(solucion)
-        neighborhood_prima += _variante_intercambiar_visitas(solucion)
-    return neighborhood_prima
+    vecindario_prima = []
+    vecindario_prima += _variante_eliminacion(solucion)
+    vecindario_prima += _variante_insercion(solucion)
+    vecindario_prima += _variante_mover_visita(solucion)
+    vecindario_prima += _variante_intercambiar_visitas(solucion)
+    return vecindario_prima
 
-def _crear_n(solucion : Type["Solucion"], neighborhood_prima : list[Type["Solucion"]]):
+def _crear_n(solucion : Type["Solucion"], vecindario_prima : list[Type["Solucion"]]):
     """
     Crea el vecindario (N(s)) a partir del vecindario primario N'(s), aplicando políticas de reabastecimiento.
     
     Args:
         solucion (Solucion): La solución actual.
-        neighborhood_prima (list[Solucion]): El vecindario primario generado.
+        vecindario_prima (list[Solucion]): El vecindario primario generado.
 
     Returns:
         list[Solucion]: Vecindario final tras aplicar las políticas de reabastecimiento.
     """
-    # Creación de neighborhood a partir de neighborhood_prima
-    neighborhood = []
+    # Creación de vecindario a partir de vecindario_prima
+    vecindario = []
     #Por cada solución en N'(S)
-    for solucion_prima in neighborhood_prima:
+    for solucion_prima in vecindario_prima:
         # Determinar el conjunto A de clientes tales que Ti(s) != Ti(s'). 
         conjunto_A = [cliente for cliente in constantes.clientes if (solucion.T(cliente) != solucion_prima.T(cliente))]
         
@@ -339,8 +338,8 @@ def _crear_n(solucion : Type["Solucion"], neighborhood_prima : list[Type["Soluci
                             if solucion_dosprima.costo < solucion_prima.costo:
                                 solucion_prima = solucion_dosprima.clonar() 
         if not solucion_prima.es_igual(solucion):
-            neighborhood.append(solucion_prima.clonar()) 
-    return neighborhood
+            vecindario.append(solucion_prima.clonar()) 
+    return vecindario
 
 def _variante_eliminacion(solucion : Type["Solucion"]) -> list[Type["Solucion"]]:
     """
@@ -352,14 +351,14 @@ def _variante_eliminacion(solucion : Type["Solucion"]) -> list[Type["Solucion"]]
     Returns:
         list[Solucion]: Lista de soluciones tras aplicar la variante de eliminación.
     """
-    neighborhood_prima = []
+    vecindario_prima = []
     for cliente in constantes.clientes:
         for t in solucion.T(cliente):
             solucion_copy = solucion.clonar()
             solucion_copy.remover_visita(cliente, t)
             if solucion_copy.es_admisible:
-                neighborhood_prima.append(solucion_copy)
-    return neighborhood_prima
+                vecindario_prima.append(solucion_copy)
+    return vecindario_prima
 
 def _variante_insercion(solucion : Type["Solucion"]) -> list[Type["Solucion"]]:
     """
@@ -371,15 +370,15 @@ def _variante_insercion(solucion : Type["Solucion"]) -> list[Type["Solucion"]]:
     Returns:
         list[Solucion]: Lista de soluciones tras aplicar la variante de inserción.
     """
-    neighborhood_prima = []
+    vecindario_prima = []
     for index in range(len(solucion.rutas)):
         for cliente in constantes.clientes:
             if (not solucion.es_visitado(cliente, index)):
                 solucion_copy = solucion.clonar()
                 solucion_copy.insertar_visita(cliente, index)
                 if solucion_copy.es_admisible:
-                    neighborhood_prima.append(solucion_copy)
-    return neighborhood_prima
+                    vecindario_prima.append(solucion_copy)
+    return vecindario_prima
 
 def _variante_mover_visita(solucion : Type["Solucion"]) -> list[Type["Solucion"]]:
     """
@@ -391,7 +390,7 @@ def _variante_mover_visita(solucion : Type["Solucion"]) -> list[Type["Solucion"]
     Returns:
         list[Solucion]: Lista de soluciones tras aplicar la variante de mover visitas.
     """
-    neighborhood_prima = []
+    vecindario_prima = []
     for cliente in constantes.clientes:
         set_t_visitado = solucion.T(cliente)
         for t_visitado in set_t_visitado:
@@ -401,8 +400,8 @@ def _variante_mover_visita(solucion : Type["Solucion"]) -> list[Type["Solucion"]
                 solucion_copy = new_solucion.clonar()
                 solucion_copy.insertar_visita(cliente, t_not_visitado)
                 if solucion_copy.es_admisible:
-                    neighborhood_prima.append(solucion_copy)
-    return neighborhood_prima
+                    vecindario_prima.append(solucion_copy)
+    return vecindario_prima
 
 def _variante_intercambiar_visitas(solucion : Type["Solucion"]) -> list[Type["Solucion"]]:
     """
@@ -414,7 +413,7 @@ def _variante_intercambiar_visitas(solucion : Type["Solucion"]) -> list[Type["So
     Returns:
         list[Solucion]: Lista de soluciones tras aplicar la variante de intercambiar visitas.
     """
-    neighborhood_prima = []
+    vecindario_prima = []
     for cliente1 in constantes.clientes:
         for cliente2 in list(set(constantes.clientes) -set([cliente1])):
             for iter_t in (set(solucion.T(cliente1)) - set(solucion.T(cliente2))):
@@ -428,5 +427,5 @@ def _variante_intercambiar_visitas(solucion : Type["Solucion"]) -> list[Type["So
                     solucion_copy.insertar_visita(cliente2,iter_t)
                     
                     if solucion_copy.es_admisible:
-                        neighborhood_prima.append(solucion_copy)                                           
-    return neighborhood_prima
+                        vecindario_prima.append(solucion_copy)                                           
+    return vecindario_prima

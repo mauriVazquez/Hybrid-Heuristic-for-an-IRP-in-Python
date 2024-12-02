@@ -1,5 +1,5 @@
 from random import randint
-from constantes import constantes
+from hair.constantes import constantes
 from modelos.solucion import Solucion
 
 class TripletManager:

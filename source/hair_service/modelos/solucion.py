@@ -3,7 +3,7 @@ import numpy as np
 from modelos.ruta import Ruta
 from typing import Type
 from modelos.penalty_variables import alpha, beta
-from constantes import constantes
+from hair.constantes import constantes
 import copy
 
 class Solucion():

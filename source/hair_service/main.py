@@ -9,40 +9,58 @@ import json
 app = FastAPI()
 
 class Proveedor(BaseModel):
-    id: str
-    coord_x: float
-    coord_y: float
+    id                  : str
+    coord_x             : float
+    coord_y             : float
     costo_almacenamiento: float
     nivel_almacenamiento: int
-    nivel_produccion: int
+    nivel_produccion    : int
 
 class Cliente(BaseModel):
-    id: str
-    coord_x: float
-    coord_y: float
+    id                  : str
+    coord_x             : float
+    coord_y             : float
     costo_almacenamiento: float
     nivel_almacenamiento: int
-    nivel_maximo: int
-    nivel_minimo: int
-    nivel_demanda: int
+    nivel_maximo        : int
+    nivel_minimo        : int
+    nivel_demanda       : int
 
 class Param(BaseModel):
-    plantilla_id: str = Field(default="id plantilla no encontrado")
-    user_id: int = Field(default= 0)
-    horizonte_tiempo: int = Field(default=None)
-    capacidad_vehiculo: int = Field(default=None)
-    proveedor: Proveedor = Field(default=None)
-    clientes: List[Cliente] = Field(default=None)
+    plantilla_id        : str           = Field(default="id plantilla no encontrado")
+    user_id             : int           = Field(default= 0)
+    horizonte_tiempo    : int           = Field(default=None)
+    capacidad_vehiculo  : int           = Field(default=None)
+    proveedor           : Proveedor     = Field(default=None)
+    clientes            : List[Cliente] = Field(default=None)
 
 @app.post("/solicitud-ejecucion")
 async def procesar_solicitud(param: Param, background_tasks: BackgroundTasks):
     print(f"Se recibió la solicitud para ejecutar el algoritmo en el plantilla {param.plantilla_id}")
     try:
-        background_tasks.add_task(async_execute, param.plantilla_id, param.horizonte_tiempo,
-                                  param.capacidad_vehiculo, param.proveedor, param.clientes, param.user_id)
-        return JSONResponse(content={"message": "Solicitud de procesamiento de plantilla recibida", "plantilla_id": param.plantilla_id})
+        background_tasks.add_task(
+            async_execute, 
+            param.plantilla_id, 
+            param.horizonte_tiempo,
+            param.capacidad_vehiculo,
+            param.proveedor,
+            param.clientes,
+            param.user_id
+        )
+        return JSONResponse(
+            content = {
+                "message": "Solicitud de procesamiento de plantilla recibida", 
+                "plantilla_id": param.plantilla_id
+            }
+         )
     except Exception as e:
         print(f"Error al añadir la tarea en segundo plano: {e}")
-        return JSONResponse(content={"message": "Error al procesar la solicitud", "error": str(e)}, status_code=500)
+        return JSONResponse(
+            content = {
+                "message": "Error al procesar la solicitud", 
+                "error": str(e)
+            }, 
+            status_code=500
+        )
 
     

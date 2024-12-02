@@ -1,5 +1,5 @@
 import math
-from constantes import constantes
+from hair.constantes import constantes
 from random import randint
 
 def obtener_ttl() -> int:

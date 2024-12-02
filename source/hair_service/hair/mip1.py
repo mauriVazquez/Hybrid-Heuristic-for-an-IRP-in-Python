@@ -1,5 +1,5 @@
 from itertools import permutations
-from constantes import constantes
+from hair.constantes import constantes
 from modelos.ruta import Ruta
 from modelos.solucion import Solucion
 from typing import Type

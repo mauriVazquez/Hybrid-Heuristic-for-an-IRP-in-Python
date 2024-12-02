@@ -55,4 +55,5 @@ if __name__ == '__main__':
     politica_reabastecimiento = args.politica_reabastecimiento
     horizonte_tiempo, proveedor, clientes, capacidad_vehiculo = read_input_irp(instancia, horizonte_tiempo)
     
-    response = execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento)
+    mejor_solucion, iterador_principal, execution_time = execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento)
+    print(execution_time)

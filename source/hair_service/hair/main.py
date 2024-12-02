@@ -1,13 +1,14 @@
 import requests
 from random                     import seed
 from datetime                   import datetime
-from constantes                 import constantes
+from hair.constantes            import constantes
+from modelos.penalty_variables import FactorPenalizacion
 #Parámetros variables (penalización y triplets)
 from modelos.penalty_variables  import alpha, beta
 from modelos.tripletManager     import triplet_manager
 from modelos.tabulists          import tabulists
 #Procedimientos HAIR
-from hair.procedures        import inicializacion, movimiento, mejora, salto
+from hair.procedures            import inicializacion, movimiento, mejora, salto
 
 def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento = None):
     # Se inicializa la semilla
@@ -60,6 +61,12 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
             if iteraciones_sin_saltar > ((constantes.jump_iter)/2):
                 triplet_manager.eliminar_triplets_solucion(solucion)
         
+        # Actualizar métricas de factibilidad según restricciones
+        FactorPenalizacion.actualizar_metricas_factibilidad(solucion)
+        # print(solucion)
+        # print("A",alpha.obtener_valor())
+        # print("B",beta.obtener_valor())
+        
     print("\n-------------------------------MEJOR SOLUCIÓN-------------------------------\n")
     mejor_solucion.imprimir_detalle()
     execution_time = datetime.now() - start
@@ -71,6 +78,11 @@ def async_execute(plantilla_id, horizonte_tiempo, capacidad_vehiculo, proveedor,
     print(f"iniciado procesamiento del plantilla id: {plantilla_id}")
     mejor_solucion, iterador_principal, execution_time = execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes)
     
-    url = f"http://nginx/api/plantillas/{plantilla_id}/solucion"
-    data = {"mejor_solucion": mejor_solucion.to_json(tag="Mejor Solución",iteration=iterador_principal), 'user_id': user_id}
-    requests.post(url,json=data)
+    requests.post(
+        url     = f"http://nginx/api/plantillas/{plantilla_id}/solucion",
+        json    = {
+            "mejor_solucion": mejor_solucion.to_json(tag="Mejor Solución",iteration=iterador_principal), 
+            'user_id'       : user_id,
+            'execution_time': execution_time.seconds 
+        }
+    )
