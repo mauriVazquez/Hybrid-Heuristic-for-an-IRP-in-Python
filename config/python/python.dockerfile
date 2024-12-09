@@ -1,13 +1,21 @@
-FROM python:3.11-alpine
+FROM python:3.11-slim
 
 WORKDIR /usr/src/app
 
+# Instalar dependencias necesarias para compilar ortools
+RUN apt-get update && apt-get install -y \
+    g++ \
+    cmake \
+    make \
+    && rm -rf /var/lib/apt/lists/*
+
+# Instalar ortools
+RUN pip install --upgrade pip && \
+    pip install ortools
+
 COPY ./requirements.txt /usr/src/app/requirements.txt
 
-# Instala dependencias del sistema necesarias para compilar numpy
-RUN apk add --no-cache --virtual .build-deps gcc musl-dev libffi-dev \
-    && python -m pip install --upgrade pip setuptools wheel \
-    && pip install --no-cache-dir --upgrade -r requirements.txt \
-    && apk del .build-deps  # Elimina las dependencias de compilación
+# Instalar dependencias adicionales
+RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80", "--reload"]

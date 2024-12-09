@@ -10,9 +10,6 @@ class Constantes():
         self.politica_reabastecimiento = config['App']['politica_reabastecimiento']
         self.taboo_len = int(config['Taboo']['list_length'])
         self.lambda_ttl = float(config['Taboo']['lambda_ttl'])
-        self.penalty_factor_min = float(config['Penalty_factor']['min_limit'])
-        self.penalty_factor_max = float(config['Penalty_factor']['max_limit'])
-        
         self.max_iter = 0 
         self.jump_iter = 0
         self.proveedor = None
@@ -20,12 +17,16 @@ class Constantes():
         self.horizonte_tiempo = None
         self.clientes = []
         self.matriz_distancia = []
+        self.alfa = None
+        self.beta = None
      
-    def inicializar(self,horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento) -> None:
+    def inicializar(self,horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento, alfa, beta) -> None:
         self.capacidad_vehiculo         = capacidad_vehiculo
         self.horizonte_tiempo           = horizonte_tiempo
         self.max_iter                   = 200 * len(clientes)  * horizonte_tiempo
         self.jump_iter                  = self.max_iter // 2
+        self.alfa = alfa
+        self.beta = beta
         if politica_reabastecimiento:     
             self.politica_reabastecimiento = politica_reabastecimiento
         
@@ -73,6 +74,3 @@ class Constantes():
     #Distancia entre dos puntos
     def compute_dist(self, xi, xj, yi, yj):
         return math.sqrt(math.pow(xi - xj, 2) + math.pow(yi - yj, 2))
-
-
-constantes = Constantes()

@@ -1,78 +1,102 @@
 import requests
 from random                     import seed
 from datetime                   import datetime
-from hair.constantes            import constantes
-from modelos.penalty_variables import FactorPenalizacion
+from hair.contexto import constantes_contexto
 #Parámetros variables (penalización y triplets)
-from modelos.penalty_variables  import alpha, beta
-from modelos.tripletManager     import triplet_manager
-from modelos.tabulists          import tabulists
+from hair.gestores           import Triplets, TabuLists, FactorPenalizacion
 #Procedimientos HAIR
-from hair.procedures            import inicializacion, movimiento, mejora, salto
+from hair.constantes import Constantes
+from hair.procedimientos.inicializacion import inicializacion
+from hair.procedimientos.movimiento import movimiento
+from hair.procedimientos.mejora import mejora
+from hair.procedimientos.salto import salto
+
 
 def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento = None):
-    # Se inicializa la semilla
+    """
+    Algoritmo principal que ejecuta la heurística híbrida de búsqueda tabú para el problema de enrutamiento de inventario.
+
+    Parámetros:
+        horizonte_tiempo (int): Horizonte de planificación.
+        capacidad_vehiculo (int): Capacidad del vehículo.
+        proveedor (obj): Información del proveedor.
+        clientes (list): Lista de clientes.
+        politica_reabastecimiento (str): Política de reabastecimiento ('OU' o 'ML').
+
+    Returns:
+        tuple: Mejor solución encontrada, cantidad de iteraciones y tiempo de ejecución.
+    """
+    # Inicialización de la semilla, iteradores y constantes
     seed(datetime.now().timestamp())
-    start = datetime.now()    
-    # Se inicializan las constantes globales
-    constantes.inicializar(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento)
+    constantes = Constantes()
+    constantes.inicializar(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento, FactorPenalizacion(), FactorPenalizacion())
+    constantes_contexto.set(constantes)
     
-    # Se inicializan iteradores
-    iterador_principal      = 0
+    start = datetime.now()
+    iterador_principal = 0
     iteraciones_sin_mejoras = 0
-    iteraciones_sin_saltar  = 0
+    iteraciones_sin_saltar = 0
+    triplets = Triplets()
+    tabulists = TabuLists()
     
-    #Se genera una solución inicial mediante el procedimiento inicializacion, y se almacena como mejor_solucion.
-    solucion        = inicializacion()
-    mejor_solucion  = solucion.clonar()
     
-    #Mientras la cantidad de iteraciones sin mejoras de mejor_solucion sea menor o igual a MAX_ITER
+    try:
+        # Aplicar el procedimiento de inicialización
+        solucion = inicializacion()
+        mejor_solucion = solucion.clonar()
+    except Exception as e:
+        print(f"Error durante la inicialización: {e}")
+        return None, iterador_principal, datetime.now() - start
+    
+    # Bucle principal del algoritmo
     while iteraciones_sin_mejoras < constantes.max_iter:
         iterador_principal += 1
-        
-        #Se aplica el procedimiento movimiento sobre solucion, para obtener una solución vecina sprima
-        solucion_prima = movimiento(solucion, iterador_principal)
-        
-        #Si solucion_prima tiene un costo menor a la mejor_solución
+
+        # Aplicar el procedimiento de movimiento
+        try:
+            solucion_prima = movimiento(solucion, tabulists, iterador_principal)
+        except Exception as e:
+            print(f"Error en el procedimiento de movimiento: {e}")
+            break
+
+        # Evaluar si la nueva solución es mejor
         if solucion_prima.costo < mejor_solucion.costo:
-            #Se aplica mejora sobre solucion_prima para encontrar una posible mejora, al resultado se lo almacena como mejor_solucion
-            solucion_prima = mejora(solucion_prima, iterador_principal)
-            mejor_solucion = solucion_prima.clonar()
-            iteraciones_sin_mejoras = 0
-            #Se reinicializan los triplets
-            triplet_manager.reiniciar()
+            try:
+                solucion_prima = mejora(solucion_prima, iterador_principal)
+                mejor_solucion = solucion_prima.clonar()
+                iteraciones_sin_mejoras = 0
+            except Exception as e:
+                print(f"Error en el procedimiento de mejora: {e}")
+                break
         else:
-            #Se incrementa la cantidad de iteraciones sin mejora en una unidad
             iteraciones_sin_mejoras += 1
-        
-        #Se asigna a solucion el contenido de solucion_prima
+
+        # Actualizar la solución actual
         solucion = solucion_prima.clonar()
 
-        #Si la cantidad de iteraciones sin mejora es múltiplo de JUMP_ITER
-        if (iteraciones_sin_mejoras > 0) and ((iteraciones_sin_mejoras % constantes.jump_iter) == 0): 
-            solucion = salto(mejor_solucion, iterador_principal)    
-            iteraciones_sin_saltar = 0
-            alpha.reiniciar()
-            beta.reiniciar()
-            tabulists.reiniciar()
-            triplet_manager.reiniciar()
+        # Procedimiento de salto
+        if (iteraciones_sin_mejoras) > 0 and ((iteraciones_sin_mejoras % constantes.jump_iter) == 0):
+            try:
+                solucion = salto(solucion, iterador_principal, triplets)
+                iteraciones_sin_saltar = 0
+                constantes.alfa.reiniciar()
+                constantes.beta.reiniciar()
+                tabulists.reiniciar()
+                triplets.reiniciar()
+            except Exception as e:
+                print(f"Error en el procedimiento de salto: {e}")
+                break
         else:
             iteraciones_sin_saltar += 1
-            if iteraciones_sin_saltar > ((constantes.jump_iter)/2):
-                triplet_manager.eliminar_triplets_solucion(solucion)
-        
-        # Actualizar métricas de factibilidad según restricciones
-        FactorPenalizacion.actualizar_metricas_factibilidad(solucion)
-        # print(solucion)
-        # print("A",alpha.obtener_valor())
-        # print("B",beta.obtener_valor())
-        
+            if iteraciones_sin_saltar > (constantes.jump_iter / 2):
+                triplets.eliminar_triplets_solucion(solucion)
+
+    # Mostrar la mejor solución encontrada
     print("\n-------------------------------MEJOR SOLUCIÓN-------------------------------\n")
     mejor_solucion.imprimir_detalle()
     execution_time = datetime.now() - start
 
-    # mejor_solucion.graficar_rutas()
-    return mejor_solucion, iterador_principal,  execution_time
+    return mejor_solucion, iterador_principal, execution_time
     
 def async_execute(plantilla_id, horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, user_id):
     print(f"iniciado procesamiento del plantilla id: {plantilla_id}")

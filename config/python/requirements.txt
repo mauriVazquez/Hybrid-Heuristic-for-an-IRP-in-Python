@@ -1,5 +1,7 @@
-fastapi
-uvicorn[standard]
-python-multipart
-requests
-numpy
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+python-multipart>=0.0.6
+requests>=2.31.0
+numpy>=1.26.0
+# ortools>=9.8.3296
+matplotlib>=3.8.2

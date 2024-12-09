@@ -1,6 +1,11 @@
-from hair.constantes import constantes
+import math
+
+#Distancia entre dos puntos
+def compute_dist(xi, xj, yi, yj):
+    return math.sqrt(math.pow(xi - xj, 2) + math.pow(yi - yj, 2))
 
 class Ruta():
+    
     @staticmethod
     def obtener_costo_recorrido(clientes) -> float:
         #Distancia del primer cliente al proveedor + distancia del último al proveedor, mas distancia entre clientes
@@ -9,7 +14,7 @@ class Ruta():
         else:
             return (
                 clientes[0].distancia_proveedor
-                + sum(constantes.compute_dist(c1.coord_x, c0.coord_x, c1.coord_y, c0.coord_y) for c0, c1 in zip(clientes, clientes[1:]))
+                + sum(compute_dist(c1.coord_x, c0.coord_x, c1.coord_y, c0.coord_y) for c0, c1 in zip(clientes, clientes[1:]))
                 + clientes[-1].distancia_proveedor 
              )
     
@@ -45,8 +50,8 @@ class Ruta():
         self.cantidades.insert(indice, cantidad)
 
     def remover_visita(self, cliente) -> int:
-        indice = next((i for i, c in enumerate(self.clientes) if c == cliente), None)
-        if indice:
+        indice = next((i for i, c in enumerate(self.clientes) if c.id == cliente.id), None)
+        if indice is not None:
             cantidad_removida = self.cantidades.pop(indice)
             self.clientes.pop(indice)
             return cantidad_removida

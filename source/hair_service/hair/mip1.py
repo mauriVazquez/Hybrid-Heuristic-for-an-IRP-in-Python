@@ -1,5 +1,5 @@
+from hair.contexto import constantes_contexto
 from itertools import permutations
-from hair.constantes import constantes
 from modelos.ruta import Ruta
 from modelos.solucion import Solucion
 from typing import Type
@@ -28,7 +28,8 @@ class Mip1():
         """
         solucion_costo_minimo   = solucion_original.clonar()
         costo_minimo            = float("inf")
-
+        constantes = constantes_contexto.get()
+        
         # Se realizan todas las permutaciones posibles
         for perm in permutations(range(constantes.horizonte_tiempo)):
             if perm == tuple(range(constantes.horizonte_tiempo)):
@@ -77,6 +78,7 @@ class Mip1():
         Retorna:
             float: El costo total asociado a la solución.
         """
+        constantes = constantes_contexto.get()
         term_1 = constantes.proveedor.costo_almacenamiento * sum(solucion.inventario_proveedor)
         term_2 = sum([(c.costo_almacenamiento * sum(solucion.inventario_clientes.get(c.id, None))) for c in constantes.clientes])
         term_3 = ahorro

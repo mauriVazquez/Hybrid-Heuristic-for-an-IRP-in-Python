@@ -1,4 +1,4 @@
-from hair.constantes import constantes
+from hair.contexto import constantes_contexto
 from modelos.solucion import Solucion
 from typing import Type
 
@@ -24,6 +24,7 @@ class Mip2():
         Retorna:
             TipoDeSolucion: La solución mejorada obtenida mediante el algoritmo MIP2.
         """
+        constantes = constantes_contexto.get()
         solucion_costo_minimo   = solucion.clonar()
         costo_minimo            = float("inf")
         
@@ -60,6 +61,7 @@ class Mip2():
         Retorna:
             float: El costo total asociado a la solución después de realizar la operación.
         """
+        constantes = constantes_contexto.get()
         costo_ruta_original = solucion.rutas[tiempo].obtener_costo()
         if operacion == "REMOVE":
             solucion.remover_visita(cliente, tiempo)

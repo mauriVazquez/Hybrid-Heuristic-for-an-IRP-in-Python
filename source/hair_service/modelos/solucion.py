@@ -2,13 +2,12 @@
 import numpy as np
 from modelos.ruta import Ruta
 from typing import Type
-from modelos.penalty_variables import alpha, beta
-from hair.constantes import constantes
+from hair.contexto import constantes_contexto
 import copy
 
 class Solucion():
-  
     def __init__(self,  rutas: list[Ruta] = None) -> None:
+        constantes = constantes_contexto.get()
         self.rutas                  = rutas if rutas else [Ruta for _ in range(constantes.horizonte_tiempo)]
         self.inventario_clientes    = {
             cliente.id: self._obtener_niveles_inventario_cliente(cliente) 
@@ -20,9 +19,11 @@ class Solucion():
         self.costo                  = self._costo()
 
     def __str__(self : Type["Solucion"]) -> str:
-        return "".join("T"+str(i+1)+"= "+ruta.__str__()+"    " for i, ruta in enumerate(self.rutas)) + 'Costo:' + str(self._costo()) + (" F" if self._es_factible() else (" A"  if self._es_admisible() else " N"))
-
+        factibilidad = (" F" if self._es_factible() else (" A"  if self._es_admisible() else " N"))
+        return "".join(f"T{str(i+1)} = {ruta}    " for i, ruta in enumerate(self.rutas)) + 'Costo:' + str(self._costo()) + factibilidad
+    
     def refrescar(self : Type["Solucion"]):
+        constantes = constantes_contexto.get()
         self.rutas                  = self.rutas
         self.inventario_clientes    = {
             cliente.id: self._obtener_niveles_inventario_cliente(cliente) 
@@ -35,10 +36,11 @@ class Solucion():
     
     @staticmethod 
     def obtener_empty_solucion() -> Type["Solucion"]:
+        constantes = constantes_contexto.get()
         return Solucion([Ruta(ruta[0], ruta[1]) for ruta in [[[], []] for _ in range(constantes.horizonte_tiempo)]])
 
     def imprimir_detalle(self) -> str:
-        resp = "Clientes visitados:"        +" ".join("T"+str(i+1)+"= "+ruta.__str__()+"\t" for i, ruta in enumerate(self.rutas)) + "\n"
+        resp = "Clientes visitados:"        +" ".join(f"T{str(i+1)} = {ruta}    "  for i, ruta in enumerate(self.rutas)) + "\n"
         resp += 'Inventario de proveedor: ' + str(self.inventario_proveedor) + "\n"
         resp += 'Inventario de clientes: '  + str(self.inventario_clientes) + "\n"
         resp += '¿Admisible? : '            + ('SI' if self.es_admisible else 'NO') + "\n"
@@ -47,6 +49,7 @@ class Solucion():
         print(resp)
     
     def to_json(self, iteration, tag):   
+        constantes = constantes_contexto.get()
         return {
             "proveedor_id"  :   str(constantes.proveedor.id), 
             "iteration"     :   iteration,
@@ -66,6 +69,7 @@ class Solucion():
         return clonacion
 
     def es_igual(self, solution2) -> bool:
+        constantes = constantes_contexto.get()
         return all(self.rutas[i].es_igual(solution2.rutas[i]) for i in range(constantes.horizonte_tiempo))
     
     def es_visitado(self, cliente, t) -> bool :
@@ -87,14 +91,17 @@ class Solucion():
         )
 
     def es_excedida_capacidad_vehiculo(self) -> bool:
+        constantes = constantes_contexto.get()
         return any(constantes.capacidad_vehiculo < ruta.obtener_total_entregado() for ruta in self.rutas)
 
     def cliente_tiene_desabastecimiento(self) -> bool:
+        constantes = constantes_contexto.get()
         return any(self.inventario_clientes.get(cliente.id, None)[tiempo] < cliente.nivel_minimo
                    for cliente in constantes.clientes
                    for tiempo in range(constantes.horizonte_tiempo))
 
     def cliente_tiene_sobreabastecimiento(self) -> bool:
+        constantes = constantes_contexto.get()
         return any(self.inventario_clientes.get(cliente.id, None)[tiempo] > cliente.nivel_maximo
                    for cliente in constantes.clientes
                    for tiempo in range(constantes.horizonte_tiempo))
@@ -103,6 +110,7 @@ class Solucion():
         return any(nivel_inventario < 0 for nivel_inventario in self.inventario_proveedor)
     
     def _obtener_niveles_inventario_proveedor(self):
+        constantes = constantes_contexto.get()
         proveedor = constantes.proveedor
         nivel_almacenamiento = proveedor.nivel_almacenamiento
         niveles = [nivel_almacenamiento]
@@ -114,6 +122,7 @@ class Solucion():
         return niveles
     
     def _obtener_niveles_inventario_cliente(self, cliente):
+        constantes = constantes_contexto.get()
         nivel_almacenamiento = cliente.nivel_almacenamiento
         cliente_inventario = [nivel_almacenamiento]
         for t in range(1, constantes.horizonte_tiempo + 1):
@@ -123,9 +132,11 @@ class Solucion():
 
     # Retorna el conjunto de tiempos donde un cliente es visitado en una solucion dada.
     def T(self, cliente):
+        constantes = constantes_contexto.get()
         return [tiempo for tiempo in range(constantes.horizonte_tiempo) if self.es_visitado(cliente, tiempo)]
    
-    def _costo(self):      
+    def _costo(self):
+        constantes = constantes_contexto.get()      
         proveedor_nivel_inventario = self.inventario_proveedor
         # First term (costo_almacenamiento)
         costo_almacenamiento = sum(proveedor_nivel_inventario) * constantes.proveedor.costo_almacenamiento
@@ -138,15 +149,16 @@ class Solucion():
 
         # Third term (penalty 1)
         penalty1 = sum(max(0,self.rutas[tiempo].obtener_total_entregado() - constantes.capacidad_vehiculo) 
-                       for tiempo in range(constantes.horizonte_tiempo)) * alpha.obtener_valor() 
+                       for tiempo in range(constantes.horizonte_tiempo)) * constantes.alfa.obtener_valor() 
         
         # Fourth term
         penalty2 = sum(max(0, -proveedor_nivel_inventario[tiempo]) 
-                       for tiempo in range(constantes.horizonte_tiempo+1)) * beta.obtener_valor()
+                       for tiempo in range(constantes.horizonte_tiempo+1)) * constantes.beta.obtener_valor()
        
         return costo_almacenamiento + costo_transporte + penalty1 + penalty2
     
     def remover_visita(self, cliente, tiempo) -> None:
+        constantes = constantes_contexto.get()
         # En primer lugar guardo los tiempos en que el cliente fue visitado
         tiempos_cliente = self.T(cliente)
 
@@ -176,6 +188,7 @@ class Solucion():
                     self.refrescar()
         
     def insertar_visita(self, cliente, tiempo) -> None:
+        constantes = constantes_contexto.get()
         # Añadimos una vista al cliente en el tiempo t usando el método de inserción más barato.
         if constantes.politica_reabastecimiento == "OU":
         # La cantidad entregada se establece como Ui - Iit; La misma cantidad se elimina de la siguiente visita al cliente (si la hay).
@@ -214,6 +227,7 @@ class Solucion():
         self.refrescar()
 
     def cumple_restricciones(self, MIP, MIPcliente = None, MIPtiempo = None, operation = None):
+        constantes = constantes_contexto.get()
         B   = self.inventario_proveedor
         I   = [self.inventario_clientes.get(cliente.id, None) for cliente in constantes.clientes]
         r0  = [constantes.proveedor.nivel_produccion for t in range(constantes.horizonte_tiempo+1)]
