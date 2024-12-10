@@ -29,7 +29,7 @@ def mejora(solucion : Solucion, iterador_principal : int) -> Solucion:
     constantes = constantes_contexto.get()
     do_continue = True
     
-    mejor_solucion = tsp_solver(Solucion.obtener_empty_solucion(), solucion)
+    mejor_solucion = tsp_solver(None, solucion)
 
     while do_continue:
         do_continue = False
@@ -117,7 +117,10 @@ def tsp_solver(solucion: Solucion, solucion_prima: Solucion) -> Solucion:
     """
     constantes = constantes_contexto.get()
     # Determinar la solución base a clonar
-    aux_solucion = solucion.clonar() if solucion.es_igual(solucion_prima) else solucion_prima.clonar()
+    if ((solucion is not None) and solucion.es_igual(solucion_prima)):
+        aux_solucion = solucion.clonar()  
+    else:
+        aux_solucion = solucion_prima.clonar()
 
     # Iterar sobre el horizonte de tiempo
     for t in range(constantes.horizonte_tiempo):

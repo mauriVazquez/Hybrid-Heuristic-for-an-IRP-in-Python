@@ -68,19 +68,17 @@ class TestVariantesSolucion(unittest.TestCase):
         constantes.inicializar(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, "ML", alfa, beta)
         constantes_contexto.set(constantes)
     
-        self.solucion = Solucion.obtener_empty_solucion()
-        self.solucion.rutas = [
+        self.solucion = Solucion([
             Ruta([],[]),
             Ruta([constantes.clientes[4], constantes.clientes[2]], [22,116]),
-            Ruta([constantes.clientes[3], constantes.clientes[1], constantes.clientes[0]], [72,105,95,]),
-        ]
+            Ruta([constantes.clientes[3], constantes.clientes[1], constantes.clientes[0]], [72,105,95])
+        ])
         
-        self.solucion2 = Solucion.obtener_empty_solucion()
-        self.solucion2.rutas = [
+        self.solucion2 = Solucion([
             Ruta([constantes.clientes[2], constantes.clientes[3], constantes.clientes[4]], [116,24,18]),
             Ruta([constantes.clientes[0], constantes.clientes[1]], [130, 70]),
-            Ruta([constantes.clientes[3], constantes.clientes[0]], [72,130]),
-        ]
+            Ruta([constantes.clientes[3], constantes.clientes[0]], [72,130])
+        ])
 
     def test_variante_eliminacion(self):
         """Test para la variante de eliminación."""

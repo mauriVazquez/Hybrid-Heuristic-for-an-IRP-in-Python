@@ -33,11 +33,6 @@ class Solucion():
         self.es_factible            = self._es_factible()
         self.es_admisible           = self._es_admisible()
         self.costo                  = self._costo()
-    
-    @staticmethod 
-    def obtener_empty_solucion() -> Type["Solucion"]:
-        constantes = constantes_contexto.get()
-        return Solucion([Ruta(ruta[0], ruta[1]) for ruta in [[[], []] for _ in range(constantes.horizonte_tiempo)]])
 
     def imprimir_detalle(self) -> str:
         resp = "Clientes visitados:"        +" ".join(f"T{str(i+1)} = {ruta}    "  for i, ruta in enumerate(self.rutas)) + "\n"

@@ -5,18 +5,14 @@ def compute_dist(xi, xj, yi, yj):
     return math.sqrt(math.pow(xi - xj, 2) + math.pow(yi - yj, 2))
 
 class Ruta():
-    
     @staticmethod
     def obtener_costo_recorrido(clientes) -> float:
         #Distancia del primer cliente al proveedor + distancia del último al proveedor, mas distancia entre clientes
-        if not clientes:
-            return 0.0
-        else:
-            return (
-                clientes[0].distancia_proveedor
-                + sum(compute_dist(c1.coord_x, c0.coord_x, c1.coord_y, c0.coord_y) for c0, c1 in zip(clientes, clientes[1:]))
-                + clientes[-1].distancia_proveedor 
-             )
+        return 0.0 if not clientes else (
+            clientes[0].distancia_proveedor
+            + sum(compute_dist(c1.coord_x, c0.coord_x, c1.coord_y, c0.coord_y) for c0, c1 in zip(clientes, clientes[1:]))
+            + clientes[-1].distancia_proveedor 
+        )
     
     def __init__(self, clientes, cantidades) -> None:
         self.clientes = clientes if clientes else []  # Lista de clientes en la ruta
@@ -45,7 +41,10 @@ class Ruta():
     
     def insertar_visita(self, cliente, cantidad, indice):
         if indice is None:
-            indice = self._mejor_indice_insercion(cliente)
+            indice = min( 
+                range(len(self.clientes) + 1), 
+                key=lambda pos: self.obtener_costo_recorrido(self.clientes[:pos] + [cliente] + self.clientes[pos:])
+            )
         self.clientes.insert(indice, cliente)
         self.cantidades.insert(indice, cantidad)
 
@@ -66,11 +65,5 @@ class Ruta():
     def quitar_cantidad_cliente(self, cliente, cantidad): 
         self.cantidades[self.clientes.index(cliente)] -= cantidad
     
-    def _mejor_indice_insercion(self, cliente):
-        return min( 
-            range(len(self.clientes) + 1), 
-            key=lambda pos: self.obtener_costo_recorrido(self.clientes[:pos] + [cliente] + self.clientes[pos:])
-        )
-        
     def es_igual(self, ruta2):
-        return (self.clientes == ruta2.clientes) and (self.cantidades == ruta2.cantidades)
+        return  (self.clientes == ruta2.clientes) and (self.cantidades == ruta2.cantidades)
