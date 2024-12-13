@@ -1,9 +1,9 @@
-# import matplotlib.pyplot as plt
+import copy
+import matplotlib.pyplot as plt
 import numpy as np
 from modelos.ruta import Ruta
 from typing import Type
 from hair.contexto import constantes_contexto
-import copy
 
 class Solucion():
     def __init__(self,  rutas: list[Ruta] = None) -> None:
@@ -219,6 +219,7 @@ class Solucion():
                 self.rutas[rutabase_indice].insertar_visita(cliente, self.rutas[rutasecondary_indice].obtener_cantidad_entregada(cliente), None)
                 self.refrescar()
         self.rutas[rutasecondary_indice] = Ruta([],[])
+        
         self.refrescar()
 
     def cumple_restricciones(self, MIP, MIPcliente = None, MIPtiempo = None, operation = None):
@@ -293,32 +294,56 @@ class Solucion():
         if (not all([np.sum( x_np[:, t]) <= constantes.capacidad_vehiculo for t in range(constantes.horizonte_tiempo)])):
             return 8
         
+        if MIP == 1:
+            #  Restricción 9: Una ruta solo puede asignarse a un período de tiempo
+            if not all(sum(ruta) <= 1 for ruta in sigma):
+                return 9
+
+            # Restricción 10: Solo una ruta puede asignarse a un período de tiempo dado
+            if not all(sum(tiempo) <= 1 for tiempo in zip(*sigma)):
+                return 10
+
+            # Restricción 11: Un cliente puede ser atendido solo si la ruta está asignada
+            if not all(x[c][t] <= constantes.clientes[c].nivel_maximo * sigma[c][t] for c in range(len(constantes.clientes)) for t in range(constantes.horizonte_tiempo)):
+                return 11
+
+            # Restricción 12: No puede atenderse un cliente si fue removido de la ruta asignada
+            if not all(x[c][t] == 0 if w[c][t] else True for c in range(len(constantes.clientes)) for t in range(constantes.horizonte_tiempo)):
+                return 12
+            
+            # Restricción 13: Un cliente puede ser removido solo si su ruta está asignada
+            if not all(w[c][t] <= sigma[c][t] for c in range(len(constantes.clientes)) for t in range(constantes.horizonte_tiempo)):
+                return 13
+
+            # Restricción 18: Las variables de asignación de rutas (zr_t) deben ser binarias
+            if not all(value in [0, 1] for fila in sigma for value in fila):
+                return 18
+
+            # Restricción 19: La variable de asignación epsilon_it debe ser binaria
+            if not all(value in [0, 1] for fila in theta for value in fila):
+                return 19
+
+            # Restricción 20: El inventario en los clientes debe ser mayor o igual a cero
+            if not all(I[c][t] >= 0 for c in range(len(constantes.clientes)) for t in range(constantes.horizonte_tiempo)):
+                return 20
+        
         # Restricción 14: La cantidad entregada a los clientes siempre debe ser mayor o igual a cero
         if not np.all(x_np >= 0):
             return 14
         
+        #Restricción 17: Theeta puede tener el valor 0 o 1
         if constantes.politica_reabastecimiento == "OU":
-            #Restricción 17: Theeta puede tener el valor 0 o 1
             if not all(value in [0, 1] for fila in theta for value in fila):
                 return 17
-        
-        #If MIP == 1:
-        #TO DO: 9 10 11 12 13 18 19 (Sólo MIP1)
           
         if MIP == 2:            
-            # # Restricción 21: v_it no puede ser 1 y sigma 1, implicaría que se insertó y está presente ¿¿??
-            # if not all([ ( v[c][t] <= ( 1 - sigma[c][t]) )
-            #     for c in range(len(constantes.clientes))
-            #     for t in range(constantes.horizonte_tiempo)]
-            # ):
-            #     return 21
-            
-            # # Restricción 22:  w_it no puede ser 1 y sigma 0, implicaría que se borró y no está presente ¿¿??
-            # if not all([ ( w[c][t] <= sigma[c][t] )
-            #     for c in range(len(constantes.clientes))
-            #     for t in range(constantes.horizonte_tiempo)]
-            # ):
-            #     return 22
+            # Restricción 21 (MIP2): Si se inserta una visita, no debe haber una visita existente
+            if not all(v[c][t] <= 1 - sigma[c][t] for c in range(len(constantes.clientes)) for t in range(constantes.horizonte_tiempo)):
+                return 21
+
+            # Restricción 22 (MIP2): Si se elimina una visita, debe existir previamente una visita
+            if not all(w[c][t] <= sigma[c][t] for c in range(len(constantes.clientes)) for t in range(constantes.horizonte_tiempo)):
+                return 22
     
             # Restricción 23: La cantidad entregada al cliente i no puede ser mayor a la capacidad máxima
             if not all([ ( x[c][t] <= (cliente.nivel_maximo * (sigma[c][t] + v[c][t] - w[c][t])))
@@ -337,23 +362,24 @@ class Solucion():
             
         return 0
             
-    # def graficar_rutas(self):
-    #     clients_coords = []
-    #     for tiempo in range(constantes.horizonte_tiempo):
-    #         x = [cliente.coord_x for cliente in self.rutas[tiempo].clientes]
-    #         y = [cliente.coord_y for cliente in self.rutas[tiempo].clientes]
-    #         clients_coords.append([x,y])
+    def graficar_rutas(self):
+        clients_coords = []
+        constantes = constantes_contexto.get()
+        for tiempo in range(constantes.horizonte_tiempo):
+            x = [cliente.coord_x for cliente in self.rutas[tiempo].clientes]
+            y = [cliente.coord_y for cliente in self.rutas[tiempo].clientes]
+            clients_coords.append([x,y])
  
-    #     # Create a figure and subplots
-    #     fig, axes = plt.subplots(2, 2, figsize=(10, 6))  # Adjust rows, columns, and figure size
+        # Create a figure and subplots
+        fig, axes = plt.subplots(2, 2, figsize=(10, 6))  # Adjust rows, columns, and figure size
 
-    #     # Generate and display plots in each subplot
-    #     for i, (ax, client_coord) in enumerate(zip(axes.flat, clients_coords)):
-    #         x = [constantes.proveedor.coord_x]+client_coord[0]+[constantes.proveedor.coord_x]
-    #         y = [constantes.proveedor.coord_y]+client_coord[1]+[constantes.proveedor.coord_y]
-    #         ax.plot(x,y)
-    #         ax.set_title(f"Ruta {i+1}")
+        # Generate and display plots in each subplot
+        for i, (ax, client_coord) in enumerate(zip(axes.flat, clients_coords)):
+            x = [constantes.proveedor.coord_x]+client_coord[0]+[constantes.proveedor.coord_x]
+            y = [constantes.proveedor.coord_y]+client_coord[1]+[constantes.proveedor.coord_y]
+            ax.plot(x,y)
+            ax.set_title(f"Ruta {i+1}")
 
-    #     # Adjust layout and display all plots at once
-    #     plt.tight_layout()
-    #     plt.show()
+        # Adjust layout and display all plots at once
+        plt.tight_layout()
+        plt.show()

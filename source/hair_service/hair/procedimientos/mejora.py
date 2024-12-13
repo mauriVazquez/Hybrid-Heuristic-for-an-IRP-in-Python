@@ -2,102 +2,71 @@ from hair.contexto import constantes_contexto
 from modelos.solucion import Solucion
 from modelos.ruta import Ruta
 
-from hair.mip1 import Mip1
-from hair.mip2 import Mip2
-
 from ortools.constraint_solver import routing_enums_pb2
 from ortools.constraint_solver import pywrapcp
 
-def mejora(solucion : Solucion, iterador_principal : int) -> Solucion:
+from itertools import permutations
+
+def mejora(solucion: Solucion, iterador_principal: int) -> Solucion:
     """
     Aplica un proceso iterativo de mejora a la solución dada utilizando tres tipos diferentes de optimizaciones:
     
     1. Aplicación del modelo MIP1 seguido del tsp_solver.
     2. Fusión de pares consecutivos de rutas y aplicación del modelo MIP2 con ajustes para asegurar factibilidad.
     3. Aplicación directa del modelo MIP2 seguido del algoritmo tsp_solver.
-    
-    Durante cada iteración, si alguna de las soluciones generadas mejora el costo de la solución actual, se actualiza
-    dicha solución y se continúa el proceso.
-    
+
     Args:
-        solucion (Solucion): La solución inicial sobre la que se realizarán las mejoras.
-        iterador_principal (int): El número de la iteración principal actual en el proceso de mejora.
-    
+        solucion (Solucion): La solución inicial a optimizar.
+        iterador_principal (int): Número de la iteración principal actual.
+
     Returns:
         Solucion: La mejor solución obtenida después de aplicar todas las mejoras.
-    """  
+    """
     constantes = constantes_contexto.get()
     do_continue = True
-    
     mejor_solucion = tsp_solver(None, solucion)
 
     while do_continue:
         do_continue = False
 
-        #################### PRIMER TIPO DE MEJORA ##################
-        #Se aplica el MIP1 a mejor_solucion, luego se le aplica tsp_solver
+        # PRIMER TIPO DE MEJORA: MIP1 + TSP Solver
         solucion_prima = Mip1.ejecutar(mejor_solucion)
         solucion_prima = tsp_solver(mejor_solucion, solucion_prima)
-        #Si el costo de la solución encontrada es mejor que el de mejor_solucion, se actualiza mejor_solucion
-        if (solucion_prima.costo < mejor_solucion.costo):
+        if solucion_prima.costo < mejor_solucion.costo:
             mejor_solucion = solucion_prima.clonar()
             do_continue = True
-            # print(f"Mejora 1 {mejor_solucion}")
-        
-        #################### SEGUNDO TIPO DE MEJORA ####################
+
+        # SEGUNDO TIPO DE MEJORA: Merge Consecutivo de Rutas + MIP2
         solucion_merge = mejor_solucion.clonar()
-
         for i in range(constantes.horizonte_tiempo - 1):
-            # Por cada par de rutas, se crea una solución s1 que resulta de trasladar las visitas de r2 a r1
+            # Intentar combinar rutas consecutivas
             s1 = mejor_solucion.clonar()
-            s1.merge_rutas(i, i+1)
-            #Se aplica el Mip2 a la solución s1 encontrada
+            s1.merge_rutas(i, i + 1)
             aux_solucion = Mip2.ejecutar(s1)
-            
-            # Si el resultado de aplicar el MIP2 sobre s1 no es factible y r no es la última ruta en s1, entonces
-            #se anticipa la siguiente ruta despues de r en un período de tiempo
-            if (not aux_solucion.es_factible) and ((i + 2) < len(s1.rutas)):
-                s1.merge_rutas(i+1,i+2)
-                aux_solucion = Mip2.ejecutar(s1)
-                
-            #Si el resultado de aplicar el MIP2 a s1 es factible, entonces solucion_prima es una solución óptima
-            if aux_solucion.es_factible:
-                solucion_prima = tsp_solver(s1, aux_solucion)
-                if solucion_prima.costo < solucion_merge.costo:
-                    solucion_merge = solucion_prima.clonar()
+            aux_solucion = tsp_solver(s1, aux_solucion)
 
-            #Por cada par de rutas, se crea una solución s2 que resulta de trasladar las visitas de r1 a r2
+            if aux_solucion.es_factible and aux_solucion.costo < solucion_merge.costo:
+                solucion_merge = aux_solucion.clonar()
+
+            # Intentar combinar rutas en el orden inverso
             s2 = mejor_solucion.clonar()
-            s2.merge_rutas(i+1,i)
+            s2.merge_rutas(i + 1, i)
             aux_solucion = Mip2.ejecutar(s2)
-            
-            #Si el resultado de aplicar el MIP2 sobre s2 no es factible y r no es la primer ruta en s2, entonces
-            #se posterga la siguiente ruta despues de r en un período de tiempo
-            if (not aux_solucion.es_factible) and (i > 0):
-                s2.merge_rutas(i,i-1)
-                aux_solucion = Mip2.ejecutar(s2)
-                
-            #Si el resultado de aplicar el MIP2 a s2 es factible, entonces solucion_prima es una solución óptima
-            if aux_solucion.es_factible:
-                solucion_prima = tsp_solver(s2, aux_solucion)
-                #En este punto solucion_merge es la mejor solución entre mejor_solucion y la primer parte de esta mejora.
-                if solucion_prima.costo < solucion_merge.costo:
-                    solucion_merge = solucion_prima.clonar()
-                    
-        #Si el costo de solucion_merge es mejor que el de mejor_solucion, se actualiza el valor de mejor_solucion
+            aux_solucion = tsp_solver(s2, aux_solucion)
+
+            if aux_solucion.es_factible and aux_solucion.costo < solucion_merge.costo:
+                solucion_merge = aux_solucion.clonar()
+
         if solucion_merge.costo < mejor_solucion.costo:
             mejor_solucion = solucion_merge.clonar()
             do_continue = True
-            # print(f"Mejora 2 {mejor_solucion}")
 
-        #TERCER TIPO DE MEJORA
-        #Se aplica el MIP2 a mejor_solucion, luego se le aplica tsp_solver
+        # TERCER TIPO DE MEJORA: MIP2 + TSP Solver
         solucion_prima = Mip2.ejecutar(mejor_solucion)
         solucion_prima = tsp_solver(mejor_solucion, solucion_prima)
         if solucion_prima.costo < mejor_solucion.costo:
             mejor_solucion = solucion_prima.clonar()
-            do_continue = True 
-            # print(f"Mejora 3 {mejor_solucion}")
+            do_continue = True
 
     mejor_solucion.refrescar()
     print(f"Mejora ({iterador_principal}): {mejor_solucion}")
@@ -106,78 +75,48 @@ def mejora(solucion : Solucion, iterador_principal : int) -> Solucion:
 
 def tsp_solver(solucion: Solucion, solucion_prima: Solucion) -> Solucion:
     """
-    Función resuelve un TSP para mejorar las rutas de una solución.
-    
+    Optimiza las rutas de una solución utilizando un solver TSP basado en OR-Tools.
+
     Args:
-        solucion (Solucion): Solución inicial.
-        solucion_prima (Solucion): Solución alternativa.
+        solucion (Solucion): La solución inicial.
+        solucion_prima (Solucion): La solución alternativa a optimizar.
 
     Returns:
-        Solucion: Solución mejorada después de aplicar el algoritmo.
+        Solucion: La solución optimizada después de aplicar el solver TSP.
     """
     constantes = constantes_contexto.get()
-    # Determinar la solución base a clonar
-    if ((solucion is not None) and solucion.es_igual(solucion_prima)):
-        aux_solucion = solucion.clonar()  
-    else:
-        aux_solucion = solucion_prima.clonar()
+    aux_solucion = solucion.clonar() if solucion and solucion.es_igual(solucion_prima) else solucion_prima.clonar()
 
-    # Iterar sobre el horizonte de tiempo
     for t in range(constantes.horizonte_tiempo):
-        
-        # Obtener matriz distancia
         matriz_distancia = _obtener_matriz_distancia(aux_solucion.rutas[t])
-
-        # Configurar los datos del problema
-        data = {
-            "distance_matrix": matriz_distancia,  # Matriz de distancias
-            "num_vehicles": 1,                    # Un solo vehículo
-            "depot": 0                            # Nodo inicial (proveedor)
-        }
-
-        # Crear el gestor de índices de ruteo
-        manager = pywrapcp.RoutingIndexManager(
-            len(data["distance_matrix"]), data["num_vehicles"], data["depot"]
-        )
-
-        # Crear el modelo de ruteo
+        data = {"distance_matrix": matriz_distancia, "num_vehicles": 1, "depot": 0}
+        manager = pywrapcp.RoutingIndexManager(len(data["distance_matrix"]), data["num_vehicles"], data["depot"])
         routing = pywrapcp.RoutingModel(manager)
 
         transit_callback_index = routing.RegisterTransitCallback(
-            lambda from_index, to_index: data["distance_matrix"][
-                manager.IndexToNode(from_index)
-            ][manager.IndexToNode(to_index)]
+            lambda from_index, to_index: data["distance_matrix"][manager.IndexToNode(from_index)][manager.IndexToNode(to_index)]
         )
-
-        # Establecer el costo de cada arco
         routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
 
-        # Configurar los parámetros de búsqueda
         parametros_busqueda = pywrapcp.DefaultRoutingSearchParameters()
-        parametros_busqueda.first_solution_strategy = (routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC)
+        parametros_busqueda.first_solution_strategy = routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
 
-        # Resolver el problema
         solucion_modelo = routing.SolveWithParameters(parametros_busqueda)
-
-        # Si se encuentra una solución válida, actualizar la ruta en la solución auxiliar
         if solucion_modelo:
-            ruta_optima = []  # Almacena la ruta óptima
-            index = routing.Start(0)  # Nodo inicial (proveedor)
-            # Recorrer la solución y construir la ruta óptima
+            ruta_optima = []
+            index = routing.Start(0)
             while not routing.IsEnd(index):
                 siguiente_index = solucion_modelo.Value(routing.NextVar(index))
-                if manager.IndexToNode(siguiente_index) != 0:  # Excluir el nodo inicial
+                if manager.IndexToNode(siguiente_index) != 0:
                     ruta_optima.append(manager.IndexToNode(siguiente_index))
                 index = siguiente_index
 
-            # Crear una nueva ruta con los clientes y cantidades de la solución auxiliar
             nueva_ruta = Ruta(
                 [aux_solucion.rutas[t].clientes[indice - 1] for indice in ruta_optima],
                 [aux_solucion.rutas[t].cantidades[indice - 1] for indice in ruta_optima]
             )
             aux_solucion.rutas[t] = nueva_ruta.clonar()
 
-    # Actualizar y retornar la solucion optimizada
     aux_solucion.refrescar()
     return aux_solucion
 
@@ -195,3 +134,161 @@ def _obtener_matriz_distancia(ruta):
         matriz_distancia.append(fila)
     return matriz_distancia
     
+class Mip1():
+    """
+    Clase que implementa el método de mejora de solución MIP1.
+
+    Methods:
+        ejecutar(solucion_original): Ejecuta el algoritmo MIP1 para mejorar la solución original.
+        costo(solucion, cliente_eliminado=None, eliminado_tiempo=None): Calcula el costo asociado a una solución.
+
+    Attributes:
+        No hay atributos públicos, la clase utiliza métodos estáticos.
+    """
+    @staticmethod
+    def ejecutar(solucion_original : Solucion) -> Solucion:
+        """
+        Ejecuta el algoritmo MIP1 para mejorar la solución original.
+
+        Args:
+            solucion_original (TipoDeSolucion): La solución original a mejorar.
+
+        Retorna:
+            TipoDeSolucion: La solución mejorada obtenida mediante el algoritmo MIP1.
+        """
+        solucion_costo_minimo   = solucion_original.clonar()
+        costo_minimo            = float("inf")
+        constantes = constantes_contexto.get()
+        
+        # Se realizan todas las permutaciones posibles
+        for perm in permutations(range(constantes.horizonte_tiempo)):
+            if perm == tuple(range(constantes.horizonte_tiempo)):
+                continue  # Omitir la permutación (0, 1, 2)
+        
+            solucion_actual = Solucion([
+                Ruta(list(solucion_original.rutas[i].clientes), list(solucion_original.rutas[i].cantidades)) for i in perm
+            ])
+            
+            # Se veirifica que cumpla con las restricciones, retorna 0 si cumple con todas
+            cumple_restricciones = solucion_actual.cumple_restricciones(1)
+            
+            # Se calcula la funcion objetivo de la permutacion, que sea menor que el mejor hasta el momento, se asigna como nuevo mejor.
+            if (cumple_restricciones == 0):
+                costo_mip = Mip1.funcion_objetivo(solucion_actual)
+                if (costo_mip < costo_minimo):
+                    costo_minimo = costo_mip
+                    solucion_costo_minimo = solucion_actual.clonar()
+
+            for cliente in constantes.clientes:
+                for tiempo in solucion_actual.T(cliente):
+                    solucion_modificada = solucion_actual.clonar()
+                    solucion_modificada.remover_visita(cliente, tiempo)
+
+                    # Se veirifica que cumpla con las restricciones, retorna 0 si cumple con todas
+                    cumple_restricciones = solucion_modificada.cumple_restricciones(1)
+                    if((cumple_restricciones == 0) and solucion_modificada.es_factible):
+                        # Se calcula la funcion objetivo de la permutacion, que sea menor que el mejor hasta el momento, se asigna como nuevo mejor.
+                        ahorro = solucion_actual.rutas[tiempo].obtener_costo() - solucion_modificada.rutas[tiempo].obtener_costo()
+                        costo_mip = Mip1.funcion_objetivo(solucion_modificada, ahorro)
+                        if (costo_mip < costo_minimo):
+                            costo_minimo = costo_mip
+                            solucion_costo_minimo = solucion_modificada.clonar()
+        # print(f"SALIDA MIP1 {solucion_costo_minimo}")
+        return solucion_costo_minimo
+
+    @staticmethod
+    def funcion_objetivo(solucion, ahorro = 0) -> float:
+        """
+        Calcula el costo asociado a una solución.
+
+        Args:
+            solucion (TipoDeSolucion): La solución para la cual calcular el costo.
+            ahorro (float, optional): El ahorro en costo de transporte al eliminar al cliente.
+
+        Retorna:
+            float: El costo total asociado a la solución.
+        """
+        constantes = constantes_contexto.get()
+        term_1 = constantes.proveedor.costo_almacenamiento * sum(solucion.inventario_proveedor)
+        term_2 = sum([(c.costo_almacenamiento * sum(solucion.inventario_clientes.get(c.id, None))) for c in constantes.clientes])
+        term_3 = ahorro
+        return (term_1 + term_2 - term_3)
+    
+class Mip2():
+    """
+    Clase que implementa el método de mejora de solución MIP2.
+
+    Methods:
+        ejecutar(solucion): Ejecuta el algoritmo MIP2 para mejorar la solución.
+        costo(solucion, cliente, tiempo, operation): Calcula el costo asociado a una solución.
+
+    Attributes:
+        No hay atributos públicos, la clase utiliza métodos estáticos.
+    """
+    @staticmethod
+    def ejecutar(solucion: Solucion) -> Solucion:
+        """
+        Ejecuta el algoritmo MIP2 para mejorar la solución.
+
+        Args:
+            solucion (TipoDeSolucion): La solución original a mejorar.
+
+        Retorna:
+            TipoDeSolucion: La solución mejorada obtenida mediante el algoritmo MIP2.
+        """
+        constantes = constantes_contexto.get()
+        solucion_costo_minimo   = solucion.clonar()
+        costo_minimo            = float("inf")
+        
+        for cliente in constantes.clientes:
+            for tiempo in range(constantes.horizonte_tiempo):
+                solucion_aux = solucion.clonar()
+                if solucion.es_visitado(cliente, tiempo):
+                    #Remover = 1   
+                    operacion = "REMOVE"
+                    costo_mip = Mip2.funcion_objetivo(solucion_aux, cliente, tiempo, operacion)
+                else: 
+                    #Insertar = 2
+                    operacion = "INSERT"
+                    costo_mip = Mip2.funcion_objetivo(solucion_aux, cliente, tiempo, 2)
+
+                if (costo_mip < costo_minimo) and (solucion_aux.cumple_restricciones(2, cliente, tiempo, operacion) == 0):
+                    costo_minimo = costo_mip
+                    solucion_costo_minimo = solucion_aux.clonar()
+        
+        # print(f"SALIDA MIP2 {solucion_costo_minimo}")
+        return solucion_costo_minimo
+
+    @staticmethod
+    def funcion_objetivo(solucion, cliente, tiempo, operacion):
+        """
+        Calcula el costo asociado a una solución.
+
+        Args:
+            solucion (TipoDeSolucion): La solución para la cual calcular el costo.
+            cliente (Cliente): El cliente involucrado en la operación.
+            tiempo (int): El tiempo en el cual se realiza la operación.
+            operacion (str): Tipo de operación, "REMOVE" o "INSERT".
+
+        Retorna:
+            float: El costo total asociado a la solución después de realizar la operación.
+        """
+        constantes = constantes_contexto.get()
+        costo_ruta_original = solucion.rutas[tiempo].obtener_costo()
+        if operacion == "REMOVE":
+            solucion.remover_visita(cliente, tiempo)
+            term_3 = costo_ruta_original - solucion.rutas[tiempo].obtener_costo()
+            term_4 = 0
+        else:
+            solucion.insertar_visita(cliente, tiempo)
+            term_3 = 0
+            term_4 = solucion.rutas[tiempo].obtener_costo() - costo_ruta_original
+        
+        term_1 = constantes.proveedor.costo_almacenamiento * sum(solucion.inventario_proveedor)
+
+        term_2 = sum([
+            (cliente.costo_almacenamiento * sum(solucion.inventario_clientes.get(cliente.id)))
+            for i, cliente in enumerate(constantes.clientes)
+        ])
+        
+        return term_1 + term_2 - term_3 + term_4

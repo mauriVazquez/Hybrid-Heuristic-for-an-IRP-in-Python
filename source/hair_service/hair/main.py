@@ -51,6 +51,9 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
     # Bucle principal del algoritmo
     while iteraciones_sin_mejoras < constantes.max_iter:
         iterador_principal += 1
+        # print(f"Constantes en la {iteraciones_sin_mejoras} iteracion")
+        # print(constantes.alfa.value)
+        # print(constantes.beta.value)
 
         # Aplicar el procedimiento de movimiento
         try:
@@ -95,7 +98,7 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
     print("\n-------------------------------MEJOR SOLUCIÓN-------------------------------\n")
     mejor_solucion.imprimir_detalle()
     execution_time = datetime.now() - start
-
+    mejor_solucion.graficar_rutas()
     return mejor_solucion, iterador_principal, execution_time
     
 def async_execute(plantilla_id, horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, user_id):

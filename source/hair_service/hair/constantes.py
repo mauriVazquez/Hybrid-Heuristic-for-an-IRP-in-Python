@@ -6,7 +6,7 @@ class Constantes():
     def __init__(self) -> None:
         #Crea un objeto ConfigParser, para leer un archivo de configuración
         config = configparser.ConfigParser()
-        config.read('config.ini')
+        config.read('hair/config.ini')
         self.politica_reabastecimiento = config['App']['politica_reabastecimiento']
         self.taboo_len = int(config['Taboo']['list_length'])
         self.lambda_ttl = float(config['Taboo']['lambda_ttl'])

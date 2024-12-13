@@ -1,5 +1,5 @@
 from modelos.solucion import Solucion
-from hair.mip2 import Mip2
+from hair.procedimientos.mejora import Mip2
 
 def salto(solucion, iterador_principal, triplets) -> Solucion:
     mejor_solucion = solucion.clonar()

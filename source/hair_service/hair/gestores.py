@@ -72,7 +72,7 @@ class FactorPenalizacion:
         """
         #Crea un objeto ConfigParser, para leer un archivo de configuración
         config = configparser.ConfigParser()
-        config.read('config.ini')
+        config.read('hair/config.ini')
         self.contador += 1
         if es_factible:
             self.soluciones_factibles += 1

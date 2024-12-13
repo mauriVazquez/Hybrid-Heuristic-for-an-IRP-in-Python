@@ -33,7 +33,7 @@ def movimiento(solucion: Solucion, tabulists, iterador_principal: int) -> Soluci
             mejor_costo = vecino.costo
 
     # Ajustar el costo umbral para considerar soluciones tabú
-    umbral_costo = 0.75 * min(solucion.costo, mejor_costo)
+    umbral_costo = 0.9 * min(solucion.costo, mejor_costo)
     for vecino in vecindario:
         if not tabulists.movimiento_permitido(solucion, vecino) and vecino.costo < umbral_costo:
             mejor_solucion = vecino.clonar()
@@ -47,6 +47,7 @@ def movimiento(solucion: Solucion, tabulists, iterador_principal: int) -> Soluci
     tabulists.actualizar(solucion, mejor_solucion, iterador_principal)
     constantes.alfa.actualizar(mejor_solucion.es_excedida_capacidad_vehiculo() == False)
     constantes.beta.actualizar(mejor_solucion.proveedor_tiene_desabastecimiento() == False)
+    
     return mejor_solucion
 
 
@@ -138,7 +139,7 @@ def _variante_eliminacion(solucion: Solucion) -> list[Solucion]:
         for t in solucion.T(cliente):
             solucion_copy = solucion.clonar()
             solucion_copy.remover_visita(cliente, t)
-            if solucion_copy.es_admisible and not solucion.es_igual(solucion_copy):
+            if (solucion_copy.es_admisible and (not solucion.es_igual(solucion_copy))):
                 vecindario_prima.append(solucion_copy)
     return vecindario_prima
 
@@ -151,10 +152,10 @@ def _variante_insercion(solucion: Solucion) -> list[Solucion]:
     vecindario_prima = []
     for t in range(len(solucion.rutas)):
         for cliente in constantes.clientes:
-            if not solucion.es_visitado(cliente, t):
+            if (not solucion.es_visitado(cliente, t)):
                 solucion_copy = solucion.clonar()
                 solucion_copy.insertar_visita(cliente, t)
-                if solucion_copy.es_admisible:
+                if (solucion_copy.es_admisible and (not solucion.es_igual(solucion_copy))):
                     vecindario_prima.append(solucion_copy)
     return vecindario_prima
 
@@ -174,7 +175,7 @@ def _variante_mover_visita(solucion: Solucion) -> list[Solucion]:
             for t_not_visitado in set_t_no_visitado:
                 solucion_copy = new_solucion.clonar()
                 solucion_copy.insertar_visita(cliente, t_not_visitado)
-                if solucion_copy.es_admisible:
+                if (solucion_copy.es_admisible and (not solucion.es_igual(solucion_copy))):
                     vecindario_prima.append(solucion_copy)
     return vecindario_prima
 
@@ -196,6 +197,6 @@ def _variante_intercambiar_visitas(solucion: Solucion) -> list[Solucion]:
                     #Añadir nuevas visitas
                     solucion_copy.insertar_visita(cliente1,iter_tprima)
                     solucion_copy.insertar_visita(cliente2,iter_t)
-                    if solucion_copy.es_admisible:
+                    if (solucion_copy.es_admisible and (not solucion.es_igual(solucion_copy))):
                         vecindario_prima.append(solucion_copy)                                           
     return vecindario_prima
