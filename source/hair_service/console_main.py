@@ -49,11 +49,13 @@ if __name__ == '__main__':
     parser.add_argument("--instancia", type=str, required=True)
     parser.add_argument("--politica_reabastecimiento", type=str)
     parser.add_argument("--horizonte_tiempo", type=int)
+    parser.add_argument("--ortools", type=bool, default=False)
     args = parser.parse_args()
     instancia = args.instancia
     horizonte_tiempo = args.horizonte_tiempo
     politica_reabastecimiento = args.politica_reabastecimiento
+    ortools = args.ortools
     horizonte_tiempo, proveedor, clientes, capacidad_vehiculo = read_input_irp(instancia, horizonte_tiempo)
     
-    mejor_solucion, iterador_principal, execution_time = execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento)
+    mejor_solucion, iterador_principal, execution_time = execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento, ortools)
     print(execution_time)

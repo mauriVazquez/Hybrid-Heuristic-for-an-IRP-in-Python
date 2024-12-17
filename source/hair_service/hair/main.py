@@ -12,7 +12,7 @@ from hair.procedimientos.mejora import mejora
 from hair.procedimientos.salto import salto
 
 
-def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento = None):
+def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento = None, ortools = False):
     """
     Algoritmo principal que ejecuta la heurística híbrida de búsqueda tabú para el problema de enrutamiento de inventario.
 
@@ -29,9 +29,9 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
     # Inicialización de la semilla, iteradores y constantes
     seed(datetime.now().timestamp())
     constantes = Constantes()
-    constantes.inicializar(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento, FactorPenalizacion(), FactorPenalizacion())
+    constantes.inicializar(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento, FactorPenalizacion(), FactorPenalizacion(), ortools)
+    print(constantes.ortools)
     constantes_contexto.set(constantes)
-    
     start = datetime.now()
     iterador_principal = 0
     iteraciones_sin_mejoras = 0
@@ -64,13 +64,13 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
 
         # Evaluar si la nueva solución es mejor
         if solucion_prima.costo < mejor_solucion.costo:
-            try:
-                solucion_prima = mejora(solucion_prima, iterador_principal)
-                mejor_solucion = solucion_prima.clonar()
-                iteraciones_sin_mejoras = 0
-            except Exception as e:
-                print(f"Error en el procedimiento de mejora: {e}")
-                break
+            # try:
+            solucion_prima = mejora(solucion_prima, iterador_principal)
+            mejor_solucion = solucion_prima.clonar()
+            iteraciones_sin_mejoras = 0
+            # except Exception as e:
+            #     print(f"Error en el procedimiento de mejora: {e}")
+            #     break
         else:
             iteraciones_sin_mejoras += 1
 

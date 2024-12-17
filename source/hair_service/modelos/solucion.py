@@ -65,7 +65,12 @@ class Solucion():
 
     def es_igual(self, solution2) -> bool:
         constantes = constantes_contexto.get()
-        return all(self.rutas[i].es_igual(solution2.rutas[i]) for i in range(constantes.horizonte_tiempo))
+        if ((self is None) and (solution2 is None)):
+            return True
+        elif ((self is None) or (solution2 is None)):
+            return False
+        else:
+            return all(self.rutas[i].es_igual(solution2.rutas[i]) for i in range(constantes.horizonte_tiempo))
     
     def es_visitado(self, cliente, t) -> bool :
         return self.rutas[t].es_visitado(cliente)

@@ -2,9 +2,12 @@ from hair.contexto import constantes_contexto
 from modelos.solucion import Solucion
 from modelos.ruta import Ruta
 
+from tsp_local.base import TSP
+from tsp_local.kopt import KOpt
+
 from ortools.constraint_solver import routing_enums_pb2
 from ortools.constraint_solver import pywrapcp
-
+from ortools.linear_solver import pywraplp
 from itertools import permutations
 
 def mejora(solucion: Solucion, iterador_principal: int) -> Solucion:
@@ -85,8 +88,20 @@ def tsp_solver(solucion: Solucion, solucion_prima: Solucion) -> Solucion:
         Solucion: La solución optimizada después de aplicar el solver TSP.
     """
     constantes = constantes_contexto.get()
-    aux_solucion = solucion.clonar() if solucion and solucion.es_igual(solucion_prima) else solucion_prima.clonar()
+    if ((solucion is not None) and (solucion.es_igual(solucion_prima))):
+        aux_solucion = solucion.clonar()
+    else:
+        if constantes.ortools:
+            aux_solucion = tsp_ortools(solucion_prima)
+        else:
+            aux_solucion = lk(solucion_prima)
+    aux_solucion.refrescar()
+    return aux_solucion
 
+
+def tsp_ortools(solucion: Solucion) -> Solucion:
+    constantes = constantes_contexto.get()
+    aux_solucion = solucion.clonar()
     for t in range(constantes.horizonte_tiempo):
         matriz_distancia = _obtener_matriz_distancia(aux_solucion.rutas[t])
         data = {"distance_matrix": matriz_distancia, "num_vehicles": 1, "depot": 0}
@@ -117,6 +132,31 @@ def tsp_solver(solucion: Solucion, solucion_prima: Solucion) -> Solucion:
             )
             aux_solucion.rutas[t] = nueva_ruta.clonar()
 
+    aux_solucion.refrescar()
+    return aux_solucion
+
+def lk(solucion: Solucion) -> Solucion:
+    aux_solucion = solucion.clonar()
+    constantes = constantes_contexto.get()
+    for tiempo in range(constantes.horizonte_tiempo):
+        tamano_matriz = len(solucion.rutas[tiempo].clientes)+1
+        matriz =  [[0] * tamano_matriz for _ in range(tamano_matriz)]
+        # Proveedor distancia
+        for indice, cliente in enumerate(solucion.rutas[tiempo].clientes):
+            matriz[0][indice+1] = cliente.distancia_proveedor
+            matriz[indice+1][0] = cliente.distancia_proveedor
+        # Clientes distancias
+        for indice, c in enumerate(solucion.rutas[tiempo].clientes):
+            for indice2, c2 in enumerate(solucion.rutas[tiempo].clientes):
+                matriz[indice+1][indice2+1] = constantes.matriz_distancia[c.id][c2.id]
+        # Make an instance with all nodes
+        TSP.setEdges(matriz)
+        path, costo = KOpt(range(len(matriz))).optimise()
+        
+        aux_solucion.rutas[tiempo] = Ruta(
+            [solucion.rutas[tiempo].clientes[indice - 1] for indice in path[1:]],
+            [solucion.rutas[tiempo].cantidades[indice - 1] for indice in path[1:]]
+        )
     aux_solucion.refrescar()
     return aux_solucion
 
