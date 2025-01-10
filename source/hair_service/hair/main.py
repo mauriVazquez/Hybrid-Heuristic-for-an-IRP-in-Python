@@ -64,13 +64,13 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
 
         # Evaluar si la nueva solución es mejor
         if solucion_prima.costo < mejor_solucion.costo:
-            # try:
-            solucion_prima = mejora(solucion_prima, iterador_principal)
-            mejor_solucion = solucion_prima.clonar()
-            iteraciones_sin_mejoras = 0
-            # except Exception as e:
-            #     print(f"Error en el procedimiento de mejora: {e}")
-            #     break
+            try:
+                solucion_prima = mejora(solucion_prima, iterador_principal)
+                mejor_solucion = solucion_prima.clonar()
+                iteraciones_sin_mejoras = 0
+            except Exception as e:
+                print(f"Error en el procedimiento de mejora: {e}")
+                break
         else:
             iteraciones_sin_mejoras += 1
 

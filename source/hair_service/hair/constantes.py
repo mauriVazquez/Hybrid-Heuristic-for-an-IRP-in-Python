@@ -20,8 +20,9 @@ class Constantes():
         self.ortools = None
         self.alfa = None
         self.beta = None
+        self.debug = None
      
-    def inicializar(self,horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento, alfa, beta, ortools) -> None:
+    def inicializar(self,horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento, alfa, beta, ortools = False, debug = True) -> None:
         self.capacidad_vehiculo         = capacidad_vehiculo
         self.horizonte_tiempo           = horizonte_tiempo
         self.max_iter                   = 200 * len(clientes)  * horizonte_tiempo
@@ -29,6 +30,7 @@ class Constantes():
         self.jump_iter                  = self.max_iter // 2
         self.alfa = alfa
         self.beta = beta
+        self.debug = beta
         if politica_reabastecimiento:     
             self.politica_reabastecimiento = politica_reabastecimiento
         

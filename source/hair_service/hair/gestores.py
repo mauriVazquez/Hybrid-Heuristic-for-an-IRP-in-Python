@@ -122,16 +122,16 @@ class TabuLists:
         self.lista_r = [item for item in self.lista_r if item[1] > main_iterator]
         constantes = constantes_contexto.get()
         for cliente in constantes.clientes:
-            self._actualizar_lista_tabú(self.lista_r, set(solucion_prima.T(cliente)) - set(solucion.T(cliente)), cliente, main_iterator)
-            self._actualizar_lista_tabú(self.lista_a, set(solucion.T(cliente)) - set(solucion_prima.T(cliente)), cliente, main_iterator)
+            self._actualizar_lista_tabú(self.lista_r, set(solucion_prima.tiempos_cliente(cliente)) - set(solucion.tiempos_cliente(cliente)), cliente, main_iterator)
+            self._actualizar_lista_tabú(self.lista_a, set(solucion.tiempos_cliente(cliente)) - set(solucion_prima.tiempos_cliente(cliente)), cliente, main_iterator)
     
     def movimiento_permitido(self, solucion_original, solucion_prima) -> bool:
         """Verifica si los movimientos para llegar de una solución a otra están permitidos."""
         constantes = constantes_contexto.get()
         for cliente in constantes.clientes:
-            if any(self._esta_en_lista(self.lista_r, [cliente.id, t]) for t in set(solucion_original.T(cliente)) - set(solucion_prima.T(cliente))):
+            if any(self._esta_en_lista(self.lista_r, [cliente.id, t]) for t in set(solucion_original.tiempos_cliente(cliente)) - set(solucion_prima.tiempos_cliente(cliente))):
                 return False
-            if any(self._esta_en_lista(self.lista_a, [cliente.id, t]) for t in set(solucion_prima.T(cliente)) - set(solucion_original.T(cliente))):
+            if any(self._esta_en_lista(self.lista_a, [cliente.id, t]) for t in set(solucion_prima.tiempos_cliente(cliente)) - set(solucion_original.tiempos_cliente(cliente))):
                 return False
         return True
     

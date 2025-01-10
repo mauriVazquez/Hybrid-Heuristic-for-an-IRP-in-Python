@@ -220,7 +220,7 @@ class Mip1():
                     solucion_costo_minimo = solucion_actual.clonar()
 
             for cliente in constantes.clientes:
-                for tiempo in solucion_actual.T(cliente):
+                for tiempo in solucion_actual.tiempos_cliente(cliente):
                     solucion_modificada = solucion_actual.clonar()
                     solucion_modificada.remover_visita(cliente, tiempo)
 
