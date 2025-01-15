@@ -56,7 +56,7 @@ class FactorPenalizacion:
         self.contador = 0
         self.iteraciones_max = iteraciones_max
         self.soluciones_factibles = 0
-
+        
     def reiniciar(self) -> None:
         """Reinicia el valor y el contador."""
         self.value = 1.0
@@ -85,10 +85,12 @@ class FactorPenalizacion:
                 # Todas las soluciones son factibles, reducir penalización
                 self.value = max(self.value * 0.5, penalty_factor_min)
                 # print("PARTE")
+                # print(self.value)
             elif self.soluciones_factibles == 0:
                 # Todas las soluciones son inviables, aumentar penalización
                 self.value = min(self.value * 2, penalty_factor_max)
                 # print("DOBLA")
+                # print(self.value)
             
             # Reiniciar el contador y el número de soluciones factibles
             self.contador = 0

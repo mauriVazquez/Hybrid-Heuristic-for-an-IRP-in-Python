@@ -145,7 +145,7 @@ class Ruta:
         self.clientes.insert(indice, cliente)
         self.cantidades.insert(indice, cantidad)
 
-    def remover_visita(self, cliente) -> int:
+    def remover_visita_atomico(self, cliente) -> int:
         """
         Elimina la visita a un cliente de la ruta.
 

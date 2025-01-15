@@ -222,7 +222,7 @@ class Mip1():
             for cliente in constantes.clientes:
                 for tiempo in solucion_actual.tiempos_cliente(cliente):
                     solucion_modificada = solucion_actual.clonar()
-                    solucion_modificada.remover_visita(cliente, tiempo)
+                    solucion_modificada.remover_visita_atomico(cliente, tiempo)
 
                     # Se veirifica que cumpla con las restricciones, retorna 0 si cumple con todas
                     cumple_restricciones = solucion_modificada.cumple_restricciones(1)
@@ -316,7 +316,7 @@ class Mip2():
         constantes = constantes_contexto.get()
         costo_ruta_original = solucion.rutas[tiempo].obtener_costo()
         if operacion == "REMOVE":
-            solucion.remover_visita(cliente, tiempo)
+            solucion.remover_visita_atomico(cliente, tiempo)
             term_3 = costo_ruta_original - solucion.rutas[tiempo].obtener_costo()
             term_4 = 0
         else:

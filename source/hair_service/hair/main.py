@@ -30,7 +30,6 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
     seed(datetime.now().timestamp())
     constantes = Constantes()
     constantes.inicializar(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento, FactorPenalizacion(), FactorPenalizacion(), ortools)
-    print(constantes.ortools)
     constantes_contexto.set(constantes)
     start = datetime.now()
     iterador_principal = 0

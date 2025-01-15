@@ -28,7 +28,7 @@ class Solucion:
         Actualiza los niveles de inventario, factibilidad, admisibilidad y costo de la solución.
         """
         self.inventario_clientes = {
-            cliente.id: self._obtener_niveles_inventario_cliente(cliente)
+            cliente.id: self._niveles_inventario_cliente(cliente)
             for cliente in self.constantes.clientes
         }
         self.inventario_proveedor = self._obtener_niveles_inventario_proveedor()
@@ -94,7 +94,7 @@ class Solucion:
         Returns:
             bool: True si las soluciones son iguales, False en caso contrario.
         """
-        return solution2 is not None and all(r1.es_igual(r2) for r1, r2 in zip(self.rutas, solution2.rutas))
+        return (solution2 is not None) and all(r1.es_igual(r2) for r1, r2 in zip(self.rutas, solution2.rutas))
 
     def es_visitado(self, cliente, t) -> bool:
         """
@@ -124,7 +124,7 @@ class Solucion:
             self.rutas[tiempo].insertar_visita(cliente, cantidad_maxima, None)
         self.refrescar()
         
-    def remover_visita(self, cliente, tiempo) -> None:
+    def remover_visita_atomico(self, cliente, tiempo) -> None:
         """
         Elimina la visita de un cliente en un tiempo dado y refresca la solución.
 
@@ -133,7 +133,7 @@ class Solucion:
             tiempo (int): Tiempo en el que se remueve la visita.
         """
         if self.es_visitado(cliente, tiempo):
-            self.rutas[tiempo].remover_visita(cliente)
+            self.rutas[tiempo].remover_visita_atomico(cliente)
         self.refrescar()
 
     def merge_rutas(self, rutabase_indice: int, rutasecondary_indice: int) -> None:
@@ -195,18 +195,22 @@ class Solucion:
             AttributeError: Si las constantes, las rutas o el proveedor no están definidas.
         """
         proveedor = self.constantes.proveedor
-        nivel_almacenamiento = proveedor.nivel_almacenamiento
+        nivel_almacenamiento = proveedor.nivel_almacenamiento + proveedor.nivel_produccion - self.rutas[0].obtener_total_entregado()
         niveles = [nivel_almacenamiento]
 
-        for t in range(self.constantes.horizonte_tiempo):
+        for t in range(1, self.constantes.horizonte_tiempo):
             nivel_almacenamiento += proveedor.nivel_produccion - self.rutas[t].obtener_total_entregado()
             niveles.append(nivel_almacenamiento)
-
+        
+        niveles.append(nivel_almacenamiento + proveedor.nivel_produccion)
         return niveles
 
-    def _obtener_niveles_inventario_cliente(self, cliente):
+    def _niveles_inventario_cliente(self, cliente):
         """
-        Calcula los niveles de inventario del cliente en cada periodo.
+        Calcula los niveles de inventario del cliente en cada periodo. Consideraciones:
+        # I(i,t) es el nivel de inventario del cliente, siendo una variable entra no negativa definida como:
+        #   - I(i,0) es el nivel de inventario inicial
+        #   - I(i,t) = I(i, t-1) + x(i,t-1) - r(i,t-1) para t perteneciente a [1, H+1]
 
         Args:
             cliente (Cliente): Cliente para calcular su inventario.
@@ -214,13 +218,10 @@ class Solucion:
         Returns:
             list[float]: Lista con los niveles de inventario del cliente en cada tiempo.
         """
-        nivel_almacenamiento = cliente.nivel_almacenamiento
-        inventario = [nivel_almacenamiento]
-
-        for t in range(1, self.constantes.horizonte_tiempo + 1):
-            nivel_almacenamiento += self.rutas[t - 1].obtener_cantidad_entregada(cliente) - cliente.nivel_demanda
-            inventario.append(nivel_almacenamiento)
-
+        inventario = [cliente.nivel_almacenamiento]
+        inventario.extend( inventario[-1] + self.rutas[t - 1].obtener_cantidad_entregada(cliente) - cliente.nivel_demanda
+            for t in range(1, self.constantes.horizonte_tiempo + 1)
+        )
         return inventario
 
 
@@ -290,7 +291,7 @@ class Solucion:
             for t in range(self.constantes.horizonte_tiempo + 1)
         )
 
-        costo_transporte = sum(ruta.obtener_costo() for ruta in self.rutas)
+        costo_transporte = sum([ruta.obtener_costo() for ruta in self.rutas])
 
         penalty1 = sum(
             max(0, ruta.obtener_total_entregado() - self.constantes.capacidad_vehiculo)
