@@ -1,5 +1,5 @@
 from modelos.ruta import Ruta
-from hair.contexto import constantes_contexto
+from hair.contexto_file import contexto_contexto
 from modelos.solucion import Solucion
 
 def inicializacion():
@@ -22,10 +22,10 @@ def inicializacion():
     Raises:
         ValueError: Si no hay clientes o si el horizonte de tiempo es inválido.
     """
-    # Obtener las constantes y datos del problema
-    constantes = constantes_contexto.get()
-    horizonte_tiempo = constantes.horizonte_tiempo
-    clientes = constantes.clientes
+    # Obtener las contexto y datos del problema
+    contexto = contexto_contexto.get()
+    horizonte_tiempo = contexto.horizonte_tiempo
+    clientes = contexto.clientes
 
     # Valido datos que podrían romper el flujo
     if not clientes:
@@ -56,6 +56,6 @@ def inicializacion():
     
     # Refrescar atributos de la solución (costo, factibilidad, etc.)
     solucion.refrescar()
-    if constantes.debug == True:
+    if contexto.debug == True:
         print(f"Inicial: {solucion}")
     return solucion

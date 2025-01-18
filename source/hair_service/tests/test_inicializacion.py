@@ -3,10 +3,10 @@ from modelos.solucion import Solucion
 from modelos.ruta import Ruta
 import math
 from modelos.entidad import Cliente, Proveedor
-from hair.constantes import Constantes
+from hair.contexto import Contexto
 from hair.gestores import FactorPenalizacion
 from hair.inicializacion import inicializacion
-from hair.contexto import constantes_contexto
+from hair.contexto_file import contexto_contexto
 
 class TestVariantesSolucion(unittest.TestCase):
     """
@@ -94,15 +94,15 @@ class TestVariantesSolucion(unittest.TestCase):
         """
         Prueba que el procedimiento de inicialización genere una solución válida y determinista.
         """
-        constantes = Constantes()
+        contexto = Contexto()
 
         for n in range(5, 51, 5):
             for i in range(1, 6):
                 horizonte_tiempo, proveedor, clientes, capacidad_vehiculo = self.read_input_irp(f'abs{i}n{n}.dat')
         
                 # Pruebas con política ML
-                constantes.inicializar(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, "ML", FactorPenalizacion(), FactorPenalizacion(), debug=False)
-                constantes_contexto.set(constantes)
+                contexto.inicializar(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, "ML", FactorPenalizacion(), FactorPenalizacion(), debug=False)
+                contexto_contexto.set(contexto)
 
                 solucion = inicializacion()
                 
@@ -110,9 +110,9 @@ class TestVariantesSolucion(unittest.TestCase):
                 self.assertIsInstance(solucion, Solucion)
 
                 # Verificar que cada cliente se respete en las restricciones de nivel de inventario
-                for cliente in constantes.clientes:
+                for cliente in contexto.clientes:
                     inventarios = solucion.inventario_clientes[cliente.id]
-                    for t in range(constantes.horizonte_tiempo):
+                    for t in range(contexto.horizonte_tiempo):
                         self.assertGreaterEqual(inventarios[t], cliente.nivel_minimo)
                         self.assertLessEqual(inventarios[t], cliente.nivel_maximo)
 
@@ -128,15 +128,15 @@ class TestVariantesSolucion(unittest.TestCase):
         Prueba que el procedimiento de inicialización siempre genere la misma solución
         bajo los mismos parámetros iniciales.
         """
-        constantes = Constantes()
+        contexto = Contexto()
 
         for n in range(5, 51, 5):
             for i in range(1, 6):
                 horizonte_tiempo, proveedor, clientes, capacidad_vehiculo = self.read_input_irp(f'abs{i}n{n}.dat')
         
                 # Pruebas con política ML
-                constantes.inicializar(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, "ML", FactorPenalizacion(), FactorPenalizacion(), debug=False)
-                constantes_contexto.set(constantes)
+                contexto.inicializar(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, "ML", FactorPenalizacion(), FactorPenalizacion(), debug=False)
+                contexto_contexto.set(contexto)
 
                 solucion_1 = inicializacion()
                 solucion_2 = inicializacion()

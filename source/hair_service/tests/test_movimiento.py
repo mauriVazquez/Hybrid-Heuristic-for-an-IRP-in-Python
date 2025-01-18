@@ -3,7 +3,7 @@ from modelos.solucion import Solucion
 from modelos.ruta import Ruta
 import math
 from modelos.entidad import Cliente, Proveedor
-from hair.constantes import Constantes
+from hair.contexto import Contexto
 from hair.gestores import FactorPenalizacion, TabuLists
 from hair.movimiento import (
     movimiento,
@@ -12,7 +12,7 @@ from hair.movimiento import (
     _variante_mover_visita,
     _variante_intercambiar_visitas
 )
-from hair.contexto import constantes_contexto
+from hair.contexto_file import contexto_contexto
 
 class TestVariantesSolucion(unittest.TestCase):
     solucion    = None
@@ -65,20 +65,20 @@ class TestVariantesSolucion(unittest.TestCase):
         alfa = FactorPenalizacion()
         beta = FactorPenalizacion()
         
-        constantes = Constantes()
-        constantes.inicializar(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, "ML", alfa, beta)
-        constantes_contexto.set(constantes)
+        contexto = Contexto()
+        contexto.inicializar(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, "ML", alfa, beta)
+        contexto_contexto.set(contexto)
     
         self.solucion = Solucion([
             Ruta([],[]),
-            Ruta([constantes.clientes[4], constantes.clientes[2]], [22,116]),
-            Ruta([constantes.clientes[3], constantes.clientes[1], constantes.clientes[0]], [72,105,95])
+            Ruta([contexto.clientes[4], contexto.clientes[2]], [22,116]),
+            Ruta([contexto.clientes[3], contexto.clientes[1], contexto.clientes[0]], [72,105,95])
         ])
         
         self.solucion2 = Solucion([
-            Ruta([constantes.clientes[2], constantes.clientes[3], constantes.clientes[4]], [116,24,18]),
-            Ruta([constantes.clientes[0], constantes.clientes[1]], [130, 70]),
-            Ruta([constantes.clientes[3], constantes.clientes[0]], [72,130])
+            Ruta([contexto.clientes[2], contexto.clientes[3], contexto.clientes[4]], [116,24,18]),
+            Ruta([contexto.clientes[0], contexto.clientes[1]], [130, 70]),
+            Ruta([contexto.clientes[3], contexto.clientes[0]], [72,130])
         ])
 
     def test_general(self):

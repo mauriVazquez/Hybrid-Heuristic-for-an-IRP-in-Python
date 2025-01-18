@@ -1,6 +1,6 @@
 from modelos.solucion import Solucion
 from random import randint
-from hair.contexto import constantes_contexto
+from hair.contexto_file import contexto_contexto
 
 def movimiento(solucion: Solucion, tabulists, iterador_principal: int) -> Solucion:
     """
@@ -15,7 +15,7 @@ def movimiento(solucion: Solucion, tabulists, iterador_principal: int) -> Soluci
     Returns:
         Solucion: La mejor solución encontrada para el vecindario de la solución ingresada.
     """
-    constantes = constantes_contexto.get()
+    contexto = contexto_contexto.get()
     # Crear el vecindario primario (N'(s))
     vecindario_prima = _crear_n_prima(solucion)
 
@@ -46,8 +46,8 @@ def movimiento(solucion: Solucion, tabulists, iterador_principal: int) -> Soluci
     # Actualizar la lista tabú con la mejor solución seleccionada
     mejor_solucion.refrescar()
     tabulists.actualizar(solucion, mejor_solucion, iterador_principal)
-    constantes.alfa.actualizar(not mejor_solucion.es_excedida_capacidad_vehiculo())
-    constantes.beta.actualizar(not mejor_solucion.proveedor_tiene_desabastecimiento())
+    contexto.alfa.actualizar(not mejor_solucion.es_excedida_capacidad_vehiculo())
+    contexto.beta.actualizar(not mejor_solucion.proveedor_tiene_desabastecimiento())
     # print(f"MOVIMIENTO {mejor_solucion}")
     mejor_solucion.refrescar()
     return mejor_solucion
@@ -82,22 +82,22 @@ def _crear_n(solucion: Solucion, vecindario_prima: list[Solucion]) -> list[Soluc
     Returns:
         list[Solucion]: Vecindario final tras aplicar las políticas de reabastecimiento.
     """
-    constantes = constantes_contexto.get()
+    contexto = contexto_contexto.get()
     vecindario = []
 
     for solucion_prima in vecindario_prima:
-        conjunto_A = [cliente for cliente in constantes.clientes if solucion.tiempos_cliente(cliente) != solucion_prima.tiempos_cliente(cliente)]
+        conjunto_A = [cliente for cliente in contexto.clientes if solucion.tiempos_cliente(cliente) != solucion_prima.tiempos_cliente(cliente)]
 
         while conjunto_A:
             cliente_removido = conjunto_A.pop(randint(0, len(conjunto_A) - 1))
 
             for t in solucion_prima.tiempos_cliente(cliente_removido):
                 for cliente in solucion_prima.rutas[t].clientes:
-                    if (cliente.costo_almacenamiento > constantes.proveedor.costo_almacenamiento) or \
-                       (solucion_prima.rutas[t].obtener_total_entregado() > constantes.capacidad_vehiculo) or \
+                    if (cliente.costo_almacenamiento > contexto.proveedor.costo_almacenamiento) or \
+                       (solucion_prima.rutas[t].obtener_total_entregado() > contexto.capacidad_vehiculo) or \
                        (solucion_prima.inventario_proveedor[t] < 0):
 
-                        if constantes.politica_reabastecimiento == "OU":
+                        if contexto.politica_reabastecimiento == "OU":
                             solucion_dosprima = solucion_prima.clonar()
                             solucion_dosprima.eliminar_visita(cliente, t)
 
@@ -105,7 +105,7 @@ def _crear_n(solucion: Solucion, vecindario_prima: list[Solucion]) -> list[Soluc
                                 solucion_prima = solucion_dosprima
                                 conjunto_A.append(cliente)
 
-                        elif constantes.politica_reabastecimiento == "ML":
+                        elif contexto.politica_reabastecimiento == "ML":
                             xjt = solucion_prima.rutas[t].obtener_cantidad_entregada(cliente)
                             niveles_inventario = solucion_prima.inventario_clientes.get(cliente.id, [])
                             niveles_futuros = niveles_inventario[t + 1:] if niveles_inventario else []
@@ -149,10 +149,10 @@ def _variante_insercion(solucion: Solucion) -> list[Solucion]:
     """
     Genera soluciones insertando nuevas visitas a clientes en la solución actual.
     """
-    constantes = constantes_contexto.get()
+    contexto = contexto_contexto.get()
     vecindario_prima = []
-    for cliente in constantes.clientes:
-        tiempos_no_visitados = (set(range(constantes.horizonte_tiempo)) - set(solucion.tiempos_cliente(cliente)))
+    for cliente in contexto.clientes:
+        tiempos_no_visitados = (set(range(contexto.horizonte_tiempo)) - set(solucion.tiempos_cliente(cliente)))
         for tiempo in tiempos_no_visitados:
             solucion_copy = _insertar_visita(solucion, cliente, tiempo)
             if solucion_copy is not None:
@@ -165,11 +165,11 @@ def _variante_mover_visita(solucion: Solucion) -> list[Solucion]:
     """
     Genera soluciones moviendo visitas de un cliente entre diferentes tiempos de entrega.
     """
-    constantes = constantes_contexto.get()
+    contexto = contexto_contexto.get()
     vecindario_prima = []
-    for cliente in constantes.clientes:
+    for cliente in contexto.clientes:
         set_t_visitado = solucion.tiempos_cliente(cliente)
-        set_t_no_visitado = (set(range(constantes.horizonte_tiempo)) - set(set_t_visitado))
+        set_t_no_visitado = (set(range(contexto.horizonte_tiempo)) - set(set_t_visitado))
         for t_visitado in set_t_visitado:
             new_solucion = _eliminar_visita(solucion, cliente,t_visitado)
             if new_solucion is not None:
@@ -186,10 +186,10 @@ def _variante_intercambiar_visitas(solucion: Solucion) -> list[Solucion]:
     """
     Genera soluciones intercambiando visitas entre dos clientes en diferentes tiempos de entrega.
     """
-    constantes = constantes_contexto.get()
+    contexto = contexto_contexto.get()
     vecindario_prima = []
-    for cliente1 in constantes.clientes:
-        for cliente2 in list(set(constantes.clientes) -set([cliente1])):
+    for cliente1 in contexto.clientes:
+        for cliente2 in list(set(contexto.clientes) -set([cliente1])):
             for iter_t in (set(solucion.tiempos_cliente(cliente1)) - set(solucion.tiempos_cliente(cliente2))):
                 for iter_tprima in (set(solucion.tiempos_cliente(cliente2)) - set(solucion.tiempos_cliente(cliente1))):
                     # Remover visitas
@@ -208,7 +208,7 @@ def _variante_intercambiar_visitas(solucion: Solucion) -> list[Solucion]:
 
 
 def _eliminar_visita(solucion, cliente, tiempo):
-    constantes = constantes_contexto.get()
+    contexto = contexto_contexto.get()
     solucion_prima = solucion.clonar()
     solucion_prima.refrescar()
     tiempos_cliente = solucion_prima.tiempos_cliente(cliente)
@@ -222,7 +222,7 @@ def _eliminar_visita(solucion, cliente, tiempo):
         solucion_prima.refrescar()
         nuevo_inventario_cliente = solucion_prima.inventario_clientes.get(cliente.id, None)
         
-        if constantes.politica_reabastecimiento == "OU":
+        if contexto.politica_reabastecimiento == "OU":
             # Verifico si hay una próxima visita para transferir la cantidad eliminada
             if index < len(tiempos_cliente) - 1:
                 tiempo_siguiente = tiempos_cliente[index + 1]
@@ -238,7 +238,7 @@ def _eliminar_visita(solucion, cliente, tiempo):
             if not solucion_prima.es_admisible:
                 return None  # No es admisible, descarto la eliminación
         
-        elif constantes.politica_reabastecimiento == "ML":
+        elif contexto.politica_reabastecimiento == "ML":
             # En la política ML, si hay desabastecimiento:
             if any([valor < cliente.nivel_minimo for valor in nuevo_inventario_cliente]):
                 # Si no era la primera visita, intento incrementar la cantidad en la visita previa
@@ -273,19 +273,19 @@ def _insertar_visita(solucion, cliente, tiempo):
     Returns:
         Solucion: Una nueva solución con la visita insertada, o None si no es admisible.
     """
-    constantes = constantes_contexto.get()
+    contexto = contexto_contexto.get()
     solucion_prima = solucion.clonar()
     solucion_prima.refrescar()
     tiempos_cliente = solucion_prima.tiempos_cliente(cliente)
     
     if tiempo not in tiempos_cliente:
         # Calculamos la cantidad máxima permitida
-        if constantes.politica_reabastecimiento == "OU":
+        if contexto.politica_reabastecimiento == "OU":
             entrega = cliente.nivel_maximo - solucion_prima.inventario_clientes.get(cliente.id, None)[tiempo]
-        elif constantes.politica_reabastecimiento == "ML":
+        elif contexto.politica_reabastecimiento == "ML":
             entrega = min(
                 cliente.nivel_maximo - solucion_prima.inventario_clientes.get(cliente.id, None)[tiempo], 
-                constantes.capacidad_vehiculo - solucion_prima.rutas[tiempo].obtener_total_entregado(), 
+                contexto.capacidad_vehiculo - solucion_prima.rutas[tiempo].obtener_total_entregado(), 
                 solucion_prima.inventario_proveedor[tiempo]
             )
             if entrega <= 0:
@@ -295,7 +295,7 @@ def _insertar_visita(solucion, cliente, tiempo):
         solucion_prima.rutas[tiempo].insertar_visita(cliente, entrega, None)
         solucion_prima.refrescar()
         
-        if constantes.politica_reabastecimiento == "OU":
+        if contexto.politica_reabastecimiento == "OU":
             nuevos_tiempos_cliente = solucion_prima.tiempos_cliente(cliente)
             index = nuevos_tiempos_cliente.index(tiempo)
             if index < len(nuevos_tiempos_cliente) - 1:

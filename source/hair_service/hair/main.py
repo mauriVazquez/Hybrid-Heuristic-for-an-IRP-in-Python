@@ -1,11 +1,11 @@
 import requests
 from random                     import seed
 from datetime                   import datetime
-from hair.contexto import constantes_contexto
+from hair.contexto_file import contexto_contexto
 #Parámetros variables (penalización y triplets)
 from hair.gestores           import Triplets, TabuLists, FactorPenalizacion
 #Procedimientos HAIR
-from hair.constantes import Constantes
+from hair.contexto import Contexto
 from hair.inicializacion import inicializacion
 from hair.movimiento import movimiento
 from hair.mejora import mejora
@@ -26,11 +26,11 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
     Returns:
         tuple: Mejor solución encontrada, cantidad de iteraciones y tiempo de ejecución.
     """
-    # Inicialización de la semilla, iteradores y constantes
+    # Inicialización de la semilla, iteradores y contexto
     seed(datetime.now().timestamp())
-    constantes = Constantes()
-    constantes.inicializar(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento, FactorPenalizacion(), FactorPenalizacion(), ortools)
-    constantes_contexto.set(constantes)
+    contexto = Contexto()
+    contexto.inicializar(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento, FactorPenalizacion(), FactorPenalizacion(), ortools)
+    contexto_contexto.set(contexto)
     start = datetime.now()
     iterador_principal = 0
     iteraciones_sin_mejoras = 0
@@ -48,11 +48,11 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
         return None, iterador_principal, datetime.now() - start
     
     # Bucle principal del algoritmo
-    while iteraciones_sin_mejoras < constantes.max_iter:
+    while iteraciones_sin_mejoras < contexto.max_iter:
         iterador_principal += 1
-        # print(f"Constantes en la {iteraciones_sin_mejoras} iteracion")
-        # print(constantes.alfa.value)
-        # print(constantes.beta.value)
+        # print(f"Contexto en la {iteraciones_sin_mejoras} iteracion")
+        # print(contexto.alfa.value)
+        # print(contexto.beta.value)
 
         # Aplicar el procedimiento de movimiento
         try:
@@ -77,12 +77,12 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
         solucion = solucion_prima.clonar()
 
         # Procedimiento de salto
-        if (iteraciones_sin_mejoras) > 0 and ((iteraciones_sin_mejoras % constantes.jump_iter) == 0):
+        if (iteraciones_sin_mejoras) > 0 and ((iteraciones_sin_mejoras % contexto.jump_iter) == 0):
             try:
                 solucion = salto(solucion, iterador_principal, triplets)
                 iteraciones_sin_saltar = 0
-                constantes.alfa.reiniciar()
-                constantes.beta.reiniciar()
+                contexto.alfa.reiniciar()
+                contexto.beta.reiniciar()
                 tabulists.reiniciar()
                 triplets.reiniciar()
             except Exception as e:
@@ -90,7 +90,7 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
                 break
         else:
             iteraciones_sin_saltar += 1
-            if iteraciones_sin_saltar > (constantes.jump_iter / 2):
+            if iteraciones_sin_saltar > (contexto.jump_iter / 2):
                 triplets.eliminar_triplets_solucion(solucion)
 
     # Mostrar la mejor solución encontrada

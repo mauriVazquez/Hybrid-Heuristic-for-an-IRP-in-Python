@@ -3,7 +3,7 @@ import configparser
 from random import randint
 from typing import List
 from modelos.solucion import Solucion
-from hair.contexto import constantes_contexto
+from hair.contexto_file import contexto_contexto
 
 class Triplets:
     """
@@ -24,12 +24,12 @@ class Triplets:
 
     def reiniciar(self) -> None:
         """ Inicializa la lista de triplets. """
-        constantes = constantes_contexto.get()
+        contexto = contexto_contexto.get()
         self.triplets: List[List[int]] = [
             [cliente, t1, t2]
-            for cliente in constantes.clientes
-            for t1 in range(int(constantes.horizonte_tiempo))
-            for t2 in range(int(constantes.horizonte_tiempo)) if t1 != t2
+            for cliente in contexto.clientes
+            for t1 in range(int(contexto.horizonte_tiempo))
+            for t2 in range(int(contexto.horizonte_tiempo)) if t1 != t2
         ]
 
     def obtener_triplet_aleatorio(self) -> List[int]:
@@ -112,22 +112,22 @@ class TabuLists:
         """Representación en cadena de la instancia."""
         return f"lista_a: {self.lista_a}, lista_r: {self.lista_r}"
 
-    _obtener_ttl = staticmethod(lambda constantes: constantes.taboo_len + randint(0, math.floor(constantes.lambda_ttl * math.sqrt(len(constantes.clientes) * constantes.horizonte_tiempo))))
+    _obtener_ttl = staticmethod(lambda contexto: contexto.taboo_len + randint(0, math.floor(contexto.lambda_ttl * math.sqrt(len(contexto.clientes) * contexto.horizonte_tiempo))))
     _esta_en_lista = staticmethod(lambda lista, sublista: any(item[0] == sublista for item in lista))
     
     def actualizar(self, solucion : Solucion, solucion_prima : Solucion, main_iterator: int) -> None:
         """Actualiza las listas tabú eliminando entradas expiradas y agregando nuevos movimientos prohibidos."""
         self.lista_a = [item for item in self.lista_a if item[1] > main_iterator]
         self.lista_r = [item for item in self.lista_r if item[1] > main_iterator]
-        constantes = constantes_contexto.get()
-        for cliente in constantes.clientes:
+        contexto = contexto_contexto.get()
+        for cliente in contexto.clientes:
             self._actualizar_lista_tabú(self.lista_r, set(solucion_prima.tiempos_cliente(cliente)) - set(solucion.tiempos_cliente(cliente)), cliente, main_iterator)
             self._actualizar_lista_tabú(self.lista_a, set(solucion.tiempos_cliente(cliente)) - set(solucion_prima.tiempos_cliente(cliente)), cliente, main_iterator)
     
     def movimiento_permitido(self, solucion_original : Solucion, solucion_prima : Solucion) -> bool:
         """Verifica si los movimientos para llegar de una solución a otra están permitidos."""
-        constantes = constantes_contexto.get()
-        for cliente in constantes.clientes:
+        contexto = contexto_contexto.get()
+        for cliente in contexto.clientes:
             if any(self._esta_en_lista(self.lista_r, [cliente.id, t]) for t in set(solucion_original.tiempos_cliente(cliente)) - set(solucion_prima.tiempos_cliente(cliente))):
                 return False
             if any(self._esta_en_lista(self.lista_a, [cliente.id, t]) for t in set(solucion_prima.tiempos_cliente(cliente)) - set(solucion_original.tiempos_cliente(cliente))):
@@ -136,5 +136,5 @@ class TabuLists:
     
     def _actualizar_lista_tabú(self, lista: List, elementos: set, cliente, main_iterator: int) -> None:
         """Agrega movimientos prohibidos a la lista tabú si no están ya presentes."""
-        constantes = constantes_contexto.get()
-        lista += [[[cliente.id, t], main_iterator + self._obtener_ttl(constantes)] for t in elementos if not self._esta_en_lista(lista, [cliente.id, t])]
+        contexto = contexto_contexto.get()
+        lista += [[[cliente.id, t], main_iterator + self._obtener_ttl(contexto)] for t in elementos if not self._esta_en_lista(lista, [cliente.id, t])]

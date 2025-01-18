@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 from modelos.ruta import Ruta
 from modelos.entidad import Cliente
-from hair.contexto import constantes_contexto
+from hair.contexto_file import contexto_contexto
 
 class Solucion:
     """
@@ -18,8 +18,8 @@ class Solucion:
         Args:
             rutas (list[Ruta], opcional): Conjunto de rutas que conforman la solución. En caso de no incluirse se generan H rutas vacías.
         """
-        self.constantes = constantes_contexto.get()
-        self.rutas = rutas or [Ruta([], []) for _ in range(self.constantes.horizonte_tiempo)]
+        self.contexto = contexto_contexto.get()
+        self.rutas = rutas or [Ruta([], []) for _ in range(self.contexto.horizonte_tiempo)]
         self.refrescar()
         
     def __str__(self) -> str:
@@ -45,7 +45,7 @@ class Solucion:
             dict: Representación en JSON de la solución.
         """
         return {
-            "proveedor_id"  : str(self.constantes.proveedor.id),
+            "proveedor_id"  : str(self.contexto.proveedor.id),
             "iteration"     : iteration,
             "tag"           : tag,
             "rutas"         : {i: ruta.__json__() for i, ruta in enumerate(self.rutas)},
@@ -73,7 +73,7 @@ class Solucion:
         """
         self.inventario_clientes = {
             cliente.id: self._niveles_inventario_cliente(cliente)
-                for cliente in self.constantes.clientes
+                for cliente in self.contexto.clientes
         }
         self.inventario_proveedor   = self._obtener_niveles_inventario_proveedor()
         self.es_factible            = self._es_factible()
@@ -137,8 +137,8 @@ class Solucion:
         """
         return any(
             self.inventario_clientes[cliente.id][t] < cliente.nivel_minimo
-            for cliente in self.constantes.clientes
-            for t in range(self.constantes.horizonte_tiempo)
+            for cliente in self.contexto.clientes
+            for t in range(self.contexto.horizonte_tiempo)
         )
 
     def _cliente_tiene_sobreabastecimiento(self) -> bool:
@@ -150,8 +150,8 @@ class Solucion:
         """
         return any(
             self.inventario_clientes[cliente.id][t] > cliente.nivel_maximo
-            for cliente in self.constantes.clientes
-            for t in range(self.constantes.horizonte_tiempo)
+            for cliente in self.contexto.clientes
+            for t in range(self.contexto.horizonte_tiempo)
         )
 
     def es_excedida_capacidad_vehiculo(self) -> bool:
@@ -161,7 +161,7 @@ class Solucion:
         Returns:
             bool: True si alguna ruta excede la capacidad, False en caso contrario.
         """
-        return any(self.constantes.capacidad_vehiculo < ruta.obtener_total_entregado() for ruta in self.rutas)
+        return any(self.contexto.capacidad_vehiculo < ruta.obtener_total_entregado() for ruta in self.rutas)
     
     def insertar_visita(self, cliente : Cliente, tiempo: int) -> None:
         """
@@ -216,7 +216,7 @@ class Solucion:
         Returns:
             list[int]: Lista de índices de tiempo donde el cliente es visitado.
         """
-        return [t for t in range(self.constantes.horizonte_tiempo) if self.rutas[t].es_visitado(cliente)]
+        return [t for t in range(self.contexto.horizonte_tiempo) if self.rutas[t].es_visitado(cliente)]
 
 
     def _obtener_niveles_inventario_proveedor(self) -> list[float]:
@@ -227,12 +227,12 @@ class Solucion:
             list[float]: Lista con los niveles de inventario del proveedor en cada tiempo.
 
         Raises:
-            AttributeError: Si las constantes, las rutas o el proveedor no están definidas.
+            AttributeError: Si las contexto, las rutas o el proveedor no están definidas.
         """
-        proveedor = self.constantes.proveedor
+        proveedor = self.contexto.proveedor
         inventario = [proveedor.nivel_almacenamiento]
         inventario.extend( inventario[-1] + proveedor.nivel_produccion - self.rutas[t - 1].obtener_total_entregado()
-            for t in range(1, self.constantes.horizonte_tiempo + 1)
+            for t in range(1, self.contexto.horizonte_tiempo + 1)
         )
         return inventario
 
@@ -251,7 +251,7 @@ class Solucion:
         """
         inventario = [cliente.nivel_almacenamiento]
         inventario.extend( inventario[-1] + self.rutas[t - 1].obtener_cantidad_entregada(cliente) - cliente.nivel_demanda
-            for t in range(1, self.constantes.horizonte_tiempo + 1)
+            for t in range(1, self.contexto.horizonte_tiempo + 1)
         )
         return inventario
 
@@ -262,18 +262,18 @@ class Solucion:
         Returns:
             float: Costo total de la solución.
         """
-        constantes = self.constantes
+        contexto = self.contexto
         
-        costo_almacenamiento = sum(nivel * constantes.proveedor.costo_almacenamiento for nivel in self.inventario_proveedor)
-        costo_almacenamiento += sum(c.costo_almacenamiento * sum(self.inventario_clientes[c.id]) for c in constantes.clientes)
+        costo_almacenamiento = sum(nivel * contexto.proveedor.costo_almacenamiento for nivel in self.inventario_proveedor)
+        costo_almacenamiento += sum(c.costo_almacenamiento * sum(self.inventario_clientes[c.id]) for c in contexto.clientes)
 
         costo_transporte = sum([ruta.costo for ruta in self.rutas])
         
         penalty1 = sum(
-            max(0, ruta.obtener_total_entregado() - constantes.capacidad_vehiculo) for ruta in self.rutas
-        ) * constantes.alfa.obtener_valor()
+            max(0, ruta.obtener_total_entregado() - contexto.capacidad_vehiculo) for ruta in self.rutas
+        ) * contexto.alfa.obtener_valor()
 
-        penalty2 = sum(max(0, -nivel) for nivel in self.inventario_proveedor) * constantes.beta.obtener_valor()
+        penalty2 = sum(max(0, -nivel) for nivel in self.inventario_proveedor) * contexto.beta.obtener_valor()
 
         return costo_almacenamiento + costo_transporte + penalty1 + penalty2
 
@@ -284,8 +284,8 @@ class Solucion:
 
         Cada ruta muestra el recorrido desde y hacia el proveedor.
         """
-        constantes = self.constantes
-        proveedor = constantes.proveedor
+        contexto = self.contexto
+        proveedor = contexto.proveedor
         rutas = self.rutas
         num_rutas = len(rutas)
 
