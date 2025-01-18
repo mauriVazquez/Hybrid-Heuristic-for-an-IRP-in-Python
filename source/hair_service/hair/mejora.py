@@ -2,6 +2,8 @@ from hair.contexto import constantes_contexto
 from modelos.solucion import Solucion
 from modelos.ruta import Ruta
 
+import numpy as np
+
 from tsp_local.base import TSP
 from tsp_local.kopt import KOpt
 
@@ -104,7 +106,7 @@ def tsp_ortools(solucion: Solucion) -> Solucion:
     aux_solucion = solucion.clonar()
     for t in range(constantes.horizonte_tiempo):
         matriz_distancia = _obtener_matriz_distancia(aux_solucion.rutas[t])
-        data = {"distance_matrix": matriz_distancia, "num_vehicles": 1, "depot": 0}
+        data    = {"distance_matrix": matriz_distancia, "num_vehicles": 1, "depot": 0}
         manager = pywrapcp.RoutingIndexManager(len(data["distance_matrix"]), data["num_vehicles"], data["depot"])
         routing = pywrapcp.RoutingModel(manager)
 
@@ -209,11 +211,8 @@ class Mip1():
                 Ruta(list(solucion_original.rutas[i].clientes), list(solucion_original.rutas[i].cantidades)) for i in perm
             ])
             
-            # Se veirifica que cumpla con las restricciones, retorna 0 si cumple con todas
-            cumple_restricciones = solucion_actual.cumple_restricciones(1)
-            
             # Se calcula la funcion objetivo de la permutacion, que sea menor que el mejor hasta el momento, se asigna como nuevo mejor.
-            if (cumple_restricciones == 0):
+            if (cumple_restricciones(solucion_actual, 1) == 0):
                 costo_mip = Mip1.funcion_objetivo(solucion_actual)
                 if (costo_mip < costo_minimo):
                     costo_minimo = costo_mip
@@ -222,13 +221,12 @@ class Mip1():
             for cliente in constantes.clientes:
                 for tiempo in solucion_actual.tiempos_cliente(cliente):
                     solucion_modificada = solucion_actual.clonar()
-                    solucion_modificada.remover_visita_atomico(cliente, tiempo)
+                    solucion_modificada.eliminar_visita(cliente, tiempo)
 
                     # Se veirifica que cumpla con las restricciones, retorna 0 si cumple con todas
-                    cumple_restricciones = solucion_modificada.cumple_restricciones(1)
-                    if((cumple_restricciones == 0) and solucion_modificada.es_factible):
+                    if((cumple_restricciones(solucion_modificada, 1) == 0) and solucion_modificada.es_factible):
                         # Se calcula la funcion objetivo de la permutacion, que sea menor que el mejor hasta el momento, se asigna como nuevo mejor.
-                        ahorro = solucion_actual.rutas[tiempo].obtener_costo() - solucion_modificada.rutas[tiempo].obtener_costo()
+                        ahorro = solucion_actual.rutas[tiempo].costo - solucion_modificada.rutas[tiempo].costo
                         costo_mip = Mip1.funcion_objetivo(solucion_modificada, ahorro)
                         if (costo_mip < costo_minimo):
                             costo_minimo = costo_mip
@@ -283,7 +281,7 @@ class Mip2():
         for cliente in constantes.clientes:
             for tiempo in range(constantes.horizonte_tiempo):
                 solucion_aux = solucion.clonar()
-                if solucion.es_visitado(cliente, tiempo):
+                if solucion.rutas[tiempo].es_visitado(cliente):
                     #Remover = 1   
                     operacion = "REMOVE"
                     costo_mip = Mip2.funcion_objetivo(solucion_aux, cliente, tiempo, operacion)
@@ -292,7 +290,7 @@ class Mip2():
                     operacion = "INSERT"
                     costo_mip = Mip2.funcion_objetivo(solucion_aux, cliente, tiempo, 2)
 
-                if (costo_mip < costo_minimo) and (solucion_aux.cumple_restricciones(2, cliente, tiempo, operacion) == 0):
+                if (costo_mip < costo_minimo) and (cumple_restricciones(solucion_aux, 2, cliente, tiempo, operacion) == 0):
                     costo_minimo = costo_mip
                     solucion_costo_minimo = solucion_aux.clonar()
         
@@ -314,15 +312,15 @@ class Mip2():
             float: El costo total asociado a la solución después de realizar la operación.
         """
         constantes = constantes_contexto.get()
-        costo_ruta_original = solucion.rutas[tiempo].obtener_costo()
+        costo_ruta_original = solucion.rutas[tiempo].costo
         if operacion == "REMOVE":
-            solucion.remover_visita_atomico(cliente, tiempo)
-            term_3 = costo_ruta_original - solucion.rutas[tiempo].obtener_costo()
+            solucion.eliminar_visita(cliente, tiempo)
+            term_3 = costo_ruta_original - solucion.rutas[tiempo].costo
             term_4 = 0
         else:
             solucion.insertar_visita(cliente, tiempo)
             term_3 = 0
-            term_4 = solucion.rutas[tiempo].obtener_costo() - costo_ruta_original
+            term_4 = solucion.rutas[tiempo].costo - costo_ruta_original
         
         term_1 = constantes.proveedor.costo_almacenamiento * sum(solucion.inventario_proveedor)
 
@@ -332,3 +330,143 @@ class Mip2():
         ])
         
         return term_1 + term_2 - term_3 + term_4
+
+def cumple_restricciones(solucion, MIP, MIPcliente = None, MIPtiempo = None, operation = None):
+        constantes = solucion.constantes
+        B   = solucion.inventario_proveedor
+        I   = [solucion.inventario_clientes.get(cliente.id, None) for cliente in constantes.clientes]
+        r0  = [constantes.proveedor.nivel_produccion for t in range(constantes.horizonte_tiempo+1)]
+        ri  = [c.nivel_demanda for c in constantes.clientes]
+        x   = [
+            [solucion.rutas[t].obtener_cantidad_entregada(c) for t in range(constantes.horizonte_tiempo)]
+            for c in constantes.clientes
+        ]
+        x_np = np.array(x)
+        theta = [
+            [(1 if solucion.rutas[t].es_visitado(c) else 0) for t in range(constantes.horizonte_tiempo)]
+            for c in constantes.clientes
+        ]
+        
+        # Variables MIP 2
+        v   = [
+            [ (1 if ((operation == "INSERT") and (MIPtiempo == t) and (MIPcliente == c)) else 0 ) for t in range(constantes.horizonte_tiempo)]
+            for c in constantes.clientes
+        ]
+        w   = [
+            [ (1 if ((operation == "REMOVE") and (MIPtiempo == t) and (MIPcliente == c)) else 0 ) for t in range(constantes.horizonte_tiempo)]
+            for c in constantes.clientes
+        ]
+        sigma = [
+            [(1 if solucion.rutas[t].es_visitado(c) else 0) for t in range(constantes.horizonte_tiempo)]
+            for c in constantes.clientes
+        ]
+       
+        # Restricción 2: Definición del nivel de inventario del proveedor.
+        if (not all([(B[t] == (B[t-1] + r0[t-1] - np.sum( x_np[:, t-1]))) for t in range(1, constantes.horizonte_tiempo+1)])):
+            return 2            
+        
+        # Restricción 3: El nivel de inventario del proveedor debe poder satisfacer la demanda en el tiempo t.
+        if (not all(B[t] >= np.sum( x_np[:, t]) for t in range(constantes.horizonte_tiempo))):
+            return 3
+        
+        # Restricción 4: Definición del nivel de inventario de los clientes
+        if (not all([(I[c][t] == (I[c][t-1] + x[c][t-1] - ri[c] ))
+                for c in range(len(constantes.clientes))
+                for t in range(1, constantes.horizonte_tiempo+1)]
+        )):
+            return 4
+        
+        if constantes.politica_reabastecimiento == "OU": 
+            # Restricción 5: La cantidad entregada al cliente no es menos de la necesaria para llenar el inventario.
+            if (not all([(x[c][t] >= ((cliente.nivel_maximo * theta[c][t]) - I[c][t]))
+                for c, cliente in enumerate(constantes.clientes)
+                for t in range(constantes.horizonte_tiempo)]
+            )):
+                return 5
+        
+        # Restricción 6: La cantidad entregada al cliente no debe generar sobreabastecimiento en el cliente.
+        if (not all([( x[c][t] <= (cliente.nivel_maximo - I[c][t]) )
+            for c, cliente in enumerate(constantes.clientes)
+            for t in range(constantes.horizonte_tiempo)]
+        )):
+            return 6
+        
+        if constantes.politica_reabastecimiento == "OU":
+            # Restricción 7: La cantidad entregada a un cliente es menor o igual al nivel máximo de inventario si es que lo visita.
+            if  (not all([( x[c][t] <= (cliente.nivel_maximo * theta[c][t]) )
+                for c, cliente in enumerate(constantes.clientes)
+                for t in range(constantes.horizonte_tiempo)]
+            )):
+                return 7
+            
+        # Restricción 8: La cantidad entregada a los clientes en un t dado, es menor o igual a la capacidad del camión.
+        if (not all([np.sum( x_np[:, t]) <= constantes.capacidad_vehiculo for t in range(constantes.horizonte_tiempo)])):
+            return 8
+        
+        if MIP == 1:
+            #  Restricción 9: Una ruta solo puede asignarse a un período de tiempo
+            if not all(sum(ruta) <= 1 for ruta in sigma):
+                return 9
+
+            # Restricción 10: Solo una ruta puede asignarse a un período de tiempo dado
+            if not all(sum(tiempo) <= 1 for tiempo in zip(*sigma)):
+                return 10
+
+            # Restricción 11: Un cliente puede ser atendido solo si la ruta está asignada
+            if not all(x[c][t] <= constantes.clientes[c].nivel_maximo * sigma[c][t] for c in range(len(constantes.clientes)) for t in range(constantes.horizonte_tiempo)):
+                return 11
+
+            # Restricción 12: No puede atenderse un cliente si fue removido de la ruta asignada
+            if not all(x[c][t] == 0 if w[c][t] else True for c in range(len(constantes.clientes)) for t in range(constantes.horizonte_tiempo)):
+                return 12
+            
+            # Restricción 13: Un cliente puede ser removido solo si su ruta está asignada
+            if not all(w[c][t] <= sigma[c][t] for c in range(len(constantes.clientes)) for t in range(constantes.horizonte_tiempo)):
+                return 13
+
+            # Restricción 18: Las variables de asignación de rutas (zr_t) deben ser binarias
+            if not all(value in [0, 1] for fila in sigma for value in fila):
+                return 18
+
+            # Restricción 19: La variable de asignación epsilon_it debe ser binaria
+            if not all(value in [0, 1] for fila in theta for value in fila):
+                return 19
+
+            # Restricción 20: El inventario en los clientes debe ser mayor o igual a cero
+            if not all(I[c][t] >= 0 for c in range(len(constantes.clientes)) for t in range(constantes.horizonte_tiempo)):
+                return 20
+        
+        # Restricción 14: La cantidad entregada a los clientes siempre debe ser mayor o igual a cero
+        if not np.all(x_np >= 0):
+            return 14
+        
+        #Restricción 17: Theeta puede tener el valor 0 o 1
+        if constantes.politica_reabastecimiento == "OU":
+            if not all(value in [0, 1] for fila in theta for value in fila):
+                return 17
+          
+        if MIP == 2:            
+            # Restricción 21 (MIP2): Si se inserta una visita, no debe haber una visita existente
+            if not all(v[c][t] <= 1 - sigma[c][t] for c in range(len(constantes.clientes)) for t in range(constantes.horizonte_tiempo)):
+                return 21
+
+            # Restricción 22 (MIP2): Si se elimina una visita, debe existir previamente una visita
+            if not all(w[c][t] <= sigma[c][t] for c in range(len(constantes.clientes)) for t in range(constantes.horizonte_tiempo)):
+                return 22
+    
+            # Restricción 23: La cantidad entregada al cliente i no puede ser mayor a la capacidad máxima
+            if not all([ ( x[c][t] <= (cliente.nivel_maximo * (sigma[c][t] + v[c][t] - w[c][t])))
+                for c, cliente in enumerate(constantes.clientes)
+                for t in range(constantes.horizonte_tiempo)]
+            ):
+                return 23
+            
+            #Restricción 24: v_it debe ser 0 o 1
+            if not all(value in [0, 1] for fila in v for value in fila):
+                return 24
+            
+            #Restricción 25: w_it debe ser 0 o 1
+            if not all(value in [0, 1] for fila in w for value in fila):
+                return 25
+            
+        return 0

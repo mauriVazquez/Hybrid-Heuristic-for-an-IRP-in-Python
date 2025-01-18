@@ -1,4 +1,5 @@
 import math
+from modelos.entidad import Cliente
 
 # Distancia entre dos puntos
 def compute_dist(xi, xj, yi, yj) -> float:
@@ -24,7 +25,7 @@ class Ruta:
     """
 
     @staticmethod
-    def obtener_costo_recorrido(clientes) -> float:
+    def obtener_costo_recorrido(clientes : list[Cliente]) -> float:
         """
         Calcula el costo total de un recorrido.
 
@@ -53,7 +54,7 @@ class Ruta:
 
         return costo_total
 
-    def __init__(self, clientes=None, cantidades=None) -> None:
+    def __init__(self, clientes : list[Cliente] = None, cantidades : int = None) -> None:
         """
         Inicializa una ruta con clientes y cantidades entregadas.
 
@@ -61,8 +62,9 @@ class Ruta:
             clientes (list[Cliente], opcional): Lista de clientes en la ruta.
             cantidades (list[int], opcional): Cantidades entregadas a cada cliente.
         """
-        self.clientes = clientes or []
-        self.cantidades = cantidades or []
+        self.clientes   = clientes
+        self.cantidades = cantidades
+        self.costo      = self.obtener_costo_recorrido(clientes)
 
     def __str__(self) -> str:
         """
@@ -73,7 +75,7 @@ class Ruta:
         """
         return f"[{[cliente.id for cliente in self.clientes]}, {self.cantidades}]"
 
-    def to_json(self) -> dict:
+    def __json__(self) -> dict:
         """
         Convierte la ruta a formato JSON.
 
@@ -81,9 +83,9 @@ class Ruta:
             dict: Representación JSON de la ruta.
         """
         return {
-            "clientes": [str(cliente.id) for cliente in self.clientes],
+            "clientes"  : [str(cliente.id) for cliente in self.clientes],
             "cantidades": self.cantidades,
-            "costo": self.obtener_costo(),
+            "costo"     : self.costo,
         }
 
     def clonar(self):
@@ -95,15 +97,6 @@ class Ruta:
         """
         return Ruta(self.clientes[:], self.cantidades[:])
 
-    def obtener_costo(self) -> float:
-        """
-        Calcula el costo total del recorrido.
-
-        Returns:
-            float: Costo total del recorrido.
-        """
-        return self.obtener_costo_recorrido(self.clientes)
-
     def obtener_total_entregado(self) -> int:
         """
         Calcula el total de cantidades entregadas en la ruta.
@@ -113,7 +106,7 @@ class Ruta:
         """
         return sum(self.cantidades)
 
-    def obtener_cantidad_entregada(self, cliente) -> int:
+    def obtener_cantidad_entregada(self, cliente : Cliente) -> int:
         """
         Obtiene la cantidad entregada a un cliente específico.
 
@@ -125,7 +118,7 @@ class Ruta:
         """
         return next((self.cantidades[i] for i, c in enumerate(self.clientes) if c == cliente), 0)
 
-    def insertar_visita(self, cliente, cantidad, indice=None):
+    def insertar_visita(self, cliente : Cliente, cantidad : int , indice = None) -> None :
         """
         Inserta una visita a un cliente en la ruta.
 
@@ -135,17 +128,23 @@ class Ruta:
             indice (int, opcional): Posición donde insertar la visita. Si no se proporciona,
                 se elige la posición óptima según el costo.
         """
+         # Determinar la posición óptima solo si no se proporciona un índice
         if indice is None:
-            indice = min(
-                range(len(self.clientes) + 1),
-                key=lambda pos: self.obtener_costo_recorrido(
-                    self.clientes[:pos] + [cliente] + self.clientes[pos:]
-                ),
-            )
+            # Calcular el costo de insertar en todas las posiciones y elegir la mejor
+            costos = [
+                self.obtener_costo_recorrido(self.clientes[:pos] + [cliente] + self.clientes[pos:])
+                for pos in range(len(self.clientes) + 1)
+            ]
+            indice = costos.index(min(costos))
+
+        # Insertar cliente y cantidad en la posición determinada
         self.clientes.insert(indice, cliente)
         self.cantidades.insert(indice, cantidad)
 
-    def remover_visita_atomico(self, cliente) -> int:
+        # Actualizar el costo total de la ruta
+        self.costo = self.obtener_costo_recorrido(self.clientes)
+            
+    def eliminar_visita(self, cliente : Cliente) -> int:
         """
         Elimina la visita a un cliente de la ruta.
 
@@ -159,10 +158,14 @@ class Ruta:
         if indice is not None:
             cantidad_removida = self.cantidades.pop(indice)
             self.clientes.pop(indice)
-            return cantidad_removida
-        return 0
+        else:
+            cantidad_removida = 0
+            
+        self.costo = self.obtener_costo_recorrido(self.clientes)
+        
+        return cantidad_removida
 
-    def agregar_cantidad_cliente(self, cliente, cantidad):
+    def agregar_cantidad_cliente(self, cliente : Cliente, cantidad : int) -> None:
         """
         Agrega una cantidad a un cliente existente en la ruta.
 
@@ -173,7 +176,7 @@ class Ruta:
         if cliente in self.clientes:
             self.cantidades[self.clientes.index(cliente)] += cantidad
 
-    def quitar_cantidad_cliente(self, cliente, cantidad):
+    def quitar_cantidad_cliente(self, cliente : Cliente, cantidad : int) -> None:
         """
         Resta una cantidad a un cliente existente en la ruta.
 
@@ -184,7 +187,7 @@ class Ruta:
         if cliente in self.clientes:
             self.cantidades[self.clientes.index(cliente)] -= cantidad
 
-    def es_igual(self, ruta2) -> bool:
+    def es_igual(self, ruta2 : "Ruta") -> bool:
         """
         Verifica si esta ruta es igual a otra.
 
@@ -195,3 +198,15 @@ class Ruta:
             bool: True si las rutas son iguales, False en caso contrario.
         """
         return (self.clientes == ruta2.clientes) and (self.cantidades == ruta2.cantidades)
+
+    def es_visitado(self, cliente : Cliente) -> bool:
+        """
+        Verifica si el cliente pertenece a la ruta.
+
+        Args:
+            cliente (Cliente): Cliente a buscar
+
+        Returns:
+            bool: True si el cliente está en la ruta, False en caso contrario
+        """
+        return (cliente in self.clientes)

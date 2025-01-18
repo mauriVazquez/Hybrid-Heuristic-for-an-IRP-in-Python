@@ -5,7 +5,7 @@ import math
 from modelos.entidad import Cliente, Proveedor
 from hair.constantes import Constantes
 from hair.gestores import FactorPenalizacion
-from hair.procedimientos.inicializacion import inicializacion
+from hair.inicializacion import inicializacion
 from hair.contexto import constantes_contexto
 
 class TestVariantesSolucion(unittest.TestCase):

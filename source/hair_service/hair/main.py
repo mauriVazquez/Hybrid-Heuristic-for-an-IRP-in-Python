@@ -6,10 +6,10 @@ from hair.contexto import constantes_contexto
 from hair.gestores           import Triplets, TabuLists, FactorPenalizacion
 #Procedimientos HAIR
 from hair.constantes import Constantes
-from hair.procedimientos.inicializacion import inicializacion
-from hair.procedimientos.movimiento import movimiento
-from hair.procedimientos.mejora import mejora
-from hair.procedimientos.salto import salto
+from hair.inicializacion import inicializacion
+from hair.movimiento import movimiento
+from hair.mejora import mejora
+from hair.salto import salto
 
 
 def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento = None, ortools = False):
@@ -107,7 +107,7 @@ def async_execute(plantilla_id, horizonte_tiempo, capacidad_vehiculo, proveedor,
     requests.post(
         url     = f"http://nginx/api/plantillas/{plantilla_id}/solucion",
         json    = {
-            "mejor_solucion": mejor_solucion.to_json(tag="Mejor Solución",iteration=iterador_principal), 
+            "mejor_solucion": mejor_solucion.__json__(tag="Mejor Solución",iteration=iterador_principal), 
             'user_id'       : user_id,
             'execution_time': execution_time.seconds 
         }

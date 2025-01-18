@@ -1,5 +1,5 @@
 from modelos.solucion import Solucion
-from hair.procedimientos.mejora import Mip2
+from hair.mejora import Mip2
 
 def salto(solucion, iterador_principal, triplets) -> Solucion:
     mejor_solucion = solucion.clonar()
@@ -11,7 +11,7 @@ def salto(solucion, iterador_principal, triplets) -> Solucion:
             #Se realizan jumps en función de algún triplet random
             cliente, tiempo_visitado, tiempo_not_visitado = triplets.obtener_triplet_aleatorio() 
 
-            cantidad_eliminado = solucion_base.rutas[tiempo_visitado].remover_visita_atomico(cliente)
+            cantidad_eliminado = solucion_base.rutas[tiempo_visitado].eliminar_visita(cliente)
             solucion_base.refrescar()
             solucion_base.rutas[tiempo_not_visitado].insertar_visita(cliente, cantidad_eliminado, None)
             solucion_base.refrescar()

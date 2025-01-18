@@ -99,7 +99,7 @@ def _crear_n(solucion: Solucion, vecindario_prima: list[Solucion]) -> list[Soluc
 
                         if constantes.politica_reabastecimiento == "OU":
                             solucion_dosprima = solucion_prima.clonar()
-                            solucion_dosprima.remover_visita_atomico(cliente, t)
+                            solucion_dosprima.eliminar_visita(cliente, t)
 
                             if solucion_dosprima.es_admisible and solucion_dosprima.costo < solucion_prima.costo:
                                 solucion_prima = solucion_dosprima
@@ -114,14 +114,14 @@ def _crear_n(solucion: Solucion, vecindario_prima: list[Solucion]) -> list[Soluc
 
                             solucion_dosprima = solucion_prima.clonar()
                             if y == xjt:
-                                solucion_dosprima.rutas[t].remover_visita_atomico(cliente)
+                                solucion_dosprima.rutas[t].eliminar_visita(cliente)
                             else:
                                 solucion_dosprima.rutas[t].quitar_cantidad_cliente(cliente, y)
 
                             solucion_dosprima.refrescar()
 
                             if solucion_dosprima.costo < solucion_prima.costo:
-                                if not solucion_prima.es_visitado(cliente, t):
+                                if not solucion_prima.rutas[t].es_visitado(cliente):
                                     conjunto_A.append(cliente)
                                 solucion_prima = solucion_dosprima
 
@@ -218,7 +218,7 @@ def _eliminar_visita(solucion, cliente, tiempo):
         index = tiempos_cliente.index(tiempo)
         
         # Primero eliminamos al cliente i de la ruta del vehículo en el tiempo t
-        cantidad_eliminada = solucion_prima.rutas[tiempo].remover_visita_atomico(cliente)
+        cantidad_eliminada = solucion_prima.rutas[tiempo].eliminar_visita(cliente)
         solucion_prima.refrescar()
         nuevo_inventario_cliente = solucion_prima.inventario_clientes.get(cliente.id, None)
         

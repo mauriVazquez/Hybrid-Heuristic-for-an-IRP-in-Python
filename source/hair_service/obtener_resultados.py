@@ -48,7 +48,7 @@ def escribir_resultado(rp, filename, mejor_solucion, iterador, execution_time):
 
     # Escribir el resultado en el archivo en modo de adición (append)
     with open(filepath, 'a') as file:
-        solucion = mejor_solucion.to_json("iteration", "a")
+        solucion = mejor_solucion.__json__("iteration", "a")
         file.write(f"{solucion['costo']} {execution_time} {iterador} \n")  # Agrega una nueva línea después de cada resultado
         
 def read_input_irp(filename):

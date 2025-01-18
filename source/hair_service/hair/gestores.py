@@ -40,7 +40,7 @@ class Triplets:
         """ Remueve los triplets correspondientes dada una solucion. """     
         self.triplets = [
             triplet for triplet in self.triplets 
-            if not (solucion.es_visitado(triplet[0], triplet[1]) and solucion.es_visitado(triplet[0], triplet[2]))
+            if not (solucion.rutas[triplet[1]].es_visitado(triplet[0]) and solucion.rutas[triplet[2]].es_visitado(triplet[0]))
         ]
 
 class FactorPenalizacion:
@@ -50,20 +50,20 @@ class FactorPenalizacion:
     - contador: Contador de iteraciones desde el último ajuste.
     - iteraciones_max: Número de iteraciones para realizar ajustes.
     """
-    def __init__(self, iteraciones_max=10) -> None:
+    def __init__(self, iteraciones_max : int = 10) -> None:
         """Inicializa el factor de penalización y el contador."""
-        self.value = 1.0
-        self.contador = 0
-        self.iteraciones_max = iteraciones_max
-        self.soluciones_factibles = 0
+        self.value                  = 1.0
+        self.contador               = 0
+        self.iteraciones_max        = iteraciones_max
+        self.soluciones_factibles   = 0
         
     def reiniciar(self) -> None:
         """Reinicia el valor y el contador."""
-        self.value = 1.0
-        self.contador = 0
-        self.soluciones_factibles = 0
+        self.value                  = 1.0
+        self.contador               = 0
+        self.soluciones_factibles   = 0
 
-    def actualizar(self, es_factible: bool):
+    def actualizar(self, es_factible: bool) -> None:
         """
         Actualiza el contador y ajusta el factor de penalización según la factibilidad.
 
@@ -84,13 +84,10 @@ class FactorPenalizacion:
             if self.soluciones_factibles == self.iteraciones_max:
                 # Todas las soluciones son factibles, reducir penalización
                 self.value = max(self.value * 0.5, penalty_factor_min)
-                # print("PARTE")
-                # print(self.value)
+
             elif self.soluciones_factibles == 0:
                 # Todas las soluciones son inviables, aumentar penalización
                 self.value = min(self.value * 2, penalty_factor_max)
-                # print("DOBLA")
-                # print(self.value)
             
             # Reiniciar el contador y el número de soluciones factibles
             self.contador = 0
@@ -118,7 +115,7 @@ class TabuLists:
     _obtener_ttl = staticmethod(lambda constantes: constantes.taboo_len + randint(0, math.floor(constantes.lambda_ttl * math.sqrt(len(constantes.clientes) * constantes.horizonte_tiempo))))
     _esta_en_lista = staticmethod(lambda lista, sublista: any(item[0] == sublista for item in lista))
     
-    def actualizar(self, solucion, solucion_prima, main_iterator: int) -> None:
+    def actualizar(self, solucion : Solucion, solucion_prima : Solucion, main_iterator: int) -> None:
         """Actualiza las listas tabú eliminando entradas expiradas y agregando nuevos movimientos prohibidos."""
         self.lista_a = [item for item in self.lista_a if item[1] > main_iterator]
         self.lista_r = [item for item in self.lista_r if item[1] > main_iterator]
@@ -127,7 +124,7 @@ class TabuLists:
             self._actualizar_lista_tabú(self.lista_r, set(solucion_prima.tiempos_cliente(cliente)) - set(solucion.tiempos_cliente(cliente)), cliente, main_iterator)
             self._actualizar_lista_tabú(self.lista_a, set(solucion.tiempos_cliente(cliente)) - set(solucion_prima.tiempos_cliente(cliente)), cliente, main_iterator)
     
-    def movimiento_permitido(self, solucion_original, solucion_prima) -> bool:
+    def movimiento_permitido(self, solucion_original : Solucion, solucion_prima : Solucion) -> bool:
         """Verifica si los movimientos para llegar de una solución a otra están permitidos."""
         constantes = constantes_contexto.get()
         for cliente in constantes.clientes:

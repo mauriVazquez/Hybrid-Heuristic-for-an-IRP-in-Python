@@ -5,7 +5,7 @@ import math
 from modelos.entidad import Cliente, Proveedor
 from hair.constantes import Constantes
 from hair.gestores import FactorPenalizacion, TabuLists
-from hair.procedimientos.movimiento import (
+from hair.movimiento import (
     movimiento,
     _variante_eliminacion,
     _variante_insercion,
