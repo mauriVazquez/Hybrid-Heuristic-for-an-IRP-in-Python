@@ -87,7 +87,7 @@ class TestVariantesSolucion(unittest.TestCase):
         for i in range(20):
             solucion = movimiento(solucion, tabulist, i)
             solucion.refrescar()
-            self.assertEqual(solucion.es_admisible, True, "La solucion debe ser admisible")
+            self.assertEqual(solucion.es_admisible(), True, "La solucion debe ser admisible")
             
             
 #     def test_variante_eliminacion(self):

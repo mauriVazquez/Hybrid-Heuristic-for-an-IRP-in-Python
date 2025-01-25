@@ -50,11 +50,11 @@ def mejora(solucion: Solucion, iterador_principal: int) -> Solucion:
             s1.merge_rutas(i, i + 1)
             aux_solucion = Mip2.ejecutar(s1)
             
-            if (not aux_solucion.es_factible) and (i < contexto.horizonte_tiempo - 2):
+            if (not aux_solucion.es_factible()) and (i < contexto.horizonte_tiempo - 2):
                 s1.merge_rutas(i + 1, i + 2)
 
             aux_solucion = Mip2.ejecutar(s1) 
-            if(aux_solucion.es_factible):
+            if(aux_solucion.es_factible()):
                 solucion_prima = tsp_solver(s1, aux_solucion)
                 if solucion_prima.costo < solucion_merge.costo:
                     solucion_merge = aux_solucion.clonar()
@@ -64,11 +64,11 @@ def mejora(solucion: Solucion, iterador_principal: int) -> Solucion:
             s2.merge_rutas(i + 1, i)
             
             aux_solucion = Mip2.ejecutar(s2)
-            if (not aux_solucion.es_factible) and i > 0:
+            if (not aux_solucion.es_factible()) and i > 0:
                 s2.merge_rutas(i, i-1)
 
             aux_solucion = Mip2.ejecutar(s2)
-            if aux_solucion.es_factible:
+            if aux_solucion.es_factible():
                 solucion_prima = tsp_solver(s1, aux_solucion)
                 if solucion_prima.costo < solucion_merge.costo:
                     solucion_merge = solucion_prima.clonar()
@@ -237,7 +237,7 @@ class Mip1():
                     solucion_modificada.eliminar_visita(cliente, tiempo)
 
                     # Se veirifica que cumpla con las restricciones, retorna 0 si cumple con todas
-                    if((cumple_restricciones(solucion_modificada, 1) == 0) and solucion_modificada.es_factible):
+                    if((cumple_restricciones(solucion_modificada, 1) == 0) and solucion_modificada.es_factible()):
                         # Se calcula la funcion objetivo de la permutacion, que sea menor que el mejor hasta el momento, se asigna como nuevo mejor.
                         ahorro = solucion_actual.rutas[tiempo].costo - solucion_modificada.rutas[tiempo].costo
                         costo_mip = Mip1.funcion_objetivo(solucion_modificada, ahorro)

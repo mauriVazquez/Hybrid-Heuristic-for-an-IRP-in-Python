@@ -20,6 +20,9 @@ class Solucion:
         """
         self.contexto = contexto_ejecucion.get()
         self.rutas = rutas or [Ruta([], []) for _ in range(self.contexto.horizonte_tiempo)]
+        self.inventario_clientes    = None
+        self.inventario_proveedor   = None
+        self.costo                  = None
         self.refrescar()
         
     def __str__(self) -> str:
@@ -29,7 +32,7 @@ class Solucion:
         Returns:
             str: Resumen de las rutas, costo y estado de factibilidad.
         """
-        factibilidad = "F" if self.es_factible else ("A" if self.es_admisible else "N")
+        factibilidad = "F" if self.es_factible() else ("A" if self.es_admisible() else "N")
         rutas_str    = " ".join(f"T{str(i + 1)} = {ruta}" for i, ruta in enumerate(self.rutas))
         return f"{rutas_str} Costo: {self.costo} {factibilidad}"
     
@@ -62,8 +65,8 @@ class Solucion:
         resp = "Clientes visitados:"        +" ".join(f"T{str(i+1)} = {ruta}    "  for i, ruta in enumerate(self.rutas)) + "\n"
         resp += 'Inventario de proveedor: ' + str(self.inventario_proveedor) + "\n"
         resp += 'Inventario de clientes: '  + str(self.inventario_clientes) + "\n"
-        resp += '¿Admisible? : '            + ('SI' if self.es_admisible else 'NO') + "\n"
-        resp += '¿Factible? : '             + ('SI' if self.es_factible else 'NO') + "\n"
+        resp += '¿Admisible? : '            + ('SI' if self.es_admisible() else 'NO') + "\n"
+        resp += '¿Factible? : '             + ('SI' if self.es_factible() else 'NO') + "\n"
         resp += 'Función objetivo: '        + str(self.costo) + "\n"
         print(resp)
         
@@ -76,8 +79,6 @@ class Solucion:
                 for cliente in self.contexto.clientes
         }
         self.inventario_proveedor   = self._obtener_niveles_inventario_proveedor()
-        self.es_factible            = self._es_factible()
-        self.es_admisible           = self._es_admisible()
         self.costo                  = self._costo()
 
     def clonar(self) -> 'Solucion':
@@ -89,7 +90,7 @@ class Solucion:
         """
         return Solucion([ruta.clonar() for ruta in self.rutas])
 
-    def _es_admisible(self) -> bool:
+    def es_admisible(self) -> bool:
         """
         Verifica si la solución es admisible (sin desabastecimiento ni sobreabastecimiento en clientes).
 
@@ -98,14 +99,14 @@ class Solucion:
         """
         return not (self._cliente_tiene_desabastecimiento() or self._cliente_tiene_sobreabastecimiento())
 
-    def _es_factible(self) -> bool:
+    def es_factible(self) -> bool:
         """
         Verifica si una solución es factible: Para ello, la solución es admisible, no tiene desabastecimiento en el proveedor y no es excedida la capacidad del vehículo.
 
         Returns:
             bool: True si la solución cumple todas las restricciones, False en caso contrario.
         """
-        return self._es_admisible and not (self.proveedor_tiene_desabastecimiento() or self.es_excedida_capacidad_vehiculo())
+        return self.es_admisible() and not (self.proveedor_tiene_desabastecimiento() or self.es_excedida_capacidad_vehiculo())
         
     def es_igual(self, solucion2 : "Solucion") -> bool:
         """

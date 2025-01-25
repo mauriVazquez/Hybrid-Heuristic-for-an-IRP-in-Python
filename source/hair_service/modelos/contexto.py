@@ -39,7 +39,7 @@ class Contexto:
         self.lambda_ttl = float(config['Taboo']['lambda_ttl'])
         self.capacidad_vehiculo = capacidad_vehiculo
         self.horizonte_tiempo = horizonte_tiempo
-        self.max_iter = 20 * len(clientes) * horizonte_tiempo
+        self.max_iter = 200 * len(clientes) * horizonte_tiempo
         self.jump_iter = self.max_iter // 2
         self.ortools = ortools
         self.alfa = alfa

@@ -101,7 +101,7 @@ def _crear_n(solucion: Solucion, vecindario_prima: list[Solucion]) -> list[Soluc
                             solucion_dosprima = solucion_prima.clonar()
                             solucion_dosprima.eliminar_visita(cliente, t)
 
-                            if solucion_dosprima.es_admisible and solucion_dosprima.costo < solucion_prima.costo:
+                            if solucion_dosprima.es_admisible() and solucion_dosprima.costo < solucion_prima.costo:
                                 solucion_prima = solucion_dosprima
                                 conjunto_A.append(cliente)
 
@@ -202,7 +202,7 @@ def _variante_intercambiar_visitas(solucion: Solucion) -> list[Solucion]:
                         solucion_copy = _eliminar_visita(solucion_copy, cliente2, iter_tprima)
                         if (solucion_copy is not None):
                             solucion_copy.refrescar()
-                            if (solucion_copy.es_admisible):
+                            if (solucion_copy.es_admisible()):
                                 vecindario_prima.append(solucion_copy)   
     return vecindario_prima
 
@@ -235,7 +235,7 @@ def _eliminar_visita(solucion, cliente, tiempo):
                 solucion_prima.refrescar()
 
             # Verifico si la solución es admisible tras la transferencia
-            if not solucion_prima.es_admisible:
+            if not solucion_prima.es_admisible():
                 return None  # No es admisible, descarto la eliminación
         
         elif contexto.politica_reabastecimiento == "ML":

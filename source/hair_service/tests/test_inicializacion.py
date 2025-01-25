@@ -119,7 +119,7 @@ class TestVariantesSolucion(unittest.TestCase):
                     self.assertIsInstance(ruta, Ruta)
 
                 # Verificar que la solución sea factible
-                self.assertTrue(solucion.es_admisible)
+                self.assertTrue(solucion.es_admisible())
     
     def test_deterministic_solution(self):
         """
