@@ -1,4 +1,4 @@
-from hair.contexto_file import contexto_contexto
+from modelos.contexto_file import contexto_ejecucion
 from modelos.solucion import Solucion
 from modelos.ruta import Ruta
 
@@ -27,18 +27,19 @@ def mejora(solucion: Solucion, iterador_principal: int) -> Solucion:
     Returns:
         Solucion: La mejor solución obtenida después de aplicar todas las mejoras.
     """
-    contexto = contexto_contexto.get()
-    do_continue = True
+    contexto = contexto_ejecucion.get()
     mejor_solucion = tsp_solver(None, solucion)
-
+    
+    do_continue = True
     while do_continue:
         do_continue = False
-
+        
         # PRIMER TIPO DE MEJORA: MIP1 + TSP Solver
         solucion_prima = Mip1.ejecutar(mejor_solucion)
         solucion_prima = tsp_solver(mejor_solucion, solucion_prima)
         if solucion_prima.costo < mejor_solucion.costo:
             mejor_solucion = solucion_prima.clonar()
+            print("Primer mejora")
             do_continue = True
 
         # SEGUNDO TIPO DE MEJORA: Merge Consecutivo de Rutas + MIP2
@@ -48,21 +49,32 @@ def mejora(solucion: Solucion, iterador_principal: int) -> Solucion:
             s1 = mejor_solucion.clonar()
             s1.merge_rutas(i, i + 1)
             aux_solucion = Mip2.ejecutar(s1)
-            aux_solucion = tsp_solver(s1, aux_solucion)
+            
+            if (not aux_solucion.es_factible) and (i < contexto.horizonte_tiempo - 2):
+                s1.merge_rutas(i + 1, i + 2)
 
-            if aux_solucion.es_factible and aux_solucion.costo < solucion_merge.costo:
-                solucion_merge = aux_solucion.clonar()
+            aux_solucion = Mip2.ejecutar(s1) 
+            if(aux_solucion.es_factible):
+                solucion_prima = tsp_solver(s1, aux_solucion)
+                if solucion_prima.costo < solucion_merge.costo:
+                    solucion_merge = aux_solucion.clonar()
 
             # Intentar combinar rutas en el orden inverso
             s2 = mejor_solucion.clonar()
             s2.merge_rutas(i + 1, i)
+            
             aux_solucion = Mip2.ejecutar(s2)
-            aux_solucion = tsp_solver(s2, aux_solucion)
+            if (not aux_solucion.es_factible) and i > 0:
+                s2.merge_rutas(i, i-1)
 
-            if aux_solucion.es_factible and aux_solucion.costo < solucion_merge.costo:
-                solucion_merge = aux_solucion.clonar()
+            aux_solucion = Mip2.ejecutar(s2)
+            if aux_solucion.es_factible:
+                solucion_prima = tsp_solver(s1, aux_solucion)
+                if solucion_prima.costo < solucion_merge.costo:
+                    solucion_merge = solucion_prima.clonar()
 
         if solucion_merge.costo < mejor_solucion.costo:
+            print("Segunda mejora")
             mejor_solucion = solucion_merge.clonar()
             do_continue = True
 
@@ -71,6 +83,7 @@ def mejora(solucion: Solucion, iterador_principal: int) -> Solucion:
         solucion_prima = tsp_solver(mejor_solucion, solucion_prima)
         if solucion_prima.costo < mejor_solucion.costo:
             mejor_solucion = solucion_prima.clonar()
+            print("Tercer mejora")
             do_continue = True
 
     mejor_solucion.refrescar()
@@ -89,7 +102,7 @@ def tsp_solver(solucion: Solucion, solucion_prima: Solucion) -> Solucion:
     Returns:
         Solucion: La solución optimizada después de aplicar el solver TSP.
     """
-    contexto = contexto_contexto.get()
+    contexto = contexto_ejecucion.get()
     if ((solucion is not None) and (solucion.es_igual(solucion_prima))):
         aux_solucion = solucion.clonar()
     else:
@@ -102,7 +115,7 @@ def tsp_solver(solucion: Solucion, solucion_prima: Solucion) -> Solucion:
 
 
 def tsp_ortools(solucion: Solucion) -> Solucion:
-    contexto = contexto_contexto.get()
+    contexto = contexto_ejecucion.get()
     aux_solucion = solucion.clonar()
     for t in range(contexto.horizonte_tiempo):
         matriz_distancia = _obtener_matriz_distancia(aux_solucion.rutas[t])
@@ -139,7 +152,7 @@ def tsp_ortools(solucion: Solucion) -> Solucion:
 
 def lk(solucion: Solucion) -> Solucion:
     aux_solucion = solucion.clonar()
-    contexto = contexto_contexto.get()
+    contexto = contexto_ejecucion.get()
     for tiempo in range(contexto.horizonte_tiempo):
         tamano_matriz = len(solucion.rutas[tiempo].clientes)+1
         matriz =  [[0] * tamano_matriz for _ in range(tamano_matriz)]
@@ -164,7 +177,7 @@ def lk(solucion: Solucion) -> Solucion:
 
 def _obtener_matriz_distancia(ruta):
     # Crear la matriz de distancias entre los clientes visitados en el tiempo t
-    contexto = contexto_contexto.get()
+    contexto = contexto_ejecucion.get()
     matriz_distancia = [[0] + [c.distancia_proveedor for c in ruta.clientes]]
 
     for cliente1 in ruta.clientes:
@@ -200,7 +213,7 @@ class Mip1():
         """
         solucion_costo_minimo   = solucion_original.clonar()
         costo_minimo            = float("inf")
-        contexto = contexto_contexto.get()
+        contexto = contexto_ejecucion.get()
         
         # Se realizan todas las permutaciones posibles
         for perm in permutations(range(contexto.horizonte_tiempo)):
@@ -246,7 +259,7 @@ class Mip1():
         Retorna:
             float: El costo total asociado a la solución.
         """
-        contexto = contexto_contexto.get()
+        contexto = contexto_ejecucion.get()
         term_1 = contexto.proveedor.costo_almacenamiento * sum(solucion.inventario_proveedor)
         term_2 = sum([(c.costo_almacenamiento * sum(solucion.inventario_clientes.get(c.id, None))) for c in contexto.clientes])
         term_3 = ahorro
@@ -274,7 +287,7 @@ class Mip2():
         Retorna:
             TipoDeSolucion: La solución mejorada obtenida mediante el algoritmo MIP2.
         """
-        contexto = contexto_contexto.get()
+        contexto = contexto_ejecucion.get()
         solucion_costo_minimo   = solucion.clonar()
         costo_minimo            = float("inf")
         
@@ -311,7 +324,7 @@ class Mip2():
         Retorna:
             float: El costo total asociado a la solución después de realizar la operación.
         """
-        contexto = contexto_contexto.get()
+        contexto = contexto_ejecucion.get()
         costo_ruta_original = solucion.rutas[tiempo].costo
         if operacion == "REMOVE":
             solucion.eliminar_visita(cliente, tiempo)

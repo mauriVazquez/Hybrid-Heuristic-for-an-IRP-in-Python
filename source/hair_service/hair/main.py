@@ -1,15 +1,13 @@
 import requests
-from random                     import seed
-from datetime                   import datetime
-from hair.contexto_file import contexto_contexto
-#Parámetros variables (penalización y triplets)
-from hair.gestores           import Triplets, TabuLists, FactorPenalizacion
-#Procedimientos HAIR
-from hair.contexto import Contexto
-from hair.inicializacion import inicializacion
-from hair.movimiento import movimiento
-from hair.mejora import mejora
-from hair.salto import salto
+from random                 import seed
+from datetime               import datetime
+from modelos.contexto_file     import contexto_ejecucion
+from modelos.gestores          import Triplets, TabuLists, FactorPenalizacion
+from modelos.contexto          import Contexto
+from hair.inicializacion    import inicializacion
+from hair.movimiento        import movimiento
+from hair.mejora            import mejora
+from hair.salto             import salto
 
 
 def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento = None, ortools = False):
@@ -28,9 +26,8 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
     """
     # Inicialización de la semilla, iteradores y contexto
     seed(datetime.now().timestamp())
-    contexto = Contexto()
-    contexto.inicializar(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento, FactorPenalizacion(), FactorPenalizacion(), ortools)
-    contexto_contexto.set(contexto)
+    contexto = Contexto(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento, FactorPenalizacion(), FactorPenalizacion(), ortools)
+    contexto_ejecucion.set(contexto)
     start = datetime.now()
     iterador_principal = 0
     iteraciones_sin_mejoras = 0
@@ -66,6 +63,7 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
             try:
                 solucion_prima = mejora(solucion_prima, iterador_principal)
                 mejor_solucion = solucion_prima.clonar()
+                tiempo_best =  datetime.now() - start
                 iteraciones_sin_mejoras = 0
             except Exception as e:
                 print(f"Error en el procedimiento de mejora: {e}")
@@ -83,8 +81,8 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
                 iteraciones_sin_saltar = 0
                 contexto.alfa.reiniciar()
                 contexto.beta.reiniciar()
-                tabulists.reiniciar()
-                triplets.reiniciar()
+                tabulists = TabuLists()
+                triplets = Triplets()
             except Exception as e:
                 print(f"Error en el procedimiento de salto: {e}")
                 break
@@ -96,6 +94,7 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
     # Mostrar la mejor solución encontrada
     print("\n-------------------------------MEJOR SOLUCIÓN-------------------------------\n")
     mejor_solucion.imprimir_detalle()
+    print(f"tiempo best {tiempo_best}")
     execution_time = datetime.now() - start
     mejor_solucion.graficar_rutas()
     return mejor_solucion, iterador_principal, execution_time

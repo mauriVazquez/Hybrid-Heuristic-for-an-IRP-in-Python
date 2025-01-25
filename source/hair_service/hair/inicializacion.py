@@ -1,5 +1,5 @@
 from modelos.ruta import Ruta
-from hair.contexto_file import contexto_contexto
+from modelos.contexto_file import contexto_ejecucion
 from modelos.solucion import Solucion
 
 def inicializacion():
@@ -23,7 +23,7 @@ def inicializacion():
         ValueError: Si no hay clientes o si el horizonte de tiempo es inválido.
     """
     # Obtener las contexto y datos del problema
-    contexto = contexto_contexto.get()
+    contexto = contexto_ejecucion.get()
     horizonte_tiempo = contexto.horizonte_tiempo
     clientes = contexto.clientes
 

@@ -1,4 +1,4 @@
 import contextvars
 
 # Declarar la variable de contexto global para contexto
-contexto_contexto = contextvars.ContextVar('contexto_contexto')
+contexto_ejecucion = contextvars.ContextVar('contexto_ejecucion')

@@ -3,10 +3,10 @@ from modelos.solucion import Solucion
 from modelos.ruta import Ruta
 import math
 from modelos.entidad import Cliente, Proveedor
-from hair.contexto import Contexto
-from hair.gestores import FactorPenalizacion
+from modelos.contexto import Contexto
+from modelos.gestores import FactorPenalizacion
 from hair.inicializacion import inicializacion
-from hair.contexto_file import contexto_contexto
+from modelos.contexto_file import contexto_ejecucion
 
 class TestVariantesSolucion(unittest.TestCase):
     """
@@ -94,15 +94,13 @@ class TestVariantesSolucion(unittest.TestCase):
         """
         Prueba que el procedimiento de inicialización genere una solución válida y determinista.
         """
-        contexto = Contexto()
-
         for n in range(5, 51, 5):
             for i in range(1, 6):
                 horizonte_tiempo, proveedor, clientes, capacidad_vehiculo = self.read_input_irp(f'abs{i}n{n}.dat')
         
                 # Pruebas con política ML
-                contexto.inicializar(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, "ML", FactorPenalizacion(), FactorPenalizacion(), debug=False)
-                contexto_contexto.set(contexto)
+                contexto = Contexto(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, "ML", FactorPenalizacion(), FactorPenalizacion(), debug=False)
+                contexto_ejecucion.set(contexto)
 
                 solucion = inicializacion()
                 
@@ -128,15 +126,13 @@ class TestVariantesSolucion(unittest.TestCase):
         Prueba que el procedimiento de inicialización siempre genere la misma solución
         bajo los mismos parámetros iniciales.
         """
-        contexto = Contexto()
-
         for n in range(5, 51, 5):
             for i in range(1, 6):
                 horizonte_tiempo, proveedor, clientes, capacidad_vehiculo = self.read_input_irp(f'abs{i}n{n}.dat')
         
                 # Pruebas con política ML
-                contexto.inicializar(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, "ML", FactorPenalizacion(), FactorPenalizacion(), debug=False)
-                contexto_contexto.set(contexto)
+                contexto = Contexto(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, "ML", FactorPenalizacion(), FactorPenalizacion(), debug=False)
+                contexto_ejecucion.set(contexto)
 
                 solucion_1 = inicializacion()
                 solucion_2 = inicializacion()

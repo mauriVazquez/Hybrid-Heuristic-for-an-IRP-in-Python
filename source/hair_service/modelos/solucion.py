@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 from modelos.ruta import Ruta
 from modelos.entidad import Cliente
-from hair.contexto_file import contexto_contexto
+from modelos.contexto_file import contexto_ejecucion
 
 class Solucion:
     """
@@ -18,7 +18,7 @@ class Solucion:
         Args:
             rutas (list[Ruta], opcional): Conjunto de rutas que conforman la solución. En caso de no incluirse se generan H rutas vacías.
         """
-        self.contexto = contexto_contexto.get()
+        self.contexto = contexto_ejecucion.get()
         self.rutas = rutas or [Ruta([], []) for _ in range(self.contexto.horizonte_tiempo)]
         self.refrescar()
         
@@ -138,7 +138,7 @@ class Solucion:
         return any(
             self.inventario_clientes[cliente.id][t] < cliente.nivel_minimo
             for cliente in self.contexto.clientes
-            for t in range(self.contexto.horizonte_tiempo)
+            for t in range(self.contexto.horizonte_tiempo + 1)
         )
 
     def _cliente_tiene_sobreabastecimiento(self) -> bool:
@@ -151,7 +151,7 @@ class Solucion:
         return any(
             self.inventario_clientes[cliente.id][t] > cliente.nivel_maximo
             for cliente in self.contexto.clientes
-            for t in range(self.contexto.horizonte_tiempo)
+            for t in range(self.contexto.horizonte_tiempo + 1)
         )
 
     def es_excedida_capacidad_vehiculo(self) -> bool:
@@ -188,22 +188,22 @@ class Solucion:
             self.rutas[tiempo].eliminar_visita(cliente)
             self.refrescar()
 
-    def merge_rutas(self, rutabase_indice: int, rutasecondary_indice: int) -> None:
+    def merge_rutas(self, indice_ruta_principal: int, indice_ruta_secundaria: int) -> None:
         """
         Combina dos rutas en una, manteniendo las visitas únicas.
 
         Args:
-            rutabase_indice (int): Índice de la ruta base.
-            rutasecondary_indice (int): Índice de la ruta secundaria.
+            indice_ruta_principal (int): Índice de la ruta base.
+            indice_ruta_secundaria (int): Índice de la ruta secundaria.
         """
-        ruta_base = self.rutas[rutabase_indice]
-        ruta_secundaria = self.rutas[rutasecondary_indice]
+        ruta_base = self.rutas[indice_ruta_principal]
+        ruta_secundaria = self.rutas[indice_ruta_secundaria]
 
         for cliente in ruta_secundaria.clientes:
             if cliente not in ruta_base.clientes:
                 ruta_base.insertar_visita(cliente, ruta_secundaria.obtener_cantidad_entregada(cliente), None)
 
-        self.rutas[rutasecondary_indice] = Ruta([], [])
+        self.rutas[indice_ruta_secundaria] = Ruta([], [])
         self.refrescar()
 
     def tiempos_cliente(self, cliente : Cliente):

@@ -1,6 +1,6 @@
 from modelos.solucion import Solucion
 from random import randint
-from hair.contexto_file import contexto_contexto
+from modelos.contexto_file import contexto_ejecucion
 
 def movimiento(solucion: Solucion, tabulists, iterador_principal: int) -> Solucion:
     """
@@ -15,7 +15,7 @@ def movimiento(solucion: Solucion, tabulists, iterador_principal: int) -> Soluci
     Returns:
         Solucion: La mejor solución encontrada para el vecindario de la solución ingresada.
     """
-    contexto = contexto_contexto.get()
+    contexto = contexto_ejecucion.get()
     # Crear el vecindario primario (N'(s))
     vecindario_prima = _crear_n_prima(solucion)
 
@@ -82,7 +82,7 @@ def _crear_n(solucion: Solucion, vecindario_prima: list[Solucion]) -> list[Soluc
     Returns:
         list[Solucion]: Vecindario final tras aplicar las políticas de reabastecimiento.
     """
-    contexto = contexto_contexto.get()
+    contexto = contexto_ejecucion.get()
     vecindario = []
 
     for solucion_prima in vecindario_prima:
@@ -149,7 +149,7 @@ def _variante_insercion(solucion: Solucion) -> list[Solucion]:
     """
     Genera soluciones insertando nuevas visitas a clientes en la solución actual.
     """
-    contexto = contexto_contexto.get()
+    contexto = contexto_ejecucion.get()
     vecindario_prima = []
     for cliente in contexto.clientes:
         tiempos_no_visitados = (set(range(contexto.horizonte_tiempo)) - set(solucion.tiempos_cliente(cliente)))
@@ -165,7 +165,7 @@ def _variante_mover_visita(solucion: Solucion) -> list[Solucion]:
     """
     Genera soluciones moviendo visitas de un cliente entre diferentes tiempos de entrega.
     """
-    contexto = contexto_contexto.get()
+    contexto = contexto_ejecucion.get()
     vecindario_prima = []
     for cliente in contexto.clientes:
         set_t_visitado = solucion.tiempos_cliente(cliente)
@@ -186,7 +186,7 @@ def _variante_intercambiar_visitas(solucion: Solucion) -> list[Solucion]:
     """
     Genera soluciones intercambiando visitas entre dos clientes en diferentes tiempos de entrega.
     """
-    contexto = contexto_contexto.get()
+    contexto = contexto_ejecucion.get()
     vecindario_prima = []
     for cliente1 in contexto.clientes:
         for cliente2 in list(set(contexto.clientes) -set([cliente1])):
@@ -208,7 +208,7 @@ def _variante_intercambiar_visitas(solucion: Solucion) -> list[Solucion]:
 
 
 def _eliminar_visita(solucion, cliente, tiempo):
-    contexto = contexto_contexto.get()
+    contexto = contexto_ejecucion.get()
     solucion_prima = solucion.clonar()
     solucion_prima.refrescar()
     tiempos_cliente = solucion_prima.tiempos_cliente(cliente)
@@ -273,7 +273,7 @@ def _insertar_visita(solucion, cliente, tiempo):
     Returns:
         Solucion: Una nueva solución con la visita insertada, o None si no es admisible.
     """
-    contexto = contexto_contexto.get()
+    contexto = contexto_ejecucion.get()
     solucion_prima = solucion.clonar()
     solucion_prima.refrescar()
     tiempos_cliente = solucion_prima.tiempos_cliente(cliente)

@@ -3,8 +3,8 @@ from modelos.solucion import Solucion
 from modelos.ruta import Ruta
 import math
 from modelos.entidad import Cliente, Proveedor
-from hair.contexto import Contexto
-from hair.gestores import FactorPenalizacion, TabuLists
+from modelos.contexto import Contexto
+from modelos.gestores import FactorPenalizacion, TabuLists
 from hair.movimiento import (
     movimiento,
     _variante_eliminacion,
@@ -12,7 +12,7 @@ from hair.movimiento import (
     _variante_mover_visita,
     _variante_intercambiar_visitas
 )
-from hair.contexto_file import contexto_contexto
+from modelos.contexto_file import contexto_ejecucion
 
 class TestVariantesSolucion(unittest.TestCase):
     solucion    = None
@@ -65,9 +65,8 @@ class TestVariantesSolucion(unittest.TestCase):
         alfa = FactorPenalizacion()
         beta = FactorPenalizacion()
         
-        contexto = Contexto()
-        contexto.inicializar(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, "ML", alfa, beta)
-        contexto_contexto.set(contexto)
+        contexto = Contexto(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, "ML", alfa, beta)
+        contexto_ejecucion.set(contexto)
     
         self.solucion = Solucion([
             Ruta([],[]),
@@ -85,7 +84,6 @@ class TestVariantesSolucion(unittest.TestCase):
         solucion = self.solucion.clonar()
         solucion.refrescar()
         tabulist = TabuLists()
-        tabulist.reiniciar()
         for i in range(20):
             solucion = movimiento(solucion, tabulist, i)
             solucion.refrescar()
