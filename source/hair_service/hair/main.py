@@ -75,7 +75,7 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
         solucion = solucion_prima.clonar()
 
         # Procedimiento de salto
-        if (iteraciones_sin_mejoras) > 0 and ((iteraciones_sin_mejoras % contexto.jump_iter) == 0):
+        if (0 < iteraciones_sin_mejoras < contexto.max_iter) and ((iteraciones_sin_mejoras % contexto.jump_iter) == 0):
             try:
                 solucion = salto(solucion, iterador_principal, triplets)
                 iteraciones_sin_saltar = 0
@@ -90,6 +90,7 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
             iteraciones_sin_saltar += 1
             if iteraciones_sin_saltar > (contexto.jump_iter / 2):
                 triplets.eliminar_triplets_solucion(solucion)
+
 
     # Mostrar la mejor solución encontrada
     print("\n-------------------------------MEJOR SOLUCIÓN-------------------------------\n")

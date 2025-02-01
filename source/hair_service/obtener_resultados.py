@@ -105,7 +105,7 @@ if __name__ == '__main__':
         for rp in ['OU', 'ML']:
             for i in range(3):
                 horizonte_tiempo, proveedor, clientes, capacidad_vehiculo = read_input_irp(filename)
-                mejor_solucion, iterador, execution_time = execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, rp)
+                mejor_solucion, iterador, execution_time = execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, rp, True)
                 
                 escribir_resultado(rp, filename, mejor_solucion, iterador, execution_time)
             procesar_datos(rp, filename)

@@ -14,81 +14,76 @@ from itertools import permutations
 
 def mejora(solucion: Solucion, iterador_principal: int) -> Solucion:
     """
-    Aplica un proceso iterativo de mejora a la solución dada utilizando tres tipos diferentes de optimizaciones:
-    
-    1. Aplicación del modelo MIP1 seguido del tsp_solver.
-    2. Fusión de pares consecutivos de rutas y aplicación del modelo MIP2 con ajustes para asegurar factibilidad.
-    3. Aplicación directa del modelo MIP2 seguido del algoritmo tsp_solver.
+    Aplica el procedimiento de mejora de HAIR asegurando fidelidad total.
+
+    Se ejecutan en orden los siguientes procesos iterativos:
+    1. Aplicación iterativa de MIP1 + TSP Solver hasta que no haya más mejoras.
+    2. Combinación de rutas consecutivas y aplicación de MIP2 con ajustes de tiempo si no es factible.
+    3. Aplicación de MIP2 + TSP Solver.
+    4. Aplicación de MIP1 nuevamente para asegurar convergencia total.
 
     Args:
         solucion (Solucion): La solución inicial a optimizar.
-        iterador_principal (int): Número de la iteración principal actual.
+        iterador_principal (int): Número de iteración principal.
 
     Returns:
         Solucion: La mejor solución obtenida después de aplicar todas las mejoras.
     """
     contexto = contexto_ejecucion.get()
     mejor_solucion = tsp_solver(None, solucion)
-    
+
     do_continue = True
     while do_continue:
         do_continue = False
-        
-        # PRIMER TIPO DE MEJORA: MIP1 + TSP Solver
-        solucion_prima = Mip1.ejecutar(mejor_solucion)
-        solucion_prima = tsp_solver(mejor_solucion, solucion_prima)
-        if solucion_prima.costo < mejor_solucion.costo:
-            mejor_solucion = solucion_prima.clonar()
-            print("Primer mejora")
-            do_continue = True
 
-        # SEGUNDO TIPO DE MEJORA: Merge Consecutivo de Rutas + MIP2
+        # 🔹 PRIMERA MEJORA: Aplicación iterativa de MIP1 + TSP Solver hasta que no haya más mejoras
+        while True:
+            solucion_prima = Mip1.ejecutar(mejor_solucion)
+            solucion_prima = tsp_solver(mejor_solucion, solucion_prima)
+            if solucion_prima.costo < mejor_solucion.costo:
+                mejor_solucion = solucion_prima.clonar()
+                do_continue = True
+            else:
+                break
+
+        # 🔹 SEGUNDA MEJORA: Merge de rutas consecutivas + MIP2
         solucion_merge = mejor_solucion.clonar()
         for i in range(contexto.horizonte_tiempo - 1):
-            # Intentar combinar rutas consecutivas
             s1 = mejor_solucion.clonar()
             s1.merge_rutas(i, i + 1)
             aux_solucion = Mip2.ejecutar(s1)
-            
-            if (not aux_solucion.es_factible()) and (i < contexto.horizonte_tiempo - 2):
-                s1.merge_rutas(i + 1, i + 2)
 
-            aux_solucion = Mip2.ejecutar(s1) 
-            if(aux_solucion.es_factible()):
-                solucion_prima = tsp_solver(s1, aux_solucion)
-                if solucion_prima.costo < solucion_merge.costo:
-                    solucion_merge = aux_solucion.clonar()
+            # Si la solución no es factible, mover la ruta en el tiempo
+            if not aux_solucion.es_factible():
+                s1.merge_rutas(i + 1, i + 2) if i < contexto.horizonte_tiempo - 2 else s1.merge_rutas(i, i - 1)
+                aux_solucion = Mip2.ejecutar(s1)
 
-            # Intentar combinar rutas en el orden inverso
-            s2 = mejor_solucion.clonar()
-            s2.merge_rutas(i + 1, i)
-            
-            aux_solucion = Mip2.ejecutar(s2)
-            if (not aux_solucion.es_factible()) and i > 0:
-                s2.merge_rutas(i, i-1)
-
-            aux_solucion = Mip2.ejecutar(s2)
             if aux_solucion.es_factible():
                 solucion_prima = tsp_solver(s1, aux_solucion)
                 if solucion_prima.costo < solucion_merge.costo:
                     solucion_merge = solucion_prima.clonar()
 
         if solucion_merge.costo < mejor_solucion.costo:
-            print("Segunda mejora")
             mejor_solucion = solucion_merge.clonar()
             do_continue = True
 
-        # TERCER TIPO DE MEJORA: MIP2 + TSP Solver
+        # 🔹 TERCERA MEJORA: MIP2 + TSP Solver
         solucion_prima = Mip2.ejecutar(mejor_solucion)
         solucion_prima = tsp_solver(mejor_solucion, solucion_prima)
         if solucion_prima.costo < mejor_solucion.costo:
             mejor_solucion = solucion_prima.clonar()
-            print("Tercer mejora")
+            do_continue = True
+
+        # 🔹 CUARTA MEJORA: Aplicar MIP1 nuevamente para garantizar convergencia final
+        solucion_prima = Mip1.ejecutar(mejor_solucion)
+        if solucion_prima.costo < mejor_solucion.costo:
+            mejor_solucion = solucion_prima.clonar()
             do_continue = True
 
     mejor_solucion.refrescar()
     print(f"Mejora ({iterador_principal}): {mejor_solucion}")
     return mejor_solucion.clonar()
+
 
 
 def tsp_solver(solucion: Solucion, solucion_prima: Solucion) -> Solucion:

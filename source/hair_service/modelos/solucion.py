@@ -75,7 +75,7 @@ class Solucion:
         Actualiza las propiedades de la solución.
         """
         self.inventario_clientes = {
-            cliente.id: self._niveles_inventario_cliente(cliente)
+            cliente.id: self._obtener_niveles_inventario_cliente(cliente)
                 for cliente in self.contexto.clientes
         }
         self.inventario_proveedor   = self._obtener_niveles_inventario_proveedor()
@@ -97,7 +97,18 @@ class Solucion:
         Returns:
             bool: True si la solución es admisible, False en caso contrario.
         """
-        return not (self._cliente_tiene_desabastecimiento() or self._cliente_tiene_sobreabastecimiento())
+        cliente_sin_desabastecimiento = all(
+            self.inventario_clientes[cliente.id][t] >= cliente.nivel_minimo
+            for cliente in self.contexto.clientes
+            for t in range(self.contexto.horizonte_tiempo + 1)
+        )
+        
+        cliente_sin_sobreabastecimiento = all(
+            self.inventario_clientes[cliente.id][t] <= cliente.nivel_maximo
+            for cliente in self.contexto.clientes
+            for t in range(self.contexto.horizonte_tiempo + 1)
+        )
+        return (cliente_sin_desabastecimiento and cliente_sin_sobreabastecimiento)
 
     def es_factible(self) -> bool:
         """
@@ -106,7 +117,7 @@ class Solucion:
         Returns:
             bool: True si la solución cumple todas las restricciones, False en caso contrario.
         """
-        return self.es_admisible() and not (self.proveedor_tiene_desabastecimiento() or self.es_excedida_capacidad_vehiculo())
+        return (self.es_admisible() and self.proveedor_sin_desabastecimiento() and self.respeta_capacidad_vehiculo())
         
     def es_igual(self, solucion2 : "Solucion") -> bool:
         """
@@ -118,51 +129,25 @@ class Solucion:
         Returns:
             bool: True si las soluciones son iguales, False en caso contrario.
         """
-        return (solucion2 is not None) and all(r1.es_igual(r2) for r1, r2 in zip(self.rutas, solucion2.rutas))
+        return (solucion2 is not None) and all(r1.es_igual(r2) for r1, r2 in zip(self.rutas, solucion2.rutas)) and (self.costo == solucion2.costo)
 
-    def proveedor_tiene_desabastecimiento(self) -> bool:
+    def proveedor_sin_desabastecimiento(self) -> bool:
         """
         Verifica si el proveedor tiene desabastecimiento.
 
         Returns:
             bool: True si el proveedor tiene inventario por debajo de 0.
         """
-        return any(nivel < 0 for nivel in self.inventario_proveedor)
+        return all(nivel >= 0 for nivel in self.inventario_proveedor)
 
-    def _cliente_tiene_desabastecimiento(self) -> bool:
-        """
-        Verifica si algún cliente tiene desabastecimiento.
-
-        Returns:
-            bool: True si algún cliente tiene inventario por debajo de su nivel mínimo en algún instante de tiempo.
-        """
-        return any(
-            self.inventario_clientes[cliente.id][t] < cliente.nivel_minimo
-            for cliente in self.contexto.clientes
-            for t in range(self.contexto.horizonte_tiempo + 1)
-        )
-
-    def _cliente_tiene_sobreabastecimiento(self) -> bool:
-        """
-        Verifica si algún cliente tiene sobreabastecimiento.
-
-        Returns:
-            bool: True si algún cliente tiene inventario por encima de su nivel máximo.
-        """
-        return any(
-            self.inventario_clientes[cliente.id][t] > cliente.nivel_maximo
-            for cliente in self.contexto.clientes
-            for t in range(self.contexto.horizonte_tiempo + 1)
-        )
-
-    def es_excedida_capacidad_vehiculo(self) -> bool:
+    def respeta_capacidad_vehiculo(self) -> bool:
         """
         Verifica si la cantidad entregada en alguna ruta excede la capacidad del vehículo.
 
         Returns:
             bool: True si alguna ruta excede la capacidad, False en caso contrario.
         """
-        return any(self.contexto.capacidad_vehiculo < ruta.obtener_total_entregado() for ruta in self.rutas)
+        return all(self.contexto.capacidad_vehiculo >= ruta.obtener_total_entregado() for ruta in self.rutas)
     
     def insertar_visita(self, cliente : Cliente, tiempo: int) -> None:
         """
@@ -230,14 +215,15 @@ class Solucion:
         Raises:
             AttributeError: Si las contexto, las rutas o el proveedor no están definidas.
         """
-        proveedor = self.contexto.proveedor
-        inventario = [proveedor.nivel_almacenamiento]
-        inventario.extend( inventario[-1] + proveedor.nivel_produccion - self.rutas[t - 1].obtener_total_entregado()
-            for t in range(1, self.contexto.horizonte_tiempo + 1)
-        )
-        return inventario
+        return [
+            self.contexto.proveedor.nivel_almacenamiento +
+            sum(self.contexto.proveedor.nivel_produccion - self.rutas[t - 1].obtener_total_entregado()
+                for t in range(1, tiempo + 1))
+            for tiempo in range(self.contexto.horizonte_tiempo + 1)
+        ]
 
-    def _niveles_inventario_cliente(self, cliente : Cliente):
+
+    def _obtener_niveles_inventario_cliente(self, cliente : Cliente):
         """
         Calcula los niveles de inventario del cliente en cada periodo. Consideraciones:
         - I(i,t) es el nivel de inventario del cliente, siendo una variable entra no negativa definida como:
@@ -267,7 +253,7 @@ class Solucion:
         
         costo_almacenamiento = sum(nivel * contexto.proveedor.costo_almacenamiento for nivel in self.inventario_proveedor)
         costo_almacenamiento += sum(c.costo_almacenamiento * sum(self.inventario_clientes[c.id]) for c in contexto.clientes)
-
+        
         costo_transporte = sum([ruta.costo for ruta in self.rutas])
         
         penalty1 = sum(

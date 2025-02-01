@@ -2,49 +2,71 @@ from modelos.solucion import Solucion
 from modelos.contexto_file import contexto_ejecucion
 from modelos.ruta import Ruta
 
-def inicializacion() -> Solucion:
-    """
-    Genera una solución inicial que cumple las siguientes condiciones:
-    - Cada cliente de 1 a n es considerado secuencialmente.
-    - Se realizan entregas progresivas para cubrir la demanda acumulada en cada período.
-    - La solución es admisible pero no necesariamente factible.
+# def inicializacion() -> Solucion:
+#     """
+#     Genera una solución inicial que cumple las siguientes condiciones:
+#     - Cada cliente de 1 a n es considerado secuencialmente.
+#     - Se realizan entregas progresivas para cubrir la demanda acumulada en cada período.
+#     - La solución es admisible pero no necesariamente factible.
 
-    Returns:
-        Solucion: Solución inicial generada.
-    """
-    # Obtener el contexto y datos del problema
+#     Returns:
+#         Solucion: Solución inicial generada.
+#     """
+#     # Obtener el contexto y datos del problema
+#     contexto = contexto_ejecucion.get()
+
+#     # Validar datos que podrían romper el flujo
+#     if not contexto.clientes:
+#         raise ValueError("No se ingresaron clientes.")
+#     if contexto.horizonte_tiempo <= 0:
+#         raise ValueError("El horizonte de tiempo no es válido.")
+
+#     # Crear una solución inicial vacía
+#     solucion = Solucion([Ruta([], []) for _ in range(contexto.horizonte_tiempo)])
+
+#     # Iterar sobre cada cliente
+#     for cliente in contexto.clientes:
+#         if cliente.nivel_minimo >= cliente.nivel_maximo:
+#             raise ValueError(f"El cliente {cliente.id} tiene un nivel mínimo mayor o igual al máximo.")
+
+#         inventario_actual = cliente.nivel_almacenamiento
+
+#         for t in range(contexto.horizonte_tiempo):
+#             # Reducir inventario por demanda
+#             inventario_actual -= cliente.nivel_demanda
+
+#             # Verificar si se requiere una entrega para evitar desabastecimiento
+#             if inventario_actual < 0:
+#                 cantidad_a_entregar = cliente.nivel_maximo - inventario_actual
+#                 solucion.rutas[t].insertar_visita(cliente, cantidad_a_entregar)
+#                 inventario_actual += cantidad_a_entregar
+
+#     # Refrescar atributos de la solución
+#     solucion.refrescar()
+
+#     if contexto.debug:
+#         print(f"Inicial: {solucion}")
+
+#     return solucion
+
+
+# OLD, funciona bien cuando la otra anda mal
+def inicializacion():
     contexto = contexto_ejecucion.get()
-
-    # Validar datos que podrían romper el flujo
-    if not contexto.clientes:
-        raise ValueError("No se ingresaron clientes.")
-    if contexto.horizonte_tiempo <= 0:
-        raise ValueError("El horizonte de tiempo no es válido.")
-
-    # Crear una solución inicial vacía
-    solucion = Solucion([Ruta([], []) for _ in range(contexto.horizonte_tiempo)])
-
-    # Iterar sobre cada cliente
+    solucion = Solucion()
     for cliente in contexto.clientes:
-        if cliente.nivel_minimo >= cliente.nivel_maximo:
-            raise ValueError(f"El cliente {cliente.id} tiene un nivel mínimo mayor o igual al máximo.")
-
-        inventario_actual = cliente.nivel_almacenamiento
-
-        for t in range(contexto.horizonte_tiempo):
-            # Reducir inventario por demanda
-            inventario_actual -= cliente.nivel_demanda
-
-            # Verificar si se requiere una entrega para evitar desabastecimiento
-            if inventario_actual < 0:
-                cantidad_a_entregar = cliente.nivel_maximo - inventario_actual
-                solucion.rutas[t].insertar_visita(cliente, cantidad_a_entregar)
-                inventario_actual += cantidad_a_entregar
-
-    # Refrescar atributos de la solución
+        nivel_almacenamiento, nivel_demanda = cliente.nivel_almacenamiento, cliente.nivel_demanda
+        nivel_minimo, nivel_maximo = cliente.nivel_minimo, cliente.nivel_maximo
+        #Se calcula el tiempo en que sucederá el primer stockout, y la frecuencia del mismo.
+        tiempo_stockout = (nivel_almacenamiento - nivel_minimo) // nivel_demanda -1
+        stockout_frequency = (nivel_maximo - nivel_minimo) // nivel_demanda
+        #Se visita al cliente en el primer stock
+        solucion.rutas[tiempo_stockout].insertar_visita(cliente, 
+                nivel_maximo - (nivel_almacenamiento - nivel_demanda * (tiempo_stockout+1)),
+                len(solucion.rutas[tiempo_stockout].clientes))
+        #Se calculan todos los tiempos dentro del horizonte donde ocurrirá el stockout y se agrega la visita.
+        for t in range(tiempo_stockout+stockout_frequency, contexto.horizonte_tiempo, stockout_frequency):
+            solucion.rutas[t].insertar_visita(cliente, nivel_maximo, len(solucion.rutas[t].clientes))
     solucion.refrescar()
-
-    if contexto.debug:
-        print(f"Inicial: {solucion}")
-
+    print(f"Inicio {solucion}")
     return solucion

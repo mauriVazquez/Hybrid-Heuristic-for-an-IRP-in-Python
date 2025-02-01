@@ -30,7 +30,7 @@ class Triplets:
         ]
         # Barajar la lista al inicio puede evitar patrones repetitivos al seleccionar tripletes aleatorios
         shuffle(self.triplets)
-
+    
     def obtener_triplet_aleatorio(self) -> Tuple[int, int, int]:
         """
         Obtiene un triplete aleatorio de la lista.
@@ -42,7 +42,11 @@ class Triplets:
 
     def eliminar_triplets_solucion(self, solucion: Solucion) -> None:
         """
-        Remueve los tripletes correspondientes a clientes ya visitados según la solución proporcionada.
+        Filtra los tripletes inválidos de la lista de tripletes.
+
+        Se eliminan tripletes en los que:
+        1. El cliente ya no es visitado en t.
+        2. El cliente ya está siendo visitado en t'.
 
         Args:
             solucion (Solucion): Solución que contiene las rutas para verificar los clientes visitados.
@@ -50,13 +54,20 @@ class Triplets:
         Returns:
             None
         """
-        self.triplets = [
-            triplet for triplet in self.triplets
-            if not (
-                solucion.rutas[triplet[1]].es_visitado(triplet[0])
-                and solucion.rutas[triplet[2]].es_visitado(triplet[0])
-            )
-        ]
+        tripletes_filtrados = []
+
+        for cliente, t, t0 in self.triplets:
+            visitado_t = solucion.rutas[t].es_visitado(cliente)
+            visitado_t0 = solucion.rutas[t0].es_visitado(cliente)
+            if not visitado_t and not visitado_t0:
+                if any(cliente.id == c.id and (visitado_t or not visitado_t0) for c, _, _ in tripletes_filtrados):
+                    tripletes_filtrados.append((cliente, t, t0))
+            elif not visitado_t and visitado_t0:
+                tripletes_filtrados.append((cliente, t, t0))
+
+        # Actualizar la lista de tripletes
+        self.triplets = tripletes_filtrados
+
 
 class FactorPenalizacion:
     """
@@ -137,19 +148,16 @@ class TabuLists:
     Clase que gestiona las listas tabú para movimientos de una solución.
 
     Atributos:
-        lista_r (Set[Tuple[int, int]]): Conjunto tabú de remociones (cliente, tiempo).
-        lista_a (Set[Tuple[int, int]]): Conjunto tabú de adiciones (cliente, tiempo).
+        lista_r (Set[Tuple[int, int, int]]): Conjunto tabú de remociones (cliente, tiempo, ttl).
+        lista_a (Set[Tuple[int, int, int]]): Conjunto tabú de adiciones (cliente, tiempo, ttl).
     """
 
     def __init__(self) -> None:
         """
         Inicializa las listas tabú como conjuntos para mejorar la eficiencia de búsqueda.
-
-        Returns:
-            None
         """
-        self.lista_r: Set[Tuple[int, int]] = set()
-        self.lista_a: Set[Tuple[int, int]] = set()
+        self.lista_r: Set[Tuple[int, int, int]] = set()
+        self.lista_a: Set[Tuple[int, int, int]] = set()
 
     def __str__(self) -> str:
         """
@@ -160,26 +168,6 @@ class TabuLists:
         """
         return f"lista_a: {list(self.lista_a)}, lista_r: {list(self.lista_r)}"
 
-    @staticmethod
-    def _obtener_ttl(contexto) -> int:
-        """
-        Calcula el tiempo de vida (TTL) para las entradas tabú.
-
-        Args:
-            contexto: Contexto que contiene los parámetros relevantes.
-
-        Returns:
-            int: Tiempo de vida calculado.
-        """
-        taboo_len = contexto.taboo_len
-        lambda_ttl = contexto.lambda_ttl
-        clientes = len(contexto.clientes)
-        horizonte_tiempo = contexto.horizonte_tiempo
-
-        # Calcular el TTL basado en los parámetros
-        variacion = randint(0, math.floor(lambda_ttl * math.sqrt(clientes * horizonte_tiempo)))
-        return taboo_len + variacion
-
     def actualizar(self, solucion: Solucion, solucion_prima: Solucion, main_iterator: int) -> None:
         """
         Actualiza las listas tabú eliminando entradas expiradas y agregando nuevos movimientos prohibidos.
@@ -188,33 +176,27 @@ class TabuLists:
             solucion (Solucion): Solución original.
             solucion_prima (Solucion): Solución modificada.
             main_iterator (int): Iterador principal.
-
-        Returns:
-            None
         """
-        self._eliminar_expirados(main_iterator)
-
         contexto = contexto_ejecucion.get()
+        
+        # Primero se eliminan los elementos que correspondan en la iteración actual
+        self.lista_r = {item for item in self.lista_r if item[2] > main_iterator}
+        self.lista_a = {item for item in self.lista_a if item[2] > main_iterator}
+
         for cliente in contexto.clientes:
             # Identificar movimientos de remoción y adición
             elementos_r = set(solucion_prima.tiempos_cliente(cliente)) - set(solucion.tiempos_cliente(cliente))
             elementos_a = set(solucion.tiempos_cliente(cliente)) - set(solucion_prima.tiempos_cliente(cliente))
 
-            self._actualizar_lista_tabú(self.lista_r, elementos_r, cliente, main_iterator, contexto)
-            self._actualizar_lista_tabú(self.lista_a, elementos_a, cliente, main_iterator, contexto)
-
-    def _eliminar_expirados(self, main_iterator: int) -> None:
-        """
-        Elimina las entradas expiradas de las listas tabú.
-
-        Args:
-            main_iterator (int): Iterador principal.
-
-        Returns:
-            None
-        """
-        self.lista_r = {item for item in self.lista_r if item[1] > main_iterator}
-        self.lista_a = {item for item in self.lista_a if item[1] > main_iterator}
+            # Calcular el TTL basado en los parámetros
+            variacion = randint(0, math.floor(contexto.lambda_ttl * math.sqrt(len(contexto.clientes) * contexto.horizonte_tiempo)))
+            ttl = contexto.taboo_len + variacion
+    
+            # Agregar los elementos a las listas según corresponda
+            for t in elementos_r:
+                self.lista_r.add((cliente.id, t, main_iterator + ttl))
+            for t in elementos_a:
+                self.lista_a.add((cliente.id, t, main_iterator + ttl))
 
     def movimiento_permitido(self, solucion_original: Solucion, solucion_prima: Solucion) -> bool:
         """
@@ -232,28 +214,10 @@ class TabuLists:
             tiempos_r = set(solucion_original.tiempos_cliente(cliente)) - set(solucion_prima.tiempos_cliente(cliente))
             tiempos_a = set(solucion_prima.tiempos_cliente(cliente)) - set(solucion_original.tiempos_cliente(cliente))
 
-            if any((cliente.id, t) in self.lista_r for t in tiempos_r):
+            # Verificar si algún movimiento está prohibido en lista_r
+            if any((cliente.id, t, ttl) in self.lista_r for t in tiempos_r for _, _, ttl in self.lista_r):
                 return False
-            if any((cliente.id, t) in self.lista_a for t in tiempos_a):
+            # Verificar si algún movimiento está prohibido en lista_a
+            if any((cliente.id, t, ttl) in self.lista_a for t in tiempos_a for _, _, ttl in self.lista_a):
                 return False
         return True
-
-    def _actualizar_lista_tabú(
-        self, lista: Set[Tuple[int, int]], elementos: Set[int], cliente, main_iterator: int, contexto
-    ) -> None:
-        """
-        Agrega movimientos prohibidos a la lista tabú si no están ya presentes.
-
-        Args:
-            lista (Set[Tuple[int, int]]): Conjunto tabú a actualizar.
-            elementos (Set[int]): Conjunto de elementos a agregar.
-            cliente: Cliente relacionado.
-            main_iterator (int): Iterador principal.
-            contexto: Contexto que contiene los parámetros relevantes.
-
-        Returns:
-            None
-        """
-        ttl = self._obtener_ttl(contexto)
-        for t in elementos:
-            lista.add((cliente.id, t, main_iterator + ttl))
