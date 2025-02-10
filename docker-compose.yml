@@ -86,6 +86,8 @@ services:
         - USER_NAME=$USER
         - USER_ID=$USER_ID
         - DOCKERFILE=local
+    ports:
+      - 8003:8000  # Mapea el puerto del contenedor al host
     volumes:
       - ./source/hair_service:/usr/src/app
     networks:

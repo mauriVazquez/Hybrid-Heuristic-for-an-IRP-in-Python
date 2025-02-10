@@ -15,73 +15,39 @@ def movimiento(solucion: Solucion, tabulists, iterador_principal: int) -> Soluci
     Returns:
         Solucion: La mejor solución encontrada para el vecindario de la solución ingresada.
     """
-    alfa = solucion.contexto.alfa
-    beta = solucion.contexto.beta
-    
-    # Crear el vecindario primario (N'(s))
-    vecindario_prima = _crear_n_prima(solucion)
-    
     # Crear el vecindario completo (N(s))
-    vecindario = _crear_n(solucion, vecindario_prima)
+    vecindario = _crear_vecindario(solucion)
     
     # Inicializar la solución respuesta
     mejor_solucion = solucion.clonar()
-    mejor_solucion.refrescar()
     mejor_costo = float("inf")
 
     # Buscar la mejor solución permitida por la lista tabú
     for vecino in vecindario:
-        if vecino is not None:
-            vecino.refrescar()
-            if tabulists.movimiento_permitido(solucion, vecino) and (vecino.costo < mejor_costo):
-                mejor_solucion = vecino.clonar()
-                mejor_costo = vecino.costo
+        if tabulists.movimiento_permitido(solucion, vecino) and (vecino.costo < mejor_costo):
+            mejor_solucion = vecino.clonar()
+            mejor_costo = vecino.costo
 
     # Ajustar el costo umbral para considerar soluciones tabú
-    umbral_costo = 0.95 * min(mejor_costo, solucion.costo)
+    umbral_costo = solucion.contexto.multiplicador_tolerancia * min(mejor_costo, solucion.costo)
     for vecino in vecindario:
-        vecino.refrescar()
-        if ((vecino is not None) and (not tabulists.movimiento_permitido(solucion, vecino)) and (vecino.costo < umbral_costo)) or mejor_costo == float("inf"):
+        if ((not tabulists.movimiento_permitido(solucion, vecino)) and (vecino.costo < umbral_costo)):
             mejor_solucion = vecino.clonar()
-            mejor_solucion.refrescar()
             mejor_costo = vecino.costo
 
     # Actualizar la lista tabú con la mejor solución seleccionada
-    mejor_solucion.refrescar()
     tabulists.actualizar(solucion, mejor_solucion, iterador_principal)
-    alfa.actualizar(mejor_solucion.respeta_capacidad_vehiculo())
-    beta.actualizar(mejor_solucion.proveedor_sin_desabastecimiento())
-    # print(f"MOVIMIENTO {mejor_solucion}")
+    
+    solucion.contexto.alfa.actualizar(mejor_solucion.respeta_capacidad_vehiculo())
+    solucion.contexto.beta.actualizar(mejor_solucion.proveedor_sin_desabastecimiento())
+    print(f"MOVIMIENTO {mejor_solucion}")
 
     return mejor_solucion
 
 
-def _crear_n_prima(solucion: Solucion) -> list[Solucion]:
+def _crear_vecindario(solucion: Solucion) -> list[Solucion]:
     """
-    Crea el vecindario primario (N'(s)) generando variaciones simples sobre la solución actual.
-
-    Args:
-        solucion (Solucion): La solución actual.
-
-    Returns:
-        list[Solucion]: Lista de soluciones generadas en el vecindario primario.
-    """
-    vecindario_prima = []
-    vecindario_prima.extend(_variante_eliminacion(solucion))   
-    # print("EMPIEZA")
-    # print(solucion)
-    # for s in _variante_eliminacion(solucion): 
-    #     print(s)
-    # print("TERMINA")
-    vecindario_prima.extend(_variante_insercion(solucion))
-    vecindario_prima.extend(_variante_mover_visita(solucion))
-    vecindario_prima.extend(_variante_intercambiar_visitas(solucion))
-    return vecindario_prima
-
-
-def _crear_n(solucion: Solucion, vecindario_prima: list[Solucion]) -> list[Solucion]:
-    """
-    Crea el vecindario N(s) a partir del vecindario primario N'(s), aplicando políticas de reabastecimiento.
+    Crea el vecindario N(s). Primero crea el vecindario primario N'(s), y luego N(s) aplicando políticas de reabastecimiento.
 
     Args:
         solucion (Solucion): La solución actual.
@@ -91,8 +57,18 @@ def _crear_n(solucion: Solucion, vecindario_prima: list[Solucion]) -> list[Soluc
         list[Solucion]: Vecindario final tras aplicar las políticas de reabastecimiento.
     """
     contexto = solucion.contexto
+    
+    # Crear el vecindario primario (N'(s))
+    vecindario_prima = [
+        vecino for variante in  [
+            _variante_eliminacion,
+            _variante_insercion,
+            _variante_mover_visita,
+            _variante_intercambiar_visitas] 
+        for vecino in variante(solucion)
+    ]
+    print(f"Len de vecindario_prima {len(vecindario_prima)}")
     vecindario = []
-
     for solucion_prima in vecindario_prima:
         conjunto_A = [cliente for cliente in contexto.clientes if solucion.tiempos_cliente(cliente) != solucion_prima.tiempos_cliente(cliente)]
 
@@ -135,7 +111,7 @@ def _crear_n(solucion: Solucion, vecindario_prima: list[Solucion]) -> list[Soluc
 
         if not solucion_prima.es_igual(solucion):
             vecindario.append(solucion_prima.clonar())
-
+    print(f"Len de vecindario {len(vecindario)}")
     return vecindario
 
 
@@ -273,7 +249,6 @@ def _insertar_visita(solucion, cliente, tiempo):
     """
     contexto = contexto_ejecucion.get()
     solucion_prima = solucion.clonar()
-    solucion_prima.refrescar()
     tiempos_cliente = solucion_prima.tiempos_cliente(cliente)
     
     if tiempo not in tiempos_cliente:

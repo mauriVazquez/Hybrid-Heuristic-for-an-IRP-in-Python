@@ -44,6 +44,7 @@ class Contexto:
         self.ortools = ortools
         self.alfa = alfa
         self.beta = beta
+        self.multiplicador_tolerancia = float(config['App']['multiplicador_tolerancia'])
         self.debug = debug
 
         if politica_reabastecimiento:
