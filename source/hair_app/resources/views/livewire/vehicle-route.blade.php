@@ -24,10 +24,11 @@
         width / (xExtent[1] - xExtent[0] + 100),
         height / (yExtent[1] - yExtent[0] + 100)
     );
+    
     const initialTransform = d3.zoomIdentity
-        .translate(width / 2, height / 2)
-        .scale(scale)
-        .translate(-(xExtent[1] + xExtent[0]) / 2, -(yExtent[1] + yExtent[0]) / 2);
+       .translate(width / 2, height / 2)
+       .scale(scale)
+       .translate(-(xExtent[1] + xExtent[0]) / 2, -(yExtent[1] + xExtent[0]) / 2); // Ajuste para centrar en x
     svg.call(d3.zoom().transform, initialTransform);
 
     // Fondo dinámico para light/dark mode
@@ -78,5 +79,5 @@
         .style('font-size', '12px')
         .style('text-anchor', 'middle');
 " class="graph-container">
-    <div id="graph-container" style="width: 100%; height: 400px; border: 1px solid #ddd;"></div>
+    <div id="graph-container" style="width: 100%; height: 500px; border: 1px solid #ddd;"></div>
 </div>

@@ -18,6 +18,7 @@ class Solucion extends Model
         'vehiculo_id',
         'proveedor_id',
         'plantilla_id',
+        'conductor_id'
     ];
 
     protected $with = ['rutas.visitas.cliente', 'proveedor'];
@@ -40,6 +41,15 @@ class Solucion extends Model
     public function plantilla()
     {
         return $this->belongsTo(Plantilla::class);
+    }
+
+    public function visitas()
+    {
+        return $this->hasManyThrough(Visita::class, Ruta::class);
+    }
+
+    public function conductor() {
+        return $this->belongsTo(User::class);
     }
 
     // public function clientes()

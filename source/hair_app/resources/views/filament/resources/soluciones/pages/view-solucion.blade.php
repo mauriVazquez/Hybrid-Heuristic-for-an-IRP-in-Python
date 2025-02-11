@@ -13,4 +13,9 @@
     <script src="https://d3js.org/d3.v7.min.js"></script>
     @endpush
     <livewire:vehicle-route :routeData="$currentRouteData" :key="time()" />
+    <div>
+        {{
+            $this->table
+        }}
+    </div>
 </x-filament-panels::page>

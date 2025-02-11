@@ -3,19 +3,28 @@
 namespace App\Filament\Resources\SolucionResource\Pages;
 
 use App\Filament\Resources\SolucionResource;
-use Filament\Actions;
 use Filament\Resources\Pages\ViewRecord;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ToggleColumn;
+use Filament\Tables\Table;
+use Filament\Tables\Concerns\InteractsWithTable;
+use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Filters\SelectFilter;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
-class ViewSolucion extends ViewRecord
+class ViewSolucion extends ViewRecord implements HasTable
 {
+    use InteractsWithTable;
     protected static string $resource = SolucionResource::class;
+
 
     protected static string $view = 'filament.resources.soluciones.pages.view-solucion';
 
     public $currentRouteData = [];
-    
+
     protected function mutateFormDataBeforeFill(array $data): array
-    {
+    {   
+        $this->record->refresh();
         $this->setCurrentRouteData($this->record['rutas'][0]);
         return $data;
     }
@@ -27,9 +36,9 @@ class ViewSolucion extends ViewRecord
 
     public function getRouteData($ruta): array
     {
-
-        $routeData = [];
         
+        $routeData = [];
+
         // get Proveedor coords 
         $routeData[] = [
             'x' => $this->record['proveedor']['coord_x'],
@@ -38,8 +47,8 @@ class ViewSolucion extends ViewRecord
 
         foreach ($ruta['visitas'] ?? [] as $visita) {
             $routeData[] = [
-                'name' => 'Cliente',
-                'color' => 'blue',
+                'name' => $visita['cliente']['nombre'],
+                'color' => $visita['realizada'] ? 'green' : 'blue',
                 'x' => $visita['cliente']['coord_x'],
                 'y' => $visita['cliente']['coord_y'],
             ];
@@ -53,5 +62,24 @@ class ViewSolucion extends ViewRecord
         ];
 
         return $routeData;
+    }
+
+    public function table(Table $table): Table
+    {
+        return $table
+            ->relationship(fn (): HasManyThrough => $this->record->visitas())
+            ->columns([
+                TextColumn::make('ruta.orden')->label('Ruta')
+                ->bulleted(),
+                TextColumn::make('cliente.nombre')->label('Cliente'),
+                TextColumn::make('cantidad')->label('Cantidad'),
+                ToggleColumn::make('realizada')->label('Realizada'),
+            ])
+            ->filters([
+                // filter by ruta
+                SelectFilter::make('ruta_id')
+                    ->options(fn () => $this->record->rutas->pluck('orden', 'id')->toArray())
+                    ->label('Ruta'),
+            ]);
     }
 }

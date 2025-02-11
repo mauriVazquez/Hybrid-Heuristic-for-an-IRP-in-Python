@@ -21,7 +21,6 @@ class ZonaResource extends Resource
     // protected static ?string $navigationGroup = 'Entidades';
     // protected static ?int $navigationSort = 0;
 
-
     public static function form(Form $form): Form
     {
         return $form
