@@ -41,7 +41,7 @@ class HairService
             'clientes' => ClientePythonResource::collection(Cliente::whereIn('id', $clientes)->get()),
         ];
 
-        $response = $this->getHttpClient()->post($this->url . '/solicitud-ejecucion', [
+        $response = $this->getHttpClient()->post($this->url . '/optimizar_recorrido', [
             RequestOptions::BODY => json_encode($data),
         ]);
 

@@ -23,7 +23,7 @@ class PythonController extends Controller
         
         try {
             // Realiza la solicitud POST al servicio externo
-            $response = Http::post('hair-service/solicitud-ejecucion', $data);
+            $response = Http::post('hair-service/optimizar_recorrido', $data);
             // Verifica si la solicitud fue exitosa (código de estado 200)
             if ($response->successful()) {
                 return json_decode($response);

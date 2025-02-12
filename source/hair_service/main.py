@@ -36,7 +36,7 @@ class Param(BaseModel):
     proveedor           : Proveedor = Field(..., description="Datos del proveedor")
     clientes            : List[Cliente] = Field(..., description="Lista de clientes asociados")
 
-@app.post("/solicitud-ejecucion", summary="Ejecutar algoritmo HAIR", description="Procesa una solicitud para ejecutar el algoritmo HAIR.")
+@app.post("/optimizar_recorrido", summary="Ejecutar algoritmo HAIR", description="Procesa una solicitud para ejecutar el algoritmo HAIR.")
 async def procesar_solicitud(param: Param, background_tasks: BackgroundTasks):
     """
     Endpoint para procesar una solicitud de ejecución del algoritmo HAIR.

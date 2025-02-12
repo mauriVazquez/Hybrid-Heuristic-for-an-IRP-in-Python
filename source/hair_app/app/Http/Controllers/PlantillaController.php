@@ -18,49 +18,76 @@ class PlantillaController extends Controller
     public function guardarSolucion(Request $request, Plantilla $plantilla)
     {
         info("Vuelta");
+
+        // Validación de entrada
+        $request->validate([
+            'mejor_solucion' => 'required|array',
+            'mejor_solucion.costo' => 'required|numeric',
+            'mejor_solucion.rutas' => 'required|array',
+            'user_id' => 'required|exists:users,id',
+        ]);
+
         $solucion = $request->input('mejor_solucion');
         $user_id  = $request->input('user_id');
-        DB::transaction(function () use ($solucion, $plantilla, $user_id) {
-            $nuevaSolucion = Solucion::create([
-                'plantilla_id' => $plantilla->id,
-                'estado' => 0,
-                'politica_reabastecimiento' => 'ML',
-                'vehiculo_id' => $plantilla->vehiculo_id,
-                'proveedor_id' => $plantilla->proveedor_id,
-                'costo' => $solucion['costo'],
-            ]);
 
-            foreach ($solucion['rutas'] as $key => $ruta) {
-                $rutaModelo = Ruta::create([
-                    'costo' => $ruta['costo'],
-                    'orden' => $key,
-                    'solucion_id' => $nuevaSolucion->id,
+        try {
+            DB::transaction(function () use ($solucion, $plantilla, $user_id) {
+                $nuevaSolucion = Solucion::create([
+                    'plantilla_id' => $plantilla->id,
+                    'estado' => 0,
+                    'politica_reabastecimiento' => 'ML',
+                    'vehiculo_id' => $plantilla->vehiculo_id,
+                    'proveedor_id' => $plantilla->proveedor_id,
+                    'costo' => $solucion['costo'],
                 ]);
-                foreach ($ruta['clientes'] as $key => $cliente) {
-                    Visita::create([
-                        'ruta_id' => $rutaModelo->id,
-                        'cliente_id' => $cliente,
+
+                foreach ($solucion['rutas'] as $key => $ruta) {
+                    $rutaModelo = Ruta::create([
+                        'costo' => $ruta['costo'],
                         'orden' => $key,
-                        'cantidad' => $ruta['cantidades'][$key],
-                        'realizada' => false
+                        'solucion_id' => $nuevaSolucion->id,
                     ]);
+
+                    foreach ($ruta['clientes'] as $key => $cliente) {
+                        if (!isset($ruta['cantidades'][$key])) {
+                            throw new \Exception("Error en los datos: cantidad no definida para cliente $cliente");
+                        }
+
+                        Visita::create([
+                            'ruta_id' => $rutaModelo->id,
+                            'cliente_id' => $cliente,
+                            'orden' => $key,
+                            'cantidad' => $ruta['cantidades'][$key],
+                            'realizada' => false
+                        ]);
+                    }
                 }
-            }
 
-            $plantilla->update([
-                'estado' => EstadosEnum::Resuelto,
-            ]);
+                $plantilla->update([
+                    'estado' => EstadosEnum::Resuelto,
+                ]);
 
-            $user = User::find($user_id);
-            Notification::make()
-                ->actions([
-                    Action::make('view')->label('Ver solución')
-                        ->button()
-                        ->url('soluciones/'.$nuevaSolucion->id),
-                ])
-                ->title('Optimización de plantilla finalizada.')
-                ->success()
-                ->broadcast($user);
-        });
+                // Enviar notificación solo si el usuario existe
+                $user = User::find($user_id);
+                if ($user) {
+                    Notification::make()
+                        ->actions([
+                            Action::make('view')->label('Ver solución')
+                                ->button()
+                                ->url('soluciones/' . $nuevaSolucion->id),
+                        ])
+                        ->title('Optimización de plantilla finalizada.')
+                        ->success()
+                        ->broadcast($user);
+                }
+            });
+
+            return response()->json(['message' => 'Solución guardada con éxito'], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error al guardar la solución',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }
