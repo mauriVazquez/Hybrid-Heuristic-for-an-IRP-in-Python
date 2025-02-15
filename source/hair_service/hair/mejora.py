@@ -146,29 +146,35 @@ def tsp_ortools(solucion: Solucion) -> Solucion:
     return aux_solucion
 
 def lk(solucion: Solucion) -> Solucion:
+    """
+    Aplica el algoritmo de Lin-Kernighan (LK) para optimizar las rutas de cada período de tiempo.
+    """
     aux_solucion = solucion.clonar()
     contexto = contexto_ejecucion.get()
+    
     for tiempo in range(contexto.horizonte_tiempo):
-        tamano_matriz = len(solucion.rutas[tiempo].clientes)+1
-        matriz =  [[0] * tamano_matriz for _ in range(tamano_matriz)]
-        # Proveedor distancia
-        for indice, cliente in enumerate(solucion.rutas[tiempo].clientes):
-            matriz[0][indice+1] = cliente.distancia_proveedor
-            matriz[indice+1][0] = cliente.distancia_proveedor
-        # Clientes distancias
-        for indice, c in enumerate(solucion.rutas[tiempo].clientes):
-            for indice2, c2 in enumerate(solucion.rutas[tiempo].clientes):
-                matriz[indice+1][indice2+1] = contexto.matriz_distancia[c.id][c2.id]
-        # Make an instance with all nodes
-        TSP.setEdges(matriz)
-        path, costo = KOpt(range(len(matriz))).optimise()
-        
-        aux_solucion.rutas[tiempo] = Ruta(
-            [solucion.rutas[tiempo].clientes[indice - 1] for indice in path[1:]],
-            [solucion.rutas[tiempo].cantidades[indice - 1] for indice in path[1:]]
-        )
+        if len(solucion.rutas[tiempo].clientes) < 2:
+            continue  # No ejecutar si hay menos de 2 clientes
+
+        # Obtener la matriz de distancia
+        matriz = _obtener_matriz_distancia(solucion.rutas[tiempo])
+
+        # Aplicar Lin-Kernighan si hay suficientes nodos
+        if len(matriz) > 2:
+            TSP.setEdges(matriz)  # Configurar el problema TSP
+            path, costo = KOpt(range(len(matriz))).optimise()  # Resolver con LK
+
+            # Asegurar que `path` tiene índices válidos antes de reconstruir la ruta
+            if len(path) > 1 and all(0 <= p < len(solucion.rutas[tiempo].clientes) + 1 for p in path):
+                nueva_ruta_clientes = [solucion.rutas[tiempo].clientes[p - 1] for p in path[1:] if p > 0]
+                nueva_ruta_cantidades = [solucion.rutas[tiempo].cantidades[p - 1] for p in path[1:] if p > 0]
+
+                aux_solucion.rutas[tiempo] = Ruta(nueva_ruta_clientes, nueva_ruta_cantidades)
+
     aux_solucion.refrescar()
     return aux_solucion
+
+
 
 def _obtener_matriz_distancia(ruta):
     # Crear la matriz de distancias entre los clientes visitados en el tiempo t

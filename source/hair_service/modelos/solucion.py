@@ -264,7 +264,6 @@ class Solucion:
 
         return costo_almacenamiento + costo_transporte + penalty1 + penalty2
 
-            
     def graficar_rutas(self):
         """
         Grafica las rutas de clientes en función del horizonte de tiempo.
@@ -296,6 +295,10 @@ class Solucion:
         # Graficar cada ruta en su subplot correspondiente
         for i, (ax, (x, y)) in enumerate(zip(axes, rutas_coords)):
             ax.plot(x, y, marker='o', linestyle='-', color='b', label=f"Ruta {i+1}")
+
+            # Destacar el proveedor con un marcador rojo grande y una etiqueta
+            ax.scatter(proveedor.coord_x, proveedor.coord_y, color='red', s=150, marker='x', label="Proveedor", edgecolors='black', linewidth=1)
+
             ax.set_title(f"Ruta {i+1}")
             ax.set_xlabel("Coordenada X")
             ax.set_ylabel("Coordenada Y")
