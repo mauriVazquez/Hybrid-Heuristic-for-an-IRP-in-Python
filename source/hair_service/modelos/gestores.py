@@ -1,73 +1,69 @@
 import math
-import configparser
-from itertools import permutations
 from random import shuffle, randint
-from typing import List, Set, Tuple
+from typing import Set, Tuple
 from modelos.solucion import Solucion
-from modelos.contexto_file import contexto_ejecucion
-
+from collections import deque
+import numpy as np
+    
 class Triplets:
     """
     Clase que gestiona tripletes de tiempos y clientes.
-
-    Atributos:
-        triplets (List[Tuple[int, int, int]]): Conjunto de tripletes, donde cada triplete es de la forma (cliente, t1, t2).
     """
 
-    def __init__(self) -> None:
+    def __init__(self, contexto) -> None:
         """
-        Inicializa la lista de tripletes con todas las combinaciones posibles de clientes 
-        y tiempos (t1, t2) dentro del horizonte temporal, siempre que t1 sea diferente a t2.
+        Inicializa la lista de tripletes con todas las combinaciones posibles de clientes y tiempos.
+        
+        Args:
+            solucion (Solucion): Solución actual desde donde se extraen los clientes y el horizonte temporal.
+        """
+        nuevos_triplets = []
+        for cliente in contexto.clientes:
+            for t1 in range(contexto.horizonte_tiempo):
+                for t2 in range(contexto.horizonte_tiempo):
+                    if t1 != t2:  # Asegurar que no sea el mismo tiempo
+                        nuevos_triplets.append((cliente, t1, t2))
+
+        # Barajar los triplets para mayor aleatoriedad
+        shuffle(nuevos_triplets)
+        self.triplets = nuevos_triplets
+        self.iteraciones_desde_inicio = 0  # Contador de iteraciones sin salto
+
+    def obtener_triplet_aleatorio(self):
+        """
+        Obtiene un triplete aleatorio y lo elimina de la lista.
 
         Returns:
-            None
+            tuple: Triplete (cliente, tiempo_visitado, tiempo_no_visitado).
         """
-        contexto = contexto_ejecucion.get()
-        self.triplets: List[Tuple[int, int, int]] = [
-            (cliente, t1, t2)
-            for cliente in contexto.clientes
-            for t1, t2 in permutations(range(int(contexto.horizonte_tiempo)), 2)
-        ]
-        # Barajar la lista al inicio puede evitar patrones repetitivos al seleccionar tripletes aleatorios
-        shuffle(self.triplets)
-    
-    def obtener_triplet_aleatorio(self) -> Tuple[int, int, int]:
-        """
-        Obtiene un triplete aleatorio de la lista.
-
-        Returns:
-            Tuple[int, int, int]: Triplete aleatorio de la forma (cliente, t1, t2).
-        """
+        if not self.triplets:
+            return None
         return self.triplets.pop(randint(0, len(self.triplets) - 1))
 
-    def eliminar_triplets_solucion(self, solucion: Solucion) -> None:
+    def eliminar_triplets_solucion(self, solucion, jump_iter):
         """
-        Filtra los tripletes inválidos de la lista de tripletes.
-
-        Se eliminan tripletes en los que:
-        1. El cliente ya no es visitado en t.
-        2. El cliente ya está siendo visitado en t'.
+        Elimina tripletes que ya no son válidos después de JumpIter/2 iteraciones.
 
         Args:
-            solucion (Solucion): Solución que contiene las rutas para verificar los clientes visitados.
-
-        Returns:
-            None
+            solucion (Solucion): La solución actual para verificar los clientes visitados.
+            jump_iter (int): Número de iteraciones para empezar a limpiar tripletes.
         """
-        tripletes_filtrados = []
+        self.iteraciones_desde_inicio += 1
 
-        for cliente, t, t0 in self.triplets:
-            visitado_t = solucion.rutas[t].es_visitado(cliente)
-            visitado_t0 = solucion.rutas[t0].es_visitado(cliente)
-            if not visitado_t and not visitado_t0:
-                if any(cliente.id == c.id and (visitado_t or not visitado_t0) for c, _, _ in tripletes_filtrados):
-                    tripletes_filtrados.append((cliente, t, t0))
-            elif not visitado_t and visitado_t0:
-                tripletes_filtrados.append((cliente, t, t0))
+        if self.iteraciones_desde_inicio < jump_iter // 2:
+            return  # No eliminar tripletes hasta pasar JumpIter/2 iteraciones
 
-        # Actualizar la lista de tripletes
-        self.triplets = tripletes_filtrados
+        nuevos_triplets = []
 
+        for cliente, t1, t2 in self.triplets:
+            visitado_t1 = solucion.rutas[t1].es_visitado(cliente)
+            visitado_t2 = solucion.rutas[t2].es_visitado(cliente)
+
+            # Si el cliente ya no está en t1 o ya está en t2, eliminamos el triplete
+            if visitado_t1 and not visitado_t2:
+                nuevos_triplets.append((cliente, t1, t2))
+
+        self.triplets = nuevos_triplets
 
 class FactorPenalizacion:
     """
@@ -106,7 +102,7 @@ class FactorPenalizacion:
         self.contador = 0
         self.soluciones_factibles = 0
 
-    def actualizar(self, es_factible: bool) -> None:
+    def actualizar(self, es_factible: bool, min_limit = 0.0, max_limit = float("inf")) -> None:
         """
         Actualiza el factor de penalización basado en la factibilidad de las soluciones.
 
@@ -116,24 +112,18 @@ class FactorPenalizacion:
         Returns:
             None
         """
-        config = configparser.ConfigParser()
-        config.read('hair/config.ini')
-
         self.contador += 1
         if es_factible:
             self.soluciones_factibles += 1
 
         if self.contador >= self.iteraciones_max:
-            min_limit = float(config['Penalty_factor']['min_limit'])
-            max_limit = float(config['Penalty_factor']['max_limit'])
-
-            if self.soluciones_factibles == self.iteraciones_max:
-                self.value = max(self.value * 0.5, min_limit)
-            elif self.soluciones_factibles == 0:
+            if (self.soluciones_factibles == self.iteraciones_max):
+                self.value = max(self.value * 0.5, min_limit) 
+            elif (self.soluciones_factibles == 0):
                 self.value = min(self.value * 2, max_limit)
-
-            self.reiniciar()
-
+            self.contador = 0
+            self.soluciones_factibles = 0
+        
     def obtener_valor(self) -> float:
         """
         Obtiene el valor actual del factor de penalización.
@@ -177,7 +167,7 @@ class TabuLists:
             solucion_prima (Solucion): Solución modificada.
             main_iterator (int): Iterador principal.
         """
-        contexto = contexto_ejecucion.get()
+        contexto = solucion.contexto
         
         # Primero se eliminan los elementos que correspondan en la iteración actual
         self.lista_r = {item for item in self.lista_r if item[2] > main_iterator}
@@ -209,7 +199,7 @@ class TabuLists:
         Returns:
             bool: True si los movimientos están permitidos, False en caso contrario.
         """
-        contexto = contexto_ejecucion.get()
+        contexto = solucion_original.contexto
         for cliente in contexto.clientes:
             tiempos_r = set(solucion_original.tiempos_cliente(cliente)) - set(solucion_prima.tiempos_cliente(cliente))
             tiempos_a = set(solucion_prima.tiempos_cliente(cliente)) - set(solucion_original.tiempos_cliente(cliente))
@@ -221,3 +211,48 @@ class TabuLists:
             if any((cliente.id, t, ttl) in self.lista_a for t in tiempos_a for _, _, ttl in self.lista_a):
                 return False
         return True
+
+class SolutionHistory:
+    def __init__(self, max_history=1000):
+        self.min_cycle_length = 2
+        self.max_cycle_length = 12
+        self.history = deque(maxlen=max_history)
+        self.cycle_count = 0
+        self.stagnation_count = 0
+        self.last_solution_hash = None
+    
+    def add_solution(self, solution):
+        solution_hash = hash(tuple(frozenset(tuple(sorted(cliente.id for cliente in ruta.clientes))) for ruta in solution.rutas))
+        self.history.append(solution_hash)
+
+        if self.last_solution_hash == solution_hash:
+            self.stagnation_count += 1
+        else:
+            self.stagnation_count = 0
+        
+        self.last_solution_hash = solution_hash
+    
+    def clear(self):
+        self.history.clear()
+        self.cycle_count = 0
+        self.stagnation_count = 0
+    
+    def detect_cycle(self):
+        if len(self.history) < self.min_cycle_length * 2:
+            return 0, 0
+
+        hashes = list(self.history)
+        seen = {}
+
+        for i in range(len(hashes)):
+            for length in range(self.min_cycle_length, min(self.max_cycle_length, (len(hashes) - i) // 2) + 1):
+                sequence = tuple(hashes[i:i + length])
+                if sequence in seen:
+                    self.cycle_count += 1
+                    return length, self.cycle_count
+                seen[sequence] = i
+        
+        return 0, 0
+
+    def is_stagnant(self, threshold=5):
+        return self.stagnation_count >= threshold

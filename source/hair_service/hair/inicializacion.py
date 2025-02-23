@@ -5,26 +5,15 @@ from modelos.ruta import Ruta
 
 def inicializacion():
     contexto = contexto_ejecucion.get()
-    solucion = Solucion()
+
+    # Crear rutas iniciales como una tupla de objetos Ruta (inmutables)
+    solucion = Solucion(tuple(Ruta((), ()) for _ in range(contexto.horizonte_tiempo)))
 
     for cliente in contexto.clientes:
-        nivel_almacenamiento = cliente.nivel_almacenamiento
-        nivel_demanda = cliente.nivel_demanda
-        nivel_minimo = cliente.nivel_minimo
-        nivel_maximo = cliente.nivel_maximo
-
-        tiempo_stockout = max(0, (nivel_almacenamiento - nivel_minimo) // nivel_demanda - 1)
-        stockout_frequency = max(1, math.ceil((nivel_maximo - nivel_minimo) / nivel_demanda))
-
-        if tiempo_stockout < contexto.horizonte_tiempo:
-            cantidad_a_entregar = min(nivel_maximo, contexto.capacidad_vehiculo)
-            solucion.rutas[tiempo_stockout].insertar_visita(cliente, cantidad_a_entregar, len(solucion.rutas[tiempo_stockout].clientes))
-
-        for t in range(tiempo_stockout + stockout_frequency, contexto.horizonte_tiempo, stockout_frequency):
-            cantidad_a_entregar = min(nivel_maximo, contexto.capacidad_vehiculo - solucion.rutas[t].obtener_total_entregado())
-            if cantidad_a_entregar > 0:
-                solucion.rutas[t].insertar_visita(cliente, cantidad_a_entregar, len(solucion.rutas[t].clientes))
-
-    solucion.refrescar()
+        for t in range(1, contexto.horizonte_tiempo + 1):
+            if(solucion.inventario_clientes[cliente.id][t] <= cliente.nivel_minimo):
+                # Para modificar rutas, creamos una lista temporal basada en la tupla actual
+                solucion = solucion.insertar_visita(cliente, t -1)
+                
     print(f"Inicio {solucion}")
     return solucion

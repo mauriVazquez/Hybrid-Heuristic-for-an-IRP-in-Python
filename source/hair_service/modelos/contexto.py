@@ -15,7 +15,6 @@ class Contexto:
         politica_reabastecimiento (str): Política de reabastecimiento.
         alfa (float): Peso del parámetro alfa.
         beta (float): Peso del parámetro beta.
-        ortools (bool, opcional): Indica si se utiliza OR-Tools. Por defecto es False.
         debug (bool, opcional): Modo de depuración. Por defecto es True.
     """
     def __init__(
@@ -27,7 +26,6 @@ class Contexto:
         politica_reabastecimiento : str,
         alfa : float,
         beta : float,
-        ortools : bool = False,
         debug : bool = True 
     ):
         # Crea un objeto ConfigParser para leer un archivo de configuración
@@ -35,16 +33,16 @@ class Contexto:
         config.read('hair/config.ini')
 
         self.politica_reabastecimiento = config['App']['politica_reabastecimiento']
-        self.taboo_len = int(config['Taboo']['list_length'])
+        self.taboo_len = 10
         self.lambda_ttl = float(config['Taboo']['lambda_ttl'])
+        self.penalty_min_limit = float(config['Penalty_factor']['min_limit'])
+        self.penalty_max_limit = float(config['Penalty_factor']['max_limit'])
         self.capacidad_vehiculo = capacidad_vehiculo
         self.horizonte_tiempo = horizonte_tiempo
         self.max_iter = 200 * len(clientes) * horizonte_tiempo
         self.jump_iter = self.max_iter // 2
-        self.ortools = ortools
         self.alfa = alfa
         self.beta = beta
-        self.multiplicador_tolerancia = float(config['App']['multiplicador_tolerancia'])
         self.debug = debug
 
         if politica_reabastecimiento:
@@ -74,21 +72,12 @@ class Contexto:
                 distancia_proveedor
             ))
 
-        self.matriz_distancia = self.calcular_matriz_distancia()
-
-    def calcular_matriz_distancia(self):
-        """
-        Calcula la matriz de distancias entre los clientes.
-
-        Returns:
-            dict: Matriz de distancias entre clientes.
-        """
-        return {
+        self.matriz_distancia = {
             cliente.id: {
-                otro_cliente.id: self.calcular_distancia(
+                otro_cliente.id: int(self.calcular_distancia(
                     cliente.coord_x, otro_cliente.coord_x,
                     cliente.coord_y, otro_cliente.coord_y
-                )
+                ))
                 for otro_cliente in self.clientes
             }
             for cliente in self.clientes
