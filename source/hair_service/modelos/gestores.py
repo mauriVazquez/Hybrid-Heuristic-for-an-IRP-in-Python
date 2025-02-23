@@ -102,7 +102,7 @@ class FactorPenalizacion:
         self.contador = 0
         self.soluciones_factibles = 0
 
-    def actualizar(self, es_factible: bool, min_limit = 0.0, max_limit = float("inf")) -> None:
+    def actualizar(self, es_factible: bool, min_limit = 0.125, max_limit = 8) -> None:
         """
         Actualiza el factor de penalización basado en la factibilidad de las soluciones.
 

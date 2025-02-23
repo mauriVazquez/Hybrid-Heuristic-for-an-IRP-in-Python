@@ -188,24 +188,36 @@ class Solucion:
 
     def merge_rutas(self, indice_ruta_principal: int, indice_ruta_secundaria: int) -> 'Solucion':
         """
-        Combina dos rutas en una, manteniendo las visitas únicas y devuelve una nueva instancia de Solución.
+        Combina dos rutas en una, manteniendo las visitas únicas y sumando correctamente las cantidades entregadas.
 
         Args:
             indice_ruta_principal (int): Índice de la ruta base.
             indice_ruta_secundaria (int): Índice de la ruta secundaria.
+
+        Returns:
+            Solucion: Nueva instancia con las rutas fusionadas.
         """
+        # Obtener las rutas a fusionar
         ruta_base = self.rutas[indice_ruta_principal]
         ruta_secundaria = self.rutas[indice_ruta_secundaria]
 
-        nuevos_clientes = ruta_base.clientes + tuple(c for c in ruta_secundaria.clientes if c not in ruta_base.clientes)
-        nuevas_cantidades = ruta_base.cantidades + tuple(
-            ruta_secundaria.obtener_cantidad_entregada(c) for c in ruta_secundaria.clientes if c not in ruta_base.clientes
-        )
+        # Diccionario para fusionar clientes y cantidades entregadas
+        cantidad_entregada_fusionada = {c: cantidad for c, cantidad in zip(ruta_base.clientes, ruta_base.cantidades)}
 
-        nueva_ruta = Ruta(nuevos_clientes, nuevas_cantidades)
+        for cliente, cantidad in zip(ruta_secundaria.clientes, ruta_secundaria.cantidades):
+            if cliente in cantidad_entregada_fusionada:
+                cantidad_entregada_fusionada[cliente] += cantidad  # 🔹 Sumar entrega si el cliente ya estaba
+            else:
+                cantidad_entregada_fusionada[cliente] = cantidad  # 🔹 Agregar nuevo cliente
+
+        # Construir la nueva ruta sin duplicados
+        clientes_fusionados = tuple(cantidad_entregada_fusionada.keys())
+        cantidades_fusionadas = tuple(cantidad_entregada_fusionada.values())
+
+        # Crear una nueva lista de rutas con la ruta fusionada
         rutas_modificadas = list(self.rutas)
-        rutas_modificadas[indice_ruta_principal] = nueva_ruta
-        rutas_modificadas[indice_ruta_secundaria] = Ruta((), ())
+        rutas_modificadas[indice_ruta_principal] = Ruta(clientes_fusionados, cantidades_fusionadas)
+        rutas_modificadas[indice_ruta_secundaria] = Ruta((), ())  # 🔹 Ruta vacía en el índice fusionado
 
         return Solucion(rutas=tuple(rutas_modificadas))
 

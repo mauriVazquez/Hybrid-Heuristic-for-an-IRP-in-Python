@@ -36,11 +36,12 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
     triplets = Triplets(contexto)
     solution_history = SolutionHistory()
     
-    max_ciclos_consecutivos = 2  # Número máximo de ciclos permitidos antes de forzar cambio
+    max_ciclos_consecutivos = 3  # Número máximo de ciclos permitidos antes de forzar cambio
     max_stagnation = 10          # Número máximo de iteraciones con la misma solución antes de forzar cambio
     
     start = datetime.now()
     solucion = inicializacion()
+    tiempo_best = datetime.now()
     mejor_solucion = solucion.clonar()
 
     while iteraciones_sin_mejoras < contexto.max_iter:

@@ -38,7 +38,7 @@ class Ruta:
         """
         if not clientes:
             return 0.0
-
+        
         # Distancia del proveedor al primer cliente
         costo_total = clientes[0].distancia_proveedor
 
