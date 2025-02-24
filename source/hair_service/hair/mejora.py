@@ -144,30 +144,62 @@ def optimizar_tsp(solucion, t, distance_matrix):
 class Mip1:
     @staticmethod
     def ejecutar(solucion_original: Solucion) -> Solucion:
+        """
+        Implementa MIP1 para reasignar rutas a distintos periodos sin cambiar su estructura.
+        Adapta la solución dependiendo de si la política es OU o ML.
+        """
         mejor_solucion = solucion_original.clonar()
         costo_minimo = solucion_original.costo
         contexto = solucion_original.contexto
 
         for tiempo in range(contexto.horizonte_tiempo):
             for ruta_idx, ruta in enumerate(solucion_original.rutas):  
-                # Reasignar ruta a un nuevo tiempo t sin cambiar su estructura
                 solucion_actual = solucion_original.reasignar_ruta(ruta, tiempo)
 
                 if cumple_restricciones(solucion_actual, 1) == 0:
-                    # Calcular la nueva función objetivo
+                    # Cálculo de costos de inventario y transporte
                     costo_inventario = sum(
                         contexto.proveedor.costo_almacenamiento * solucion_actual.inventario_proveedor[t] +
-                        sum(i.costo_almacenamiento * solucion_actual.inventario_clientes[i.id][t] for i in contexto.clientes)
+                        sum(cliente.costo_almacenamiento * solucion_actual.inventario_clientes[cliente.id][t] for cliente in contexto.clientes)
                         for t in range(contexto.horizonte_tiempo)
                     )
 
-                    costo_ahorro = sum(
-                        solucion_actual.calcular_ahorro_remocion(cliente, ruta_idx) * solucion_actual.calcular_ahorro_remocion(cliente, ruta_idx)
+                    costo_transporte = sum(ruta.costo for ruta in solucion_actual.rutas)
+
+                    # Ahorro en transporte por eliminación de clientes
+                    ahorro_remocion = sum(
+                        solucion_actual.calcular_ahorro_remocion(cliente, tiempo)
                         for cliente in contexto.clientes
-                        for ruta_idx in range(len(solucion_actual.rutas))
                     )
 
-                    costo_nuevo = costo_inventario - costo_ahorro
+                    # **Aplicación de la política OU en MIP1**
+                    if contexto.politica_reabastecimiento == "OU":
+                        for cliente in ruta.clientes:
+                            xjt = solucion_actual.rutas[tiempo].obtener_cantidad_entregada(cliente)
+                            tiempos_cliente = solucion_actual.tiempos_cliente(cliente)
+                            t_next = next((t_s for t_s in tiempos_cliente if t_s > tiempo), None)
+
+                            if t_next is not None:
+                                cantidad_en_siguiente = solucion_actual.rutas[t_next].obtener_cantidad_entregada(cliente)
+                                cantidad_transferible = min(xjt, cliente.nivel_maximo - cantidad_en_siguiente)
+
+                                if cantidad_transferible > 0:
+                                    solucion_actual = solucion_actual.eliminar_visita(cliente, tiempo)
+                                    solucion_actual = solucion_actual.insertar_visita(cliente, t_next, cantidad_en_siguiente + cantidad_transferible)
+
+                                if cantidad_transferible < xjt:
+                                    solucion_actual = solucion_actual.insertar_visita(cliente, tiempo, xjt - cantidad_transferible)
+
+                    # **Aplicación de la política ML en MIP1**
+                    if contexto.politica_reabastecimiento == "ML":
+                        for cliente in ruta.clientes:
+                            xjt = solucion_actual.rutas[tiempo].obtener_cantidad_entregada(cliente)
+                            y_min = min(xjt, min(solucion_actual.inventario_clientes[cliente.id][tiempo+1:], default=xjt))
+
+                            if solucion_actual.inventario_clientes[cliente.id][tiempo] - y_min >= cliente.nivel_minimo:
+                                solucion_actual = solucion_actual.quitar_cantidad_cliente(cliente, tiempo, y_min)
+
+                    costo_nuevo = costo_inventario + costo_transporte - ahorro_remocion
 
                     if costo_nuevo < costo_minimo:
                         mejor_solucion = solucion_actual.clonar()
@@ -178,6 +210,10 @@ class Mip1:
 class Mip2:
     @staticmethod
     def ejecutar(solucion: Solucion) -> Solucion:
+        """
+        Implementa MIP2 para modificar la asignación de clientes en rutas sin cambiar la asignación de rutas a periodos.
+        Adapta la solución dependiendo de si la política es OU o ML.
+        """
         contexto = solucion.contexto
         mejor_solucion = solucion.clonar()
         costo_minimo = solucion.costo
@@ -187,18 +223,45 @@ class Mip2:
                 ruta_actual = solucion.rutas[tiempo]
                 cliente_esta = ruta_actual.es_visitado(cliente)
 
-                # Cálculo de costos y ahorros
                 ahorro_remocion = solucion.calcular_ahorro_remocion(cliente, tiempo) if cliente_esta else 0
-                costo_insercion = solucion.calcular_costo_insercion(cliente, tiempo) if not cliente_esta else float("inf")
+                costo_insercion = solucion.calcular_costo_insercion(cliente, tiempo) if not cliente_esta else 0
 
-                # Aplicar modificación de la solución
                 if cliente_esta:
                     solucion_modificada = solucion.eliminar_visita(cliente, tiempo)
                 else:
                     solucion_modificada = solucion.insertar_visita(cliente, tiempo)
 
-                # Evaluación del costo con separación de ahorro e inserción
-                costo_nuevo = solucion_modificada.costo - ahorro_remocion + costo_insercion
+                costo_inventario = sum(
+                    contexto.proveedor.costo_almacenamiento * solucion_modificada.inventario_proveedor[t] +
+                    sum(cliente.costo_almacenamiento * solucion_modificada.inventario_clientes[cliente.id][t] for cliente in contexto.clientes)
+                    for t in range(contexto.horizonte_tiempo)
+                )
+
+                costo_transporte = sum(ruta.costo for ruta in solucion_modificada.rutas)
+
+                # **Aplicación de la política OU en MIP2**
+                if contexto.politica_reabastecimiento == "OU":
+                    if cliente_esta and ahorro_remocion > 0:
+                        solucion_modificada = solucion_modificada.eliminar_visita(cliente, tiempo)
+
+                # **Aplicación de la política ML en MIP2**
+                if contexto.politica_reabastecimiento == "ML":
+                    for tiempo_mod in range(contexto.horizonte_tiempo):  # Iteramos sobre cada período de tiempo
+                        ruta_modificada = solucion_modificada.rutas[tiempo_mod]  # Obtener la ruta en el tiempo `tiempo_mod`
+
+                        for cliente_mod in ruta_modificada.clientes:
+                            xjt = ruta_modificada.obtener_cantidad_entregada(cliente_mod)
+                            y_min = min(xjt, min(solucion_modificada.inventario_clientes[cliente_mod.id][tiempo_mod+1:], default=xjt))
+
+                            if solucion_modificada.inventario_clientes[cliente_mod.id][tiempo_mod] - y_min >= cliente_mod.nivel_minimo:
+                                solucion_modificada = solucion_modificada.quitar_cantidad_cliente(cliente_mod, tiempo_mod, y_min)
+
+                        if cliente_mod.costo_almacenamiento < contexto.proveedor.costo_almacenamiento:
+                            y_max = cliente_mod.nivel_maximo - max(solucion_modificada.inventario_clientes[cliente_mod.id][t] for t in range(tiempo_mod, contexto.horizonte_tiempo))
+                            if y_max > 0:
+                                solucion_modificada = solucion_modificada.insertar_visita(cliente_mod, tiempo_mod, y_max)
+
+                costo_nuevo = costo_inventario + costo_transporte - ahorro_remocion + costo_insercion
 
                 if cumple_restricciones(solucion_modificada, 2) == 0:
                     if costo_nuevo < costo_minimo:
@@ -208,11 +271,10 @@ class Mip2:
         return mejor_solucion
 
 
-
 def cumple_restricciones(solucion, MIP, MIPcliente=None, MIPtiempo=None, operation=None):
     contexto = solucion.contexto
     B = solucion.inventario_proveedor
-    I = [solucion.inventario_clientes[cliente.id] for cliente in contexto.clientes]
+    I = [solucion.inventario_clientes.get(cliente.id, None) for cliente in contexto.clientes]
     r0 = [contexto.proveedor.nivel_produccion for _ in range(contexto.horizonte_tiempo + 1)]
     ri = [c.nivel_demanda for c in contexto.clientes]
     
@@ -234,105 +296,52 @@ def cumple_restricciones(solucion, MIP, MIPcliente=None, MIPtiempo=None, operati
         for t in range(contexto.horizonte_tiempo)
     ])
     
-    # Variables de MIP2
-    v = np.array([
-        [1 if (operation == "INSERT" and MIPtiempo == t and MIPcliente == c) else 0
-         for t in range(contexto.horizonte_tiempo)]
-        for c in contexto.clientes
-    ])
+    for t in range(1, contexto.horizonte_tiempo + 1):
+        if B[t] < 0 or B[t] != (B[t-1] + r0[t-1] - np.sum(x[:, t-1])):
+            return 3  # Inventario insuficiente en el proveedor
     
-    w = np.array([
-        [1 if (operation == "REMOVE" and MIPtiempo == t and MIPcliente == c) else 0
-         for t in range(contexto.horizonte_tiempo)]
-        for c in contexto.clientes
-    ])
-
-    # (2) Definición del nivel de inventario del proveedor
-    if not all(B[t] == (B[t-1] + r0[t-1] - np.sum(x[:, t-1])) for t in range(1, contexto.horizonte_tiempo+1)):
-        return 2
-
-    # (3) El inventario del proveedor debe poder satisfacer la demanda
-    if not all(B[t] >= np.sum(x[:, t]) for t in range(contexto.horizonte_tiempo)):
-        return 3
-
-    # (4) Definición del inventario de los clientes
-    if not all(I[c][t] == (I[c][t-1] + x[c][t-1] - ri[c])
-               for c in range(len(contexto.clientes))
-               for t in range(1, contexto.horizonte_tiempo+1)):
-        return 4
-
+    for c in range(len(contexto.clientes)):
+        for t in range(1, contexto.horizonte_tiempo + 1):
+            if I[c][t] < 0 or I[c][t] != (I[c][t - 1] + x[c][t - 1] - ri[c]):
+                return 4  # Inventario del cliente no balanceado
+    
     if contexto.politica_reabastecimiento == "OU":
-        # (5) La cantidad entregada no debe ser menor a la necesaria para llenar el inventario
-        if not all(x[c][t] >= (contexto.clientes[c].nivel_maximo * sigma[c][t]) - I[c][t]
-                   for c in range(len(contexto.clientes))
-                   for t in range(contexto.horizonte_tiempo)):
-            return 5
-
-    # (6) La cantidad entregada no debe generar sobreabastecimiento en el cliente
-    if not all(x[c][t] <= (contexto.clientes[c].nivel_maximo - I[c][t])
-               for c in range(len(contexto.clientes))
-               for t in range(contexto.horizonte_tiempo)):
-        return 6
-
-    # (7) Si el cliente es visitado, no se debe exceder su capacidad máxima
-    if contexto.politica_reabastecimiento == "OU":
-        if not all(x[c][t] <= (contexto.clientes[c].nivel_maximo * sigma[c][t])
-                   for c in range(len(contexto.clientes))
-                   for t in range(contexto.horizonte_tiempo)):
-            return 7
-
-    # (8) La capacidad total de entrega no debe superar la del vehículo
-    if not all(np.sum(x[:, t]) <= contexto.capacidad_vehiculo for t in range(contexto.horizonte_tiempo)):
-        return 8
-
-    # 📌 Restricciones MIP1 (Reasignación de rutas)
+        for c in range(len(contexto.clientes)):
+            for t in range(contexto.horizonte_tiempo):
+                if x[c][t] < (contexto.clientes[c].nivel_maximo * sigma[c][t]) - I[c][t]:
+                    return 5  # No se entrega suficiente en OU
+                if x[c][t] > (contexto.clientes[c].nivel_maximo - I[c][t]):
+                    return 6  # Exceso de inventario en OU
+    
+    if contexto.politica_reabastecimiento == "ML":
+        for c in range(len(contexto.clientes)):
+            for t in range(contexto.horizonte_tiempo):
+                if x[c][t] > (contexto.clientes[c].nivel_maximo - I[c][t]):
+                    return 7  # No se puede exceder el máximo permitido en ML
+                if I[c][t] < contexto.clientes[c].nivel_minimo:
+                    return 8  # Stock mínimo no respetado en ML
+    
     if MIP == 1:
-        # (9) Una ruta solo puede asignarse a un único período de tiempo
-        if not all(np.sum(zr[:, r]) <= 1 for r in range(len(solucion.rutas))):
-            return 9
-
-        # (10) Solo una ruta puede asignarse en cada período de tiempo
-        if not all(np.sum(zr[t, :]) <= 1 for t in range(contexto.horizonte_tiempo)):
-            return 10
-
-        # (11) Un cliente puede ser atendido solo si su ruta está asignada
-        if not all(x[c][t] <= contexto.clientes[c].nivel_maximo * np.sum(sigma[c, :] * zr[t, :])
-                   for c in range(len(contexto.clientes))
-                   for t in range(contexto.horizonte_tiempo)):
-            return 11
-
-        # (12) No se puede atender a un cliente si fue removido de la ruta asignada
-        if not all(x[c][t] == 0 if w[c][t] else True
-                   for c in range(len(contexto.clientes))
-                   for t in range(contexto.horizonte_tiempo)):
-            return 12
-
-        # (13) Un cliente solo puede ser removido si su ruta está asignada
-        if not all(w[c][t] <= np.sum(zr[t, :]) for c in range(len(contexto.clientes)) for t in range(contexto.horizonte_tiempo)):
-            return 13
-
-    # 📌 Restricciones MIP2 (Inserción y eliminación de clientes)
+        for r in range(len(solucion.rutas)):
+            if np.sum(zr[:, r]) > 1:
+                return 9  # Una ruta asignada a más de un tiempo
+        for t in range(contexto.horizonte_tiempo):
+            if np.sum(zr[t, :]) > 1:
+                return 10  # Más de una ruta asignada en un tiempo
+    
     if MIP == 2:
-        # (21) No se puede insertar un cliente si ya estaba en la ruta
-        if not all(v[c][t] <= 1 - sigma[c][t] for c in range(len(contexto.clientes)) for t in range(contexto.horizonte_tiempo)):
-            return 21
-
-        # (22) No se puede eliminar un cliente si no estaba en la ruta
-        if not all(w[c][t] <= sigma[c][t] for c in range(len(contexto.clientes)) for t in range(contexto.horizonte_tiempo)):
-            return 22
-
-        # (23) Un cliente solo puede ser atendido si fue insertado o ya estaba en la ruta
-        if not all(x[c][t] <= contexto.clientes[c].nivel_maximo * (sigma[c][t] - w[c][t] + v[c][t])
-                   for c in range(len(contexto.clientes))
-                   for t in range(contexto.horizonte_tiempo)):
-            return 23
-
-        # (24) `v_it` debe ser binario
-        if not all(v[c][t] in [0, 1] for c in range(len(contexto.clientes)) for t in range(contexto.horizonte_tiempo)):
-            return 24
-
-        # (25) `w_it` debe ser binario
-        if not all(w[c][t] in [0, 1] for c in range(len(contexto.clientes)) for t in range(contexto.horizonte_tiempo)):
-            return 25
-
-    return 0 
+        for c in range(len(contexto.clientes)):
+            for t in range(contexto.horizonte_tiempo):
+                if operation == "INSERT" and c == MIPcliente and t == MIPtiempo and sigma[c][t] == 1:
+                    return 21  # No se puede insertar si ya estaba en la ruta
+                if operation == "REMOVE" and c == MIPcliente and t == MIPtiempo:
+                    if sigma[c][t] == 0:
+                        return 22  # No se puede eliminar si no estaba en la ruta
+                    if not any(x[c][t_futuro] > 0 for t_futuro in range(t + 1, contexto.horizonte_tiempo)) and I[c][t] < contexto.clientes[c].nivel_minimo:
+                        return 23  # No se puede eliminar sin alternativa de entrega ni stock suficiente
+    
+    for t in range(contexto.horizonte_tiempo):
+        if np.sum(x[:, t]) > contexto.capacidad_vehiculo:
+            return 24  # Exceso de capacidad del vehículo
+    
+    return 0  # Todo cumple las restricciones

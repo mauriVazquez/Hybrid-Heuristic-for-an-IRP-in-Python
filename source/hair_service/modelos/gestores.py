@@ -1,4 +1,5 @@
 import math
+import random
 from random import shuffle, randint
 from typing import Set, Tuple
 from modelos.solucion import Solucion
@@ -6,28 +7,19 @@ from collections import deque
 import numpy as np
     
 class Triplets:
-    """
-    Clase que gestiona tripletes de tiempos y clientes.
-    """
-
-    def __init__(self, contexto) -> None:
+    def __init__(self, contexto):
         """
         Inicializa la lista de tripletes con todas las combinaciones posibles de clientes y tiempos.
-        
-        Args:
-            solucion (Solucion): Solución actual desde donde se extraen los clientes y el horizonte temporal.
         """
-        nuevos_triplets = []
+        self.triplets = []
+        self.historial_iteraciones = {}  # Diccionario para almacenar las iteraciones de visita por cliente y tiempo
+
         for cliente in contexto.clientes:
             for t1 in range(contexto.horizonte_tiempo):
                 for t2 in range(contexto.horizonte_tiempo):
-                    if t1 != t2:  # Asegurar que no sea el mismo tiempo
-                        nuevos_triplets.append((cliente, t1, t2))
-
-        # Barajar los triplets para mayor aleatoriedad
-        shuffle(nuevos_triplets)
-        self.triplets = nuevos_triplets
-        self.iteraciones_desde_inicio = 0  # Contador de iteraciones sin salto
+                    if t1 != t2:
+                        self.triplets.append((cliente, t1, t2))
+                        self.historial_iteraciones[(cliente.id, t1)] = 0
 
     def obtener_triplet_aleatorio(self):
         """
@@ -38,32 +30,54 @@ class Triplets:
         """
         if not self.triplets:
             return None
-        return self.triplets.pop(randint(0, len(self.triplets) - 1))
+        return self.triplets.pop(random.randint(0, len(self.triplets) - 1))
+
+    def iteraciones_cliente(self, cliente, tiempo):
+        """
+        Devuelve el número de iteraciones desde la última vez que el cliente fue visitado en el tiempo dado.
+
+        Args:
+            cliente (Cliente): Cliente a consultar.
+            tiempo (int): Tiempo en el que se quiere conocer el número de iteraciones sin visita.
+
+        Returns:
+            int: Número de iteraciones desde la última visita al tiempo dado.
+        """
+        return self.historial_iteraciones.get((cliente.id, tiempo), 0)
+
+    def actualizar_iteraciones(self, solucion):
+        """
+        Actualiza el historial de iteraciones de cada cliente en cada tiempo.
+
+        Args:
+            solucion (Solucion): Solución actual para actualizar los tiempos de visita.
+        """
+        for cliente in solucion.contexto.clientes:
+            for t in range(solucion.contexto.horizonte_tiempo):
+                if solucion.rutas[t].es_visitado(cliente):
+                    self.historial_iteraciones[(cliente.id, t)] = 0  # Reiniciar el contador si fue visitado
+                else:
+                    self.historial_iteraciones[(cliente.id, t)] += 1  # Aumentar el contador si no fue visitado
 
     def eliminar_triplets_solucion(self, solucion, jump_iter):
         """
-        Elimina tripletes que ya no son válidos después de JumpIter/2 iteraciones.
+        Elimina tripletes que ya no son válidos después del procedimiento de salto.
 
         Args:
-            solucion (Solucion): La solución actual para verificar los clientes visitados.
-            jump_iter (int): Número de iteraciones para empezar a limpiar tripletes.
+            solucion (Solucion): La solución actual después del salto.
+            jump_iter (int): Número de iteraciones para la limpieza de tripletes.
         """
-        self.iteraciones_desde_inicio += 1
-
-        if self.iteraciones_desde_inicio < jump_iter // 2:
-            return  # No eliminar tripletes hasta pasar JumpIter/2 iteraciones
-
         nuevos_triplets = []
 
         for cliente, t1, t2 in self.triplets:
-            visitado_t1 = solucion.rutas[t1].es_visitado(cliente)
-            visitado_t2 = solucion.rutas[t2].es_visitado(cliente)
-
-            # Si el cliente ya no está en t1 o ya está en t2, eliminamos el triplete
-            if visitado_t1 and not visitado_t2:
+            # Verificar si el cliente sigue siendo válido para moverse en la solución
+            if (
+                solucion.rutas[t1].es_visitado(cliente) and
+                not solucion.rutas[t2].es_visitado(cliente)
+            ):
                 nuevos_triplets.append((cliente, t1, t2))
 
-        self.triplets = nuevos_triplets
+        self.triplets = nuevos_triplets  # Actualizar la lista con los tripletes válidos
 
 class FactorPenalizacion:
     """
