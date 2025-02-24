@@ -116,7 +116,7 @@ class FactorPenalizacion:
         self.contador = 0
         self.soluciones_factibles = 0
 
-    def actualizar(self, es_factible: bool, min_limit = 0.125, max_limit = 8) -> None:
+    def actualizar(self, es_factible: bool, min_limit = 0.000006, max_limit = 50000) -> None:
         """
         Actualiza el factor de penalización basado en la factibilidad de las soluciones.
 
@@ -133,7 +133,7 @@ class FactorPenalizacion:
         if self.contador >= self.iteraciones_max:
             if (self.soluciones_factibles == self.iteraciones_max):
                 self.value = max(self.value * 0.5, min_limit) 
-            elif (self.soluciones_factibles == 0):
+            else:
                 self.value = min(self.value * 2, max_limit)
             self.contador = 0
             self.soluciones_factibles = 0
@@ -228,7 +228,7 @@ class TabuLists:
 
 class SolutionHistory:
     def __init__(self, max_history=1000):
-        self.min_cycle_length = 2
+        self.min_cycle_length = 3
         self.max_cycle_length = 12
         self.history = deque(maxlen=max_history)
         self.cycle_count = 0
