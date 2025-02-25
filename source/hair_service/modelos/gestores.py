@@ -5,7 +5,8 @@ from typing import Set, Tuple
 from modelos.solucion import Solucion
 from collections import deque
 import numpy as np
-    
+from modelos.contexto_file import contexto_ejecucion
+
 class Triplets:
     def __init__(self, contexto):
         """
@@ -116,7 +117,7 @@ class FactorPenalizacion:
         self.contador = 0
         self.soluciones_factibles = 0
 
-    def actualizar(self, es_factible: bool, min_limit = 0.000006, max_limit = 50000) -> None:
+    def actualizar(self, es_factible: bool) -> None:
         """
         Actualiza el factor de penalización basado en la factibilidad de las soluciones.
 
@@ -126,15 +127,16 @@ class FactorPenalizacion:
         Returns:
             None
         """
+        contexto = contexto_ejecucion.get()
         self.contador += 1
         if es_factible:
             self.soluciones_factibles += 1
 
         if self.contador >= self.iteraciones_max:
             if (self.soluciones_factibles == self.iteraciones_max):
-                self.value = max(self.value * 0.5, min_limit) 
+                self.value = max(self.value * 0.5, contexto.penalty_min_limit) 
             else:
-                self.value = min(self.value * 2, max_limit)
+                self.value = min(self.value * 2, contexto.penalty_max_limit)
             self.contador = 0
             self.soluciones_factibles = 0
         

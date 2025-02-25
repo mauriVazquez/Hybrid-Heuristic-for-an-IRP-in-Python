@@ -48,7 +48,7 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
         iterador_principal += 1
         solucion_prima = movimiento(solucion, tabulists, iterador_principal)
 
-        if ((solucion_prima.costo < mejor_solucion.costo) and solucion_prima.es_factible):
+        if (solucion_prima.costo < mejor_solucion.costo):
             solucion_prima = mejora(solucion_prima, iterador_principal)
             mejor_solucion = solucion_prima.clonar()
             tiempo_best = datetime.now() - start
@@ -64,18 +64,18 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
         if cycle_length > 0 and repetitions >= 3:
             if solution_history.cycle_count >= max_ciclos_consecutivos:
                 iteraciones_hasta_salto = contexto.jump_iter - (iteraciones_sin_mejoras % contexto.jump_iter)
-                iteraciones_sin_mejoras += int(iteraciones_hasta_salto * 0.3)
-                iterador_principal += int(iteraciones_hasta_salto * 0.3)
+                iteraciones_sin_mejoras += int(iteraciones_hasta_salto *0.6)
+                iterador_principal += int(iteraciones_hasta_salto *0.6)
                 solution_history.clear()
                 # print(f"Ciclo detectado ({cycle_length} de longitud, {repetitions} repeticiones)")
-                # print(f"Avanzando {int(iteraciones_hasta_salto * 0.3)} iteraciones")
+                # print(f"Avanzando {int(iteraciones_hasta_salto *0.6)} iteraciones")
                 continue
 
         # **Detectar estancamiento**
         if solution_history.stagnation_count >= max_stagnation:
             iteraciones_hasta_salto = contexto.jump_iter - (iteraciones_sin_mejoras % contexto.jump_iter)
-            iteraciones_sin_mejoras += int(iteraciones_hasta_salto * 0.3)
-            iterador_principal += int(iteraciones_hasta_salto * 0.3)
+            iteraciones_sin_mejoras += int(iteraciones_hasta_salto *0.6)
+            iterador_principal += int(iteraciones_hasta_salto *0.6)
             solution_history.clear()
             # print(f"Estancamiento detectado en la misma solución por {max_stagnation} iteraciones.")
             # print(f"Avanzando {int(contexto.jump_iter / 2)} iteraciones para evitar bloqueo.")

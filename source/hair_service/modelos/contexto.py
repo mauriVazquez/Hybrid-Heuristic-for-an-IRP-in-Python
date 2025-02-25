@@ -32,7 +32,7 @@ class Contexto:
         config = configparser.ConfigParser()
         config.read('hair/config.ini')
 
-        self.politica_reabastecimiento = config['App']['politica_reabastecimiento']
+        self.politica_reabastecimiento = politica_reabastecimiento
         self.taboo_len = 10
         self.lambda_ttl = float(config['Taboo']['lambda_ttl'])
         self.penalty_min_limit = float(config['Penalty_factor']['min_limit'])
@@ -44,9 +44,6 @@ class Contexto:
         self.alfa = alfa
         self.beta = beta
         self.debug = debug
-
-        if politica_reabastecimiento:
-            self.politica_reabastecimiento = politica_reabastecimiento
 
         self.proveedor = Proveedor(
             proveedor.id,

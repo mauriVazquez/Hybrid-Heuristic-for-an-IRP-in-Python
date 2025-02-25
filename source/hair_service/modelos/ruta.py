@@ -121,15 +121,20 @@ class Ruta:
 
         Args:
             cliente (Cliente): Cliente a insertar.
-            cantidad (int): Cantidad entregada al cliente.
+            cantidad (int): Cantidad entregada al cliente (debe ser positiva).
             indice (int, opcional): Posición donde insertar la visita. Si no se proporciona,
                 se elige la posición óptima según el costo.
 
         Returns:
             Ruta: Nueva instancia con la visita agregada.
         """
+
         clientes_lista = list(self.clientes)
         cantidades_lista = list(self.cantidades)
+
+        # ✅ Si la ruta está vacía, simplemente agregar al cliente en la primera posición
+        if not clientes_lista:
+            return Ruta((cliente,), (cantidad,))
 
         # Determinar la posición óptima solo si no se proporciona un índice
         if indice is None:
@@ -137,13 +142,14 @@ class Ruta:
                 self.obtener_costo_recorrido(tuple(clientes_lista[:pos] + [cliente] + clientes_lista[pos:]))
                 for pos in range(len(clientes_lista) + 1)
             ]
-            indice = costos.index(min(costos))
+            indice = costos.index(min(costos))  # Insertar en la mejor posición según el menor costo
 
         # Insertar cliente y cantidad en la posición determinada
         clientes_lista.insert(indice, cliente)
         cantidades_lista.insert(indice, cantidad)
 
         return Ruta(tuple(clientes_lista), tuple(cantidades_lista))
+
 
     def eliminar_visita(self, cliente: Cliente) -> "Ruta":
         """
@@ -229,6 +235,54 @@ class Ruta:
 
         # Restar la cantidad y asegurarse de que no sea negativa
         nuevas_cantidades[indice_cliente] = max(0, nuevas_cantidades[indice_cliente] - cantidad)
+
+        # Convertir la lista de nuevo a tupla (para mantener inmutabilidad)
+        return Ruta(clientes=self.clientes, cantidades=tuple(nuevas_cantidades))
+
+    def agregar_cantidad_cliente(self, cliente: Cliente, cantidad: int) -> "Ruta":
+        """
+        Suma una cantidad a un cliente existente en la ruta, creando una nueva instancia de Ruta.
+
+        Args:
+            cliente (Cliente): Cliente al que se resta la cantidad.
+            cantidad (int): Cantidad a restar.
+
+        Returns:
+            Ruta: Nueva instancia de Ruta con la cantidad actualizada.
+        """
+        if cliente not in self.clientes:
+            return self  # Retorna la misma ruta si el cliente no existe
+
+        # Convertir la tupla a una lista para modificarla
+        nuevas_cantidades = list(self.cantidades)
+        indice_cliente = self.clientes.index(cliente)
+
+        # Sumar la cantidad
+        nuevas_cantidades[indice_cliente] = nuevas_cantidades[indice_cliente] + cantidad
+
+        # Convertir la lista de nuevo a tupla (para mantener inmutabilidad)
+        return Ruta(clientes=self.clientes, cantidades=tuple(nuevas_cantidades))
+    
+    def establecer_cantidad_cliente(self, cliente: Cliente, cantidad: int) -> "Ruta":
+        """
+        Establece una cantidad a un cliente existente en la ruta, creando una nueva instancia de Ruta.
+
+        Args:
+            cliente (Cliente): Cliente al que se resta la cantidad.
+            cantidad (int): Cantidad a restar.
+
+        Returns:
+            Ruta: Nueva instancia de Ruta con la cantidad actualizada.
+        """
+        if cliente not in self.clientes:
+            return self  # Retorna la misma ruta si el cliente no existe
+
+        # Convertir la tupla a una lista para modificarla
+        nuevas_cantidades = list(self.cantidades)
+        indice_cliente = self.clientes.index(cliente)
+
+        # Establecer la cantidad
+        nuevas_cantidades[indice_cliente] = cantidad
 
         # Convertir la lista de nuevo a tupla (para mantener inmutabilidad)
         return Ruta(clientes=self.clientes, cantidades=tuple(nuevas_cantidades))

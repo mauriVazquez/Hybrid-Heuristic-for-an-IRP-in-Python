@@ -185,6 +185,41 @@ class Solucion:
         
         return Solucion(rutas=tuple(rutas_modificadas))
 
+    def agregar_cantidad_cliente(self, cliente: Cliente, tiempo: int, cantidad: int) -> 'Solucion':
+        """
+        Reduce la cantidad entregada a un cliente en una visita específica dentro de la ruta.
+        
+        Args:
+            cliente (Cliente): Cliente al que se le reducirá la cantidad entregada.
+            tiempo (int): Tiempo en el que ocurre la visita.
+            cantidad (int): Cantidad a reducir.
+        
+        Returns:
+            Solucion: Nueva instancia de Solución con la cantidad ajustada.
+        """
+        rutas_modificadas = list(self.rutas)
+        nueva_ruta = rutas_modificadas[tiempo].agregar_cantidad_cliente(cliente, cantidad)
+        rutas_modificadas[tiempo] = nueva_ruta
+        
+        return Solucion(rutas=tuple(rutas_modificadas))
+
+    def establecer_cantidad_cliente(self, cliente: Cliente, tiempo: int, cantidad: int) -> 'Solucion':
+        """
+        Establece la cantidad exacta a entregar a un cliente en una visita específica dentro de la ruta.
+        
+        Args:
+            cliente (Cliente): Cliente al que se le establecerá la cantidad entregada.
+            tiempo (int): Tiempo en el que ocurre la visita.
+            cantidad (int): Cantidad exacta a establecer.
+        
+        Returns:
+            Solucion: Nueva instancia de Solución con la cantidad establecida.
+        """
+        rutas_modificadas = list(self.rutas)
+        nueva_ruta = rutas_modificadas[tiempo].establecer_cantidad_cliente(cliente, cantidad)
+        rutas_modificadas[tiempo] = nueva_ruta
+        
+        return Solucion(rutas=tuple(rutas_modificadas))
 
     def merge_rutas(self, indice_ruta_principal: int, indice_ruta_secundaria: int) -> 'Solucion':
         """
