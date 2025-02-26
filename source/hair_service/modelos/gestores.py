@@ -229,7 +229,7 @@ class TabuLists:
         return True
 
 class SolutionHistory:
-    def __init__(self, max_history=1000):
+    def __init__(self, max_history=250):
         self.min_cycle_length = 3
         self.max_cycle_length = 12
         self.history = deque(maxlen=max_history)
