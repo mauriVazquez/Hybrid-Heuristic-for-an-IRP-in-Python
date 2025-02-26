@@ -1,7 +1,7 @@
 import math
 import configparser
 from modelos.entidad import Cliente, Proveedor
-
+from modelos.gestores import FactorPenalizacion
 class Contexto:
     """
     Representa el contexto de la solución incluyendo parámetros de configuración, proveedor, 
@@ -24,8 +24,6 @@ class Contexto:
         proveedor : Proveedor,
         clientes : list[Cliente],
         politica_reabastecimiento : str,
-        alfa : float,
-        beta : float,
         debug : bool = True 
     ):
         # Crea un objeto ConfigParser para leer un archivo de configuración
@@ -41,8 +39,8 @@ class Contexto:
         self.horizonte_tiempo = horizonte_tiempo
         self.max_iter = 200 * len(clientes) * horizonte_tiempo
         self.jump_iter = self.max_iter // 2
-        self.alfa = alfa
-        self.beta = beta
+        self.alfa = FactorPenalizacion()
+        self.beta = FactorPenalizacion()
         self.debug = debug
 
         self.proveedor = Proveedor(

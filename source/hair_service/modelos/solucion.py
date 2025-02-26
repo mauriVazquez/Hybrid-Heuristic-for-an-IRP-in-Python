@@ -50,16 +50,6 @@ class Solucion:
             Returns:
                 str: Resumen de las rutas, costo y estado de factibilidad.
             """
-            costo_almacenamiento = self.contexto.proveedor.costo_almacenamiento * sum(self.inventario_proveedor) + sum(
-                c.costo_almacenamiento * sum(self.inventario_clientes[c.id]) for c in self.contexto.clientes
-            )
-            costo_transporte = sum(ruta.costo for ruta in self.rutas)
-            penalty1 = sum(
-                max(0, ruta.obtener_total_entregado() - self.contexto.capacidad_vehiculo) for ruta in self.rutas
-            ) * self.contexto.alfa.obtener_valor()
-
-            penalty2 = sum(max(0, -nivel) for nivel in self.inventario_proveedor) * self.contexto.beta.obtener_valor()
-            
             resp = "Clientes visitados:"        +" ".join(f"T{str(i+1)} = {ruta}    "  for i, ruta in enumerate(self.rutas)) + "\n"
             resp += 'Inventario de proveedor: ' + str(self.inventario_proveedor) + "\n"
             resp += 'Inventario de clientes: '  + str(self.inventario_clientes) + "\n"
@@ -67,10 +57,6 @@ class Solucion:
             resp += '¿Factible? : '             + ('SI' if self.es_factible else 'NO') + "\n"
             resp += 'Función objetivo: '        + str(self.costo) + "\n"
             resp += "Composición de costo objetivo: \n"
-            resp += f"\t costo_almacenamiento = {costo_almacenamiento} \n "
-            resp += f"\t costo_transporte = {costo_transporte} \n "
-            resp += f"\t penalizacion1 = {penalty1} \n "
-            resp += f"\t penalizacion2 = {penalty2} \n "
             print(resp)
 
     def clonar(self) -> 'Solucion':
@@ -141,31 +127,28 @@ class Solucion:
         return all(self.contexto.capacidad_vehiculo >= ruta.obtener_total_entregado() for ruta in self.rutas)
 
 
-    def insertar_visita(self, cliente: Cliente, tiempo: int, cantidad :int = None) -> 'Solucion':
-        """
-        Inserta una visita a un cliente en un tiempo dado y devuelve una nueva instancia de Solución.
+    def insertar_visita(self, cliente: Cliente, tiempo: int, cantidad: int = None) -> 'Solucion':
+        rutas_modificadas = list(ruta.clonar() for ruta in self.rutas)
+        
+        cantidad_entregar = min(
+            cantidad or cliente.nivel_maximo,
+            cliente.nivel_maximo - self.inventario_clientes[cliente.id][tiempo]  # No exceder \( U_i \)
+        )
 
-        Args:
-            cliente (Cliente): Cliente a insertar.
-            tiempo (int): Tiempo en el que se realiza la visita.
-        """
-        rutas_modificadas = list(self.rutas)
-        nueva_ruta = rutas_modificadas[tiempo].insertar_visita(cliente, (cantidad or cliente.nivel_maximo))
+        nueva_ruta = rutas_modificadas[tiempo].insertar_visita(cliente, cantidad_entregar)
         rutas_modificadas[tiempo] = nueva_ruta
         return Solucion(rutas=tuple(rutas_modificadas))
 
-    def eliminar_visita(self, cliente: Cliente, tiempo: int) -> 'Solucion':
-        """
-        Elimina la visita de un cliente en un tiempo dado y devuelve una nueva instancia de Solución.
 
-        Args:
-            cliente (Cliente): Cliente a remover.
-            tiempo (int): Tiempo en el que se remueve la visita.
-        """
-        rutas_modificadas = list(self.rutas)
+    def eliminar_visita(self, cliente: Cliente, tiempo: int) -> 'Solucion':
+        if self.inventario_clientes[cliente.id][tiempo] < cliente.nivel_minimo:
+            return self  # ❌ No se puede eliminar si causa desabastecimiento
+
+        rutas_modificadas = list(ruta.clonar() for ruta in self.rutas)
         nueva_ruta = rutas_modificadas[tiempo].eliminar_visita(cliente)
         rutas_modificadas[tiempo] = nueva_ruta
         return Solucion(rutas=tuple(rutas_modificadas))
+
 
     def quitar_cantidad_cliente(self, cliente: Cliente, tiempo: int, cantidad: int) -> 'Solucion':
         """
@@ -179,7 +162,7 @@ class Solucion:
         Returns:
             Solucion: Nueva instancia de Solución con la cantidad ajustada.
         """
-        rutas_modificadas = list(self.rutas)
+        rutas_modificadas = list(ruta.clonar() for ruta in self.rutas)
         nueva_ruta = rutas_modificadas[tiempo].quitar_cantidad_cliente(cliente, cantidad)
         rutas_modificadas[tiempo] = nueva_ruta
         
@@ -197,7 +180,7 @@ class Solucion:
         Returns:
             Solucion: Nueva instancia de Solución con la cantidad ajustada.
         """
-        rutas_modificadas = list(self.rutas)
+        rutas_modificadas = list(ruta.clonar() for ruta in self.rutas)
         nueva_ruta = rutas_modificadas[tiempo].agregar_cantidad_cliente(cliente, cantidad)
         rutas_modificadas[tiempo] = nueva_ruta
         
@@ -215,7 +198,7 @@ class Solucion:
         Returns:
             Solucion: Nueva instancia de Solución con la cantidad establecida.
         """
-        rutas_modificadas = list(self.rutas)
+        rutas_modificadas = list(ruta.clonar() for ruta in self.rutas)
         nueva_ruta = rutas_modificadas[tiempo].establecer_cantidad_cliente(cliente, cantidad)
         rutas_modificadas[tiempo] = nueva_ruta
         
@@ -250,7 +233,7 @@ class Solucion:
         cantidades_fusionadas = tuple(cantidad_entregada_fusionada.values())
 
         # Crear una nueva lista de rutas con la ruta fusionada
-        rutas_modificadas = list(self.rutas)
+        rutas_modificadas = list(ruta.clonar() for ruta in self.rutas)
         rutas_modificadas[indice_ruta_principal] = Ruta(clientes_fusionados, cantidades_fusionadas)
         rutas_modificadas[indice_ruta_secundaria] = Ruta((), ())  # 🔹 Ruta vacía en el índice fusionado
 
@@ -277,18 +260,28 @@ class Solucion:
         costo_almacenamiento = self.contexto.proveedor.costo_almacenamiento * sum(self.inventario_proveedor) + sum(
             c.costo_almacenamiento * sum(self.inventario_clientes[c.id]) for c in self.contexto.clientes
         )
-        
         costo_transporte = sum(ruta.costo for ruta in self.rutas)
         
-        exceso_vehiculo = sum( max(0, ruta.obtener_total_entregado() - self.contexto.capacidad_vehiculo) for ruta in self.rutas) 
-
-        desabastecimiento_proveedor = sum(max(0, -nivel) for nivel in self.inventario_proveedor) 
-
-        return (costo_almacenamiento 
-            + costo_transporte 
-            + (exceso_vehiculo * self.contexto.alfa.obtener_valor())
-            + (desabastecimiento_proveedor * self.contexto.beta.obtener_valor())
+        exceso_vehiculo = sum(
+            max(0, ruta.obtener_total_entregado() - self.contexto.capacidad_vehiculo) 
+            for ruta in self.rutas
         )
+        
+        desabastecimiento_proveedor = sum(max(0, -nivel) for nivel in self.inventario_proveedor)
+
+        penalizacion_stockout_cliente = sum(
+            max(0, cliente.nivel_minimo - self.inventario_clientes[cliente.id][t])  # Penalizar stockout en clientes
+            for cliente in self.contexto.clientes
+            for t in range(self.contexto.horizonte_tiempo)
+        )
+
+        return round(
+            costo_almacenamiento + costo_transporte + 
+            (exceso_vehiculo * self.contexto.alfa.obtener_valor()) +
+            (desabastecimiento_proveedor * self.contexto.beta.obtener_valor()) +
+            (penalizacion_stockout_cliente * 1000),  # Penalización fuerte para evitar stockout
+        3)
+
         
     def calcular_ahorro_remocion(self, cliente, tiempo):
         """
