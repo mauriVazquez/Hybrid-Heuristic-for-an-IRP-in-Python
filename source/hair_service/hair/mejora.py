@@ -1,6 +1,7 @@
-from modelos.solucion import Solucion
-from modelos.ruta import Ruta
 import math
+from modelos.solucion import Solucion
+from hair.movimiento import _insertar_visita, _eliminar_visita
+from modelos.ruta import Ruta
 from ortools.constraint_solver import routing_enums_pb2, pywrapcp
 from ortools.linear_solver import pywraplp
 
@@ -59,7 +60,7 @@ def mejora(solucion: Solucion, iterador_principal: int) -> Solucion:
             mejor_solucion = solucion_prima.clonar()
             do_continue = True
 
-    print(f"MEJORA {mejor_solucion}")
+    # print(f"MEJORA {mejor_solucion}")
     return mejor_solucion
 
 def LK(solucion: Solucion, solucion_prima : Solucion) -> Solucion:
@@ -210,6 +211,7 @@ def mip1_route_assignment(solucion: Solucion):
         for t in range(1, contexto.horizonte_tiempo):
             solver.Add(I[i.id, t] == I[i.id, t - 1] + x[i.id, t - 1] - i.nivel_demanda)
             solver.Add(I[i.id, t] >= i.nivel_minimo)
+            solver.Add(x[i.id, t] >= 1)
 
     if contexto.politica_reabastecimiento == "OU":
         ## (5) **Inventario debe estar entre 0 y el máximo del cliente**
@@ -389,6 +391,7 @@ def mip2_asignacion_clientes(solucion):
         for t in range(1, contexto.horizonte_tiempo):
             solver.Add(I[i.id, t] == I[i.id, t - 1] + x[i.id, t - 1] - i.nivel_demanda)
             solver.Add(I[i.id, t] >= i.nivel_minimo)
+            solver.Add(x[i.id, t] >= 1)
 
     if contexto.politica_reabastecimiento == "OU":
         ## (5) **Inventario debe estar entre 0 y el máximo del cliente**
@@ -470,9 +473,9 @@ def mip2_asignacion_clientes(solucion):
         for cliente in clientes:
             for t in range(tiempo_max):
                 if w[cliente.id, t].solution_value() == 1:
-                    nueva_solucion = nueva_solucion.eliminar_visita(cliente, t)
+                    nueva_solucion = _eliminar_visita(nueva_solucion, cliente, t)
                 if v[cliente.id, t].solution_value() == 1:
-                    nueva_solucion = nueva_solucion.insertar_visita(cliente, t)
+                    nueva_solucion = _insertar_visita(nueva_solucion, cliente, t)
 
         return nueva_solucion
 

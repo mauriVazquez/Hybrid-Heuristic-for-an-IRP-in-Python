@@ -105,7 +105,6 @@ class Solucion:
         return (
             solucion2 is not None
             and all(r1.es_igual(r2) for r1, r2 in zip(self.rutas, solucion2.rutas))
-            and self.costo == solucion2.costo
         )
 
     def proveedor_sin_desabastecimiento(self) -> bool:

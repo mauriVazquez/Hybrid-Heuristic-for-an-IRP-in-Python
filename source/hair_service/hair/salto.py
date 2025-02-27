@@ -1,5 +1,6 @@
 from modelos.solucion import Solucion
 from hair.mejora import mip2_asignacion_clientes
+from hair.movimiento import _eliminar_visita, _insertar_visita
 
 def salto(solucion, iterador_principal, triplets) -> Solucion:
     """
@@ -18,22 +19,18 @@ def salto(solucion, iterador_principal, triplets) -> Solucion:
     cambios_realizados = 0
     while triplets.triplets:
         cliente, tiempo_visitado, tiempo_no_visitado = triplets.obtener_triplet_aleatorio()
-        if not cliente or tiempo_no_visitado in mejor_solucion.tiempos_cliente(cliente):
+        if not cliente or (tiempo_no_visitado in mejor_solucion.tiempos_cliente(cliente)):
             continue  
+        
+        nueva_solucion = _eliminar_visita(mejor_solucion, cliente, tiempo_visitado)
+        nueva_solucion = _insertar_visita(nueva_solucion, cliente, tiempo_no_visitado)
+        
+        if nueva_solucion.es_admisible:
+            mejor_solucion = nueva_solucion.clonar()
+            cambios_realizados += 1
 
-        cantidad_entregada = mejor_solucion.rutas[tiempo_visitado].obtener_cantidad_entregada(cliente)
-        if cantidad_entregada == 0:
-            continue  
-
-        capacidad_disponible = mejor_solucion.contexto.capacidad_vehiculo - mejor_solucion.rutas[tiempo_no_visitado].obtener_total_entregado()
-        cantidad_movida = min(cantidad_entregada, capacidad_disponible)
-
-        mejor_solucion = mejor_solucion.eliminar_visita(cliente, tiempo_visitado)
-        mejor_solucion = mejor_solucion.insertar_visita(cliente, tiempo_no_visitado, cantidad_movida)
-        cambios_realizados += 1
-
-        if cambios_realizados == 0:
-            return solucion_antes_salto.clonar()  # No se realizó ningún cambio válido
+    if cambios_realizados == 0:
+        return solucion_antes_salto.clonar()  # No se realizó ningún cambio válido
 
     # Aplicar mip2_asignacion_clientes solo si la solución sigue siendo admisible
     if mejor_solucion.es_admisible:
@@ -41,5 +38,4 @@ def salto(solucion, iterador_principal, triplets) -> Solucion:
     else:
         mejor_solucion = solucion_antes_salto.clonar()
 
-    print(f"SALTO {mejor_solucion}")
     return mejor_solucion
