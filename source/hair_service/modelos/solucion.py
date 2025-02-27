@@ -62,6 +62,37 @@ class Solucion:
     def clonar(self) -> 'Solucion':
         return Solucion(rutas=self.rutas)
 
+    def verificar_politica_reabastecimiento(solucion):
+        """
+        Verifica si la solución cumple con la política de reabastecimiento establecida (OU o ML).
+
+        Args:
+            solucion (Solucion): Instancia de la solución a evaluar.
+
+        Returns:
+            bool: True si la solución cumple con la política de reabastecimiento, False en caso contrario.
+        """
+        contexto = solucion.contexto
+        politica = contexto.politica_reabastecimiento
+
+        for cliente in contexto.clientes:
+            for t in range(contexto.horizonte_tiempo + 1):
+                inventario_actual = solucion.inventario_clientes[cliente.id][t]
+                entrega_realizada = 0 if t == contexto.horizonte_tiempo else solucion.rutas[t].obtener_cantidad_entregada(cliente)
+
+                if politica == "OU":
+                    # Si hubo entrega, el inventario debe alcanzar el nivel máximo
+                    if (entrega_realizada > 0) and (solucion.inventario_clientes[cliente.id][t] + entrega_realizada != cliente.nivel_maximo):
+                        return False
+                
+                elif politica == "ML":
+                    # No debe violar la capacidad máxima y no debe caer por debajo del mínimo
+                    if inventario_actual > cliente.nivel_maximo:
+                        return False
+                    if inventario_actual < cliente.nivel_minimo:
+                        return False
+        return True
+
     def es_admisible(self) -> bool:
         """
         Verifica si la solución es admisible (sin desabastecimiento ni sobreabastecimiento en clientes).
@@ -127,25 +158,25 @@ class Solucion:
 
 
     def insertar_visita(self, cliente: Cliente, tiempo: int, cantidad: int = None) -> 'Solucion':
+        if cantidad is None:
+            cantidad_maxima = cliente.nivel_maximo - self.inventario_clientes[cliente.id][tiempo]
+            if self.contexto.politica_reabastecimiento == "OU":
+                cantidad = cantidad_maxima
+            else:
+                cantidad = min(
+                    cantidad_maxima,
+                    self.inventario_proveedor[tiempo],
+                    self.contexto.capacidad_vehiculo - self.rutas[tiempo].obtener_total_entregado()
+                )
+                
         rutas_modificadas = list(ruta.clonar() for ruta in self.rutas)
-        
-        cantidad_entregar = min(
-            cantidad or cliente.nivel_maximo,
-            cliente.nivel_maximo - self.inventario_clientes[cliente.id][tiempo]  # No exceder \( U_i \)
-        )
-
-        nueva_ruta = rutas_modificadas[tiempo].insertar_visita(cliente, cantidad_entregar)
-        rutas_modificadas[tiempo] = nueva_ruta
+        rutas_modificadas[tiempo] = rutas_modificadas[tiempo].insertar_visita(cliente, cantidad)
         return Solucion(rutas=tuple(rutas_modificadas))
 
 
     def eliminar_visita(self, cliente: Cliente, tiempo: int) -> 'Solucion':
-        if self.inventario_clientes[cliente.id][tiempo] < cliente.nivel_minimo:
-            return self  # ❌ No se puede eliminar si causa desabastecimiento
-
-        rutas_modificadas = list(ruta.clonar() for ruta in self.rutas)
-        nueva_ruta = rutas_modificadas[tiempo].eliminar_visita(cliente)
-        rutas_modificadas[tiempo] = nueva_ruta
+        rutas_modificadas = list(ruta for ruta in self.rutas)
+        rutas_modificadas[tiempo] = rutas_modificadas[tiempo].eliminar_visita(cliente)
         return Solucion(rutas=tuple(rutas_modificadas))
 
 
@@ -161,9 +192,8 @@ class Solucion:
         Returns:
             Solucion: Nueva instancia de Solución con la cantidad ajustada.
         """
-        rutas_modificadas = list(ruta.clonar() for ruta in self.rutas)
-        nueva_ruta = rutas_modificadas[tiempo].quitar_cantidad_cliente(cliente, cantidad)
-        rutas_modificadas[tiempo] = nueva_ruta
+        rutas_modificadas = list(ruta for ruta in self.rutas)
+        rutas_modificadas[tiempo] = rutas_modificadas[tiempo].quitar_cantidad_cliente(cliente, cantidad)
         
         return Solucion(rutas=tuple(rutas_modificadas))
 
@@ -179,9 +209,8 @@ class Solucion:
         Returns:
             Solucion: Nueva instancia de Solución con la cantidad ajustada.
         """
-        rutas_modificadas = list(ruta.clonar() for ruta in self.rutas)
-        nueva_ruta = rutas_modificadas[tiempo].agregar_cantidad_cliente(cliente, cantidad)
-        rutas_modificadas[tiempo] = nueva_ruta
+        rutas_modificadas = list(ruta for ruta in self.rutas)
+        rutas_modificadas[tiempo]= rutas_modificadas[tiempo].agregar_cantidad_cliente(cliente, cantidad)
         
         return Solucion(rutas=tuple(rutas_modificadas))
 
@@ -197,10 +226,8 @@ class Solucion:
         Returns:
             Solucion: Nueva instancia de Solución con la cantidad establecida.
         """
-        rutas_modificadas = list(ruta.clonar() for ruta in self.rutas)
-        nueva_ruta = rutas_modificadas[tiempo].establecer_cantidad_cliente(cliente, cantidad)
-        rutas_modificadas[tiempo] = nueva_ruta
-        
+        rutas_modificadas = list(ruta for ruta in self.rutas)
+        rutas_modificadas[tiempo] = rutas_modificadas[tiempo].establecer_cantidad_cliente(cliente, cantidad)
         return Solucion(rutas=tuple(rutas_modificadas))
 
     def merge_rutas(self, indice_ruta_principal: int, indice_ruta_secundaria: int) -> 'Solucion':
@@ -268,17 +295,10 @@ class Solucion:
         
         desabastecimiento_proveedor = sum(max(0, -nivel) for nivel in self.inventario_proveedor)
 
-        penalizacion_stockout_cliente = sum(
-            max(0, cliente.nivel_minimo - self.inventario_clientes[cliente.id][t])  # Penalizar stockout en clientes
-            for cliente in self.contexto.clientes
-            for t in range(self.contexto.horizonte_tiempo)
-        )
-
         return round(
             costo_almacenamiento + costo_transporte + 
             (exceso_vehiculo * self.contexto.alfa.obtener_valor()) +
-            (desabastecimiento_proveedor * self.contexto.beta.obtener_valor()) +
-            (penalizacion_stockout_cliente * 1000),  # Penalización fuerte para evitar stockout
+            (desabastecimiento_proveedor * self.contexto.beta.obtener_valor()),
         3)
 
         
@@ -287,50 +307,21 @@ class Solucion:
         Calculate the transportation savings if a customer is removed from a route.
         """
         ruta = self.rutas[tiempo]
-        if cliente not in ruta.clientes:
-            return 0  # No savings if the client is not in the route
-
-        idx = ruta.clientes.index(cliente)
-        prev = ruta.clientes[idx - 1] if idx > 0 else None
-        next = ruta.clientes[idx + 1] if idx < len(ruta.clientes) - 1 else None
-        if prev is None or next is None:
-            return 0  # No savings if removing an isolated customer
-
-        matriz_distancia = self.contexto.matriz_distancia
-        original_cost = matriz_distancia[prev.id][cliente.id] + matriz_distancia[cliente.id][next.id]
-        new_cost = matriz_distancia[prev.id][next.id]
+        ruta2 = self.rutas[tiempo].clonar()
         
-        # Savings from removing customer
-        return original_cost - new_cost
+        if cliente in self.rutas[tiempo].clientes:
+            ruta2 = ruta2.eliminar_visita(cliente)
+            return ruta.costo - ruta2.costo
+        else:
+            return 0
 
     def calcular_costo_insercion(self, cliente, tiempo):
         """
         Calculate the cheapest cost increase if a customer is inserted into a route.
         """
-        ruta = self.rutas[tiempo]
-        if cliente in ruta.clientes:
-            return float("inf")  # Can't insert if already in the route
-
-        best_cost = float("inf")
-        best_idx = -1
-
-        matriz_distancia = self.contexto.matriz_distancia
-        
-        for idx in range(len(ruta.clientes) + 1):
-            prev = ruta.clientes[idx - 1] if idx > 0 else None
-            next = ruta.clientes[idx] if idx < len(ruta.clientes) else None
-
-            if prev is None or next is None:
-                continue  # Skip cases where there's no valid insertion
-
-            # Compute insertion cost
-            insertion_cost = matriz_distancia[prev.id][cliente.id] + matriz_distancia[cliente.id][next.id] - matriz_distancia[prev.id][next.id]
-
-            if insertion_cost < best_cost:
-                best_cost = insertion_cost
-                best_idx = idx
-
-        return best_cost if best_idx != -1 else float("inf")
+        ruta2 = self.rutas[tiempo].clonar()
+        ruta2 = ruta2.insertar_visita(cliente, 0)
+        return ruta2.costo - self.rutas[tiempo].costo
 
     def reasignar_ruta(self, ruta, nuevo_tiempo):
         """

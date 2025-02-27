@@ -28,7 +28,7 @@ def movimiento(solucion: Solucion, tabulists, iterador_principal: int) -> Soluci
         key=lambda v: v.costo
     )
 
-    umbral_costo = 0.97 * mejor_solucion.costo
+    umbral_costo = 0.95 * mejor_solucion.costo
     if mejor_solucion_no_permitida.costo < umbral_costo:
         mejor_solucion = mejor_solucion_no_permitida.clonar()
 

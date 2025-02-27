@@ -8,7 +8,7 @@ def salto(solucion, iterador_principal, triplets) -> Solucion:
     a periodos donde no han sido visitados recientemente, asegurando que no haya stockout.
     """
     mejor_solucion = solucion.clonar()
-    solucion_antes_salto = mejor_solucion.clonar()
+    solucion_antes_salto = solucion.clonar()
 
     if not triplets.triplets:
         return mejor_solucion  
@@ -22,10 +22,10 @@ def salto(solucion, iterador_principal, triplets) -> Solucion:
         if not cliente or (tiempo_no_visitado in mejor_solucion.tiempos_cliente(cliente)):
             continue  
         
-        nueva_solucion = _eliminar_visita(mejor_solucion, cliente, tiempo_visitado)
-        nueva_solucion = _insertar_visita(nueva_solucion, cliente, tiempo_no_visitado)
+        nueva_solucion = mejor_solucion.eliminar_visita(cliente, tiempo_visitado)
+        nueva_solucion = nueva_solucion.insertar_visita(cliente, tiempo_no_visitado)
         
-        if nueva_solucion.es_admisible:
+        if nueva_solucion.es_admisible and nueva_solucion.verificar_politica_reabastecimiento():
             mejor_solucion = nueva_solucion.clonar()
             cambios_realizados += 1
 
@@ -33,9 +33,10 @@ def salto(solucion, iterador_principal, triplets) -> Solucion:
         return solucion_antes_salto.clonar()  # No se realizó ningún cambio válido
 
     # Aplicar mip2_asignacion_clientes solo si la solución sigue siendo admisible
-    if mejor_solucion.es_admisible:
+    if mejor_solucion.es_admisible and mejor_solucion.verificar_politica_reabastecimiento():
         mejor_solucion = mip2_asignacion_clientes(mejor_solucion)
     else:
         mejor_solucion = solucion_antes_salto.clonar()
 
+    print(f"SALTO {mejor_solucion}")
     return mejor_solucion

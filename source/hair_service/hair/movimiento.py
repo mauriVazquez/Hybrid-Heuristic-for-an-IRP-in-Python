@@ -18,23 +18,22 @@ def movimiento(solucion: Solucion, tabulists, iterador_principal: int) -> Soluci
     vecindario = _crear_vecindario(solucion)
 
     mejor_solucion = min(
-        (vecino for vecino in vecindario if tabulists.movimiento_permitido(solucion, vecino)),
-        default=solucion.clonar(), 
+        (vecino for vecino in vecindario if (tabulists.movimiento_permitido(solucion, vecino) and solucion.verificar_politica_reabastecimiento())),
+        default=solucion, 
         key=lambda v: v.costo
     )
 
     mejor_solucion_no_permitida = min(
-        (vecino for vecino in vecindario if not tabulists.movimiento_permitido(solucion, vecino)),
-        default=solucion.clonar(), 
+        (vecino for vecino in vecindario if ((not tabulists.movimiento_permitido(solucion, vecino)) and solucion.verificar_politica_reabastecimiento())),
+        default=solucion, 
         key=lambda v: v.costo
     )
     
     # Normalización del progreso dentro del ciclo de salto
     multiplicador_tolerancia = 1.05 - 1 * (iterador_principal / (solucion.contexto.jump_iter - (iterador_principal % solucion.contexto.jump_iter))) 
-
     umbral_costo = multiplicador_tolerancia * min(solucion.costo, mejor_solucion.costo)
     if mejor_solucion_no_permitida.costo < umbral_costo:
-        mejor_solucion = mejor_solucion_no_permitida.clonar()
+        mejor_solucion = mejor_solucion_no_permitida
 
     # Actualizar la lista tabú con la mejor solución seleccionada
     tabulists.actualizar(solucion, mejor_solucion, iterador_principal)
@@ -59,7 +58,7 @@ def _crear_vecindario(solucion: Solucion) -> list[Solucion]:
             _variante_insercion,
             _variante_mover_visita,
             _variante_intercambiar_visitas
-        ] for vecino in variante(solucion) if ((vecino.es_admisible) and (not vecino.es_igual(solucion)))
+        ] for vecino in variante(solucion)
     ]
     
     # 🔹 Paso 2: Aplicar ajustes adicionales basados en la teoría
@@ -77,7 +76,7 @@ def _crear_vecindario(solucion: Solucion) -> list[Solucion]:
                        solucion_prima.inventario_proveedor[t] < 0:
 
                         if contexto.politica_reabastecimiento == "OU":
-                            solucion_nueva = _eliminar_visita(solucion_prima, cliente_j, t)
+                            solucion_nueva = solucion_prima.eliminar_visita(cliente_j, t)
                             if (solucion_nueva.es_admisible) and (solucion_nueva.costo < solucion_prima.costo):
                                solucion_prima = solucion_nueva
                                conjunto_A.append(cliente_j)
@@ -88,7 +87,7 @@ def _crear_vecindario(solucion: Solucion) -> list[Solucion]:
                             y = min(xjt, min(solucion_prima.inventario_clientes[cliente_j.id][t+1:], default=xjt))
                             
                             if y > xjt:  
-                                solucion_nueva = _eliminar_visita(solucion_prima, cliente_j, t)
+                                solucion_nueva = solucion_prima.eliminar_visita(cliente_j, t)
                             else:
                                 solucion_nueva = solucion_prima.quitar_cantidad_cliente(cliente_j, t, y)
                                 
@@ -112,7 +111,7 @@ def _crear_vecindario(solucion: Solucion) -> list[Solucion]:
                             solucion_prima = solucion_nueva
 
         if solucion_prima.es_admisible:
-            vecindario.append(solucion_prima)  # 🔹 Validación final
+            vecindario.append(solucion_prima)
 
     return vecindario
 
@@ -188,7 +187,7 @@ def _variante_intercambiar_visitas(solucion: Solucion) -> list[Solucion]:
                 solucion_intermedia = _eliminar_visita(solucion, cliente1, iter_t)
                 solucion_intermedia = _insertar_visita(solucion_intermedia, cliente2, iter_t)
                 for iter_tprima in posibles_tiempos2:
-                    nueva_solucion = solucion_intermedia.clonar()
+                    nueva_solucion = solucion_intermedia
                     nueva_solucion = _insertar_visita(nueva_solucion, cliente1, iter_tprima)
                     nueva_solucion = _eliminar_visita(nueva_solucion, cliente2, iter_tprima)
                     if nueva_solucion.es_admisible:
@@ -252,15 +251,14 @@ def _eliminar_visita(solucion, cliente, t):
     t_next = next((t_futuro for t_futuro in tiempos_cliente if t_futuro > t), None)
     t_prev = next((t_pasado for t_pasado in reversed(tiempos_cliente) if t_pasado < t), None)
     
-    
-    nueva_solucion = solucion.eliminar_visita(cliente, t)  # Asumimos que maneja el enlace pred-succ
+    nueva_solucion = solucion.eliminar_visita(cliente, t)
     
     if solucion.contexto.politica_reabastecimiento == "OU":    
         # Transferir cantidad a siguiente visita        
         if t_next is not None:
             nueva_solucion = nueva_solucion.agregar_cantidad_cliente(cliente, t_next, cantidad_eliminada)
         if min(nueva_solucion.inventario_clientes[cliente.id]) < cliente.nivel_minimo:
-            return solucion.clonar()
+            return solucion
         return nueva_solucion
     
     elif solucion.contexto.politica_reabastecimiento == "ML":
@@ -270,10 +268,10 @@ def _eliminar_visita(solucion, cliente, t):
         if t_prev is not None:
             y = nueva_solucion.inventario_clientes[cliente.id][t_prev]
         
-            if y >= cantidad_eliminada:
-                return solucion.clonar()  
+            if y == cantidad_eliminada:
+                return solucion  
 
             cantidad_aumentada = cantidad_eliminada - y
             if nueva_solucion.inventario_clientes[cliente.id][t_prev] + nueva_solucion.rutas[t_prev].obtener_cantidad_entregada(cliente) + cantidad_aumentada <= cliente.nivel_maximo:
                 return nueva_solucion.agregar_cantidad_cliente(cliente, t_prev, cantidad_aumentada)
-        return solucion.clonar()
+        return solucion

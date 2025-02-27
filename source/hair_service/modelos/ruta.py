@@ -108,8 +108,6 @@ class Ruta:
         Returns:
             int: Cantidad entregada al cliente.
         """
-        assert len(self.clientes) == len(self.cantidades), f"Desincronización: {len(self.clientes)} clientes vs {len(self.cantidades)} cantidades"
-
         if cliente not in self.clientes:
             return 0  # No se encontró el cliente, retornamos 0 por defecto
 
@@ -119,17 +117,6 @@ class Ruta:
     def insertar_visita(self, cliente: Cliente, cantidad: int, indice=None) -> "Ruta":
         clientes_lista = list(self.clientes)
         cantidades_lista = list(self.cantidades)
-
-        # Si la ruta está vacía, agregar el cliente directamente
-        if not clientes_lista:
-            return Ruta((cliente,), (min(cliente.nivel_maximo, cantidad),))
-
-        # Verificar si el cliente ya está en la ruta
-        if cliente in clientes_lista:
-            indice_existente = clientes_lista.index(cliente)
-            nuevas_cantidades = list(cantidades_lista)
-            nuevas_cantidades[indice_existente] = min(cliente.nivel_maximo, nuevas_cantidades[indice_existente] + cantidad)
-            return Ruta(tuple(clientes_lista), tuple(nuevas_cantidades))
 
         # Determinar la mejor posición si no se proporciona un índice
         if indice is None:
@@ -154,14 +141,9 @@ class Ruta:
             return self  # Si el cliente no está, no hacer nada
 
         indice = clientes_lista.index(cliente)
-        cantidad_eliminada = cantidades_lista[indice]
 
         clientes_lista.pop(indice)
         cantidades_lista.pop(indice)
-
-        # Verificar si eliminar la visita deja al cliente en stockout
-        if cliente.nivel_minimo > cantidad_eliminada:
-            return self  # No se puede eliminar la visita sin causar stockout
 
         return Ruta(tuple(clientes_lista), tuple(cantidades_lista))
 
@@ -218,10 +200,6 @@ class Ruta:
         indice_cliente = self.clientes.index(cliente)
 
         nueva_cantidad = max(0, nuevas_cantidades[indice_cliente] - cantidad)
-
-        # Verificar si la reducción genera stockout
-        if nueva_cantidad < cliente.nivel_minimo:
-            return self  # No se puede reducir sin causar stockout
 
         nuevas_cantidades[indice_cliente] = nueva_cantidad
         return Ruta(clientes=self.clientes, cantidades=tuple(nuevas_cantidades))

@@ -12,9 +12,6 @@ from hair.mejora import mejora
 from hair.salto import salto
 
 def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_reabastecimiento=None):
-    """
-    Ejecuta la heurística híbrida de búsqueda tabú con Simulated Annealing (SA) para evitar mínimos locales.
-    """
     seed(datetime.now().timestamp())
     contexto = Contexto(
         horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, 
@@ -29,43 +26,49 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
     solution_history = SolutionHistory()
 
     max_ciclos_consecutivos = 3
-    max_stagnation = 5
+    max_stagnation = 10
+    
+    # Parámetros de Simulated Annealing
+    temperatura_inicial = 200.0  
+    temperatura_final = 0.5  
+    factor_enfriamiento = 0.98  
+    temperatura_actual = temperatura_inicial
 
+    
     start = datetime.now()
     solucion = inicializacion()
     mejor_solucion = solucion.clonar()
     tiempo_best = datetime.now()
 
-    # **Parámetros de Simulated Annealing**
-    T = 100.0  # Temperatura inicial
-    alpha = 0.99  # Factor de enfriamiento
-    T_min = 0.1  # Temperatura mínima
-
-    while iteraciones_sin_mejoras < contexto.max_iter and T > T_min:
+    while iteraciones_sin_mejoras < contexto.max_iter:
         iterador_principal += 1
         solucion_prima = movimiento(solucion, tabulists, iterador_principal)
 
-        delta = solucion_prima.costo - solucion.costo
-
-        if delta < 0:
-            # Se acepta porque es mejor solución
+        # Criterio de aceptación de Simulated Annealing
+        delta_costo = solucion_prima.costo - solucion.costo
+        
+        # Si la solución es factible y mejor que la mejor solución encontrada hasta ahora
+        if solucion_prima.es_factible and solucion_prima.costo < mejor_solucion.costo:
+            # Se acepta porque es mejor solución global
             solucion_prima = mejora(solucion_prima, iterador_principal)
             mejor_solucion = solucion_prima.clonar()
             tiempo_best = datetime.now() - start
             iteraciones_sin_mejoras = 0
+        # Criterio de aceptación probabilística de SA (solo para soluciones factibles)
+        elif solucion_prima.es_factible and (delta_costo < 0 or random.random() < math.exp(-delta_costo / temperatura_actual)):
+            # Se acepta por criterio de SA
+            iteraciones_sin_mejoras += 1
         else:
-            # **Simulated Annealing: Aceptar soluciones peores con cierta probabilidad**
-            probabilidad_aceptacion = math.exp(-delta / T)
-            if random.random() < probabilidad_aceptacion:
-                solucion_prima = mejora(solucion_prima, iterador_principal)
-            else:
-                iteraciones_sin_mejoras += 1
-
+            # No se acepta la solución
+            iteraciones_sin_mejoras += 1
+            solucion_prima = solucion.clonar()  # Revertimos al estado anterior
+     
         solucion = solucion_prima.clonar()
         solution_history.add_solution(solucion_prima)
 
-        # **Reducción de temperatura**
-        T *= alpha
+        # Enfriamiento de la temperatura
+        if iterador_principal % 10 == 0:  # Actualizar temperatura cada 10 iteraciones
+            temperatura_actual = max(temperatura_actual * factor_enfriamiento, temperatura_final)
 
         # **Detectar ciclos**
         cycle_length, repetitions = solution_history.detect_cycle()
@@ -75,6 +78,9 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
                 iteraciones_sin_mejoras += int(iteraciones_hasta_salto * 0.5)
                 iterador_principal += int(iteraciones_hasta_salto * 0.5)
                 solution_history.clear()
+                
+                # Reiniciar temperatura cuando se detecta un ciclo persistente
+                temperatura_actual = temperatura_inicial * 0.5
                 continue
 
         # **Detectar estancamiento**
@@ -83,6 +89,9 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
             iteraciones_sin_mejoras += int(iteraciones_hasta_salto * 0.5)
             iterador_principal += int(iteraciones_hasta_salto * 0.5)
             solution_history.clear()
+            
+            # Reiniciar temperatura cuando hay estancamiento
+            temperatura_actual = temperatura_inicial * 0.7
             continue
 
         # **Aplicar salto si es necesario**
@@ -93,6 +102,9 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
             triplets = Triplets(contexto)
             tabulists = TabuLists()
             solution_history.clear()
+            
+            # Reiniciar temperatura después de un salto
+            temperatura_actual = temperatura_inicial * 0.8
 
     print(f"{politica_reabastecimiento} => Tiempo best {tiempo_best}")
     execution_time = int((datetime.now() - start).total_seconds())
@@ -114,6 +126,40 @@ def async_execute(plantilla_id, horizonte_tiempo, capacidad_vehiculo, proveedor,
         json={
             "mejor_solucion": mejor_solucion.__json__(tag="Mejor Solución", iteration=iterador_principal),
             "user_id": user_id,
-            "execution_time": execution_time.seconds,
+            "execution_time": execution_time,
+            "admisibilidad": admisibilidad
         }
     )
+
+
+
+
+# # Algoritmo Híbrido con Simulated Annealing y Búsqueda Tabú
+
+# Este algoritmo combina las técnicas de Búsqueda Tabú y Simulated Annealing para resolver problemas de optimización complejos.
+
+# ## Características principales
+
+# - **Búsqueda Tabú**: Utiliza listas tabú para evitar ciclos y explorar el espacio de soluciones de manera eficiente.
+# - **Simulated Annealing**: Permite aceptar soluciones peores con una probabilidad que disminuye con el tiempo, ayudando a escapar de óptimos locales.
+# - **Detección de ciclos**: Identifica patrones cíclicos en las soluciones y aplica estrategias para romperlos.
+# - **Mecanismo de salto**: Cuando el algoritmo se estanca, realiza saltos para explorar nuevas regiones del espacio de soluciones.
+
+# ## Parámetros de Simulated Annealing
+
+# - **Temperatura inicial**: Controla la probabilidad inicial de aceptar soluciones peores.
+# - **Factor de enfriamiento**: Determina qué tan rápido disminuye la temperatura.
+# - **Temperatura final**: Umbral mínimo de temperatura.
+
+# ## Estrategia de enfriamiento
+
+# El algoritmo implementa un esquema de enfriamiento geométrico, donde la temperatura se reduce multiplicándola por un factor constante cada cierto número de iteraciones.
+
+# ## Reinicio de temperatura
+
+# La temperatura se reinicia parcialmente en diferentes situaciones:
+# - Cuando se detectan ciclos persistentes
+# - En situaciones de estancamiento
+# - Después de realizar un salto en el espacio de soluciones
+
+# Esto permite balancear la exploración y explotación del espacio de búsqueda.

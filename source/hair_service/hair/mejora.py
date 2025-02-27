@@ -1,6 +1,5 @@
 import math
 from modelos.solucion import Solucion
-from hair.movimiento import _insertar_visita, _eliminar_visita
 from modelos.ruta import Ruta
 from ortools.constraint_solver import routing_enums_pb2, pywrapcp
 from ortools.linear_solver import pywraplp
@@ -17,7 +16,7 @@ def mejora(solucion: Solucion, iterador_principal: int) -> Solucion:
         # PRIMERA MEJORA: Aplicación iterativa de MIP1 + LK
         solucion_prima = mip1_route_assignment(mejor_solucion)
         solucion_prima = LK(mejor_solucion, solucion_prima)
-        if solucion_prima.es_admisible and solucion_prima.costo < mejor_solucion.costo:
+        if solucion_prima.verificar_politica_reabastecimiento() and solucion_prima.es_admisible and solucion_prima.costo < mejor_solucion.costo:
             mejor_solucion = solucion_prima.clonar()
             do_continue = True
         
@@ -25,42 +24,42 @@ def mejora(solucion: Solucion, iterador_principal: int) -> Solucion:
         solucion_merge = mejor_solucion.clonar()
         
         # Crear lista de pares de rutas consecutivas
-        L = [(i, i+1) for i in range(len(mejor_solucion.rutas)-1)]
+        L = [(i, i+1) for i in range(len(solucion_merge.rutas)-1)]
         
         # Iteración sobre pares de rutas
         for ruta1_idx, ruta2_idx in L:
             # Merge hacia adelante (ruta i con ruta i+1)
-            s1 = mejor_solucion.merge_rutas(ruta1_idx, ruta2_idx)
+            s1 = solucion_merge.merge_rutas(ruta1_idx, ruta2_idx)
             s1 = mip2_asignacion_clientes(s1)  # Aplicar MIP2
             
             if s1.es_factible:
-                s1_mejorada = LK(mejor_solucion, s1)
+                s1_mejorada = LK(solucion_merge, s1)
                 if s1_mejorada.costo < solucion_merge.costo:
                     solucion_merge = s1_mejorada.clonar()
        
             # Merge hacia atrás (ruta i con ruta i-1)
             if ruta1_idx > 0:  # Solo si no es la primera ruta
-                s2 = mejor_solucion.merge_rutas(ruta1_idx - 1, ruta1_idx)
+                s2 = solucion_merge.merge_rutas(ruta1_idx - 1, ruta1_idx)
                 s2 = mip2_asignacion_clientes(s2)  # Aplicar MIP2
                 
                 if s2.es_factible:
-                    s2_mejorada = LK(mejor_solucion, s2)
+                    s2_mejorada = LK(solucion_merge, s2)
                     if s2_mejorada.costo < solucion_merge.costo:
                         solucion_merge = s2_mejorada.clonar()
        
         # Aplicar el mejor resultado de los merges
-        if solucion_merge.costo < mejor_solucion.costo:
+        if solucion_merge.verificar_politica_reabastecimiento() and solucion_merge.es_admisible and solucion_merge.costo < mejor_solucion.costo:
             mejor_solucion = solucion_merge.clonar()
             do_continue = True
 
         # TERCERA MEJORA: Aplicación de MIP2 + LK
         solucion_prima = mip2_asignacion_clientes(mejor_solucion)
         solucion_prima = LK(mejor_solucion, solucion_prima)
-        if solucion_prima.es_admisible and solucion_prima.costo < mejor_solucion.costo:
+        if solucion_prima.verificar_politica_reabastecimiento() and solucion_prima.es_admisible and solucion_prima.costo < mejor_solucion.costo:
             mejor_solucion = solucion_prima.clonar()
             do_continue = True
 
-    # print(f"MEJORA {mejor_solucion}")
+    print(f"MEJORA {mejor_solucion}")
     return mejor_solucion
 
 def LK(solucion: Solucion, solucion_prima : Solucion) -> Solucion:
@@ -204,21 +203,21 @@ def mip1_route_assignment(solucion: Solucion):
     
     ## (3) **Balance de inventario del proveedor**
     for t in range(1, contexto.horizonte_tiempo):
-        solver.Add(B[t] == B[t - 1] + contexto.proveedor.nivel_produccion - sum(x[i.id, t] for i in contexto.clientes))
+        solver.Add(B[t] >= sum(x[i.id, t] for i in contexto.clientes))
 
     ## (4) **Balance de inventario del cliente**
     for i in contexto.clientes:
         for t in range(1, contexto.horizonte_tiempo):
             solver.Add(I[i.id, t] == I[i.id, t - 1] + x[i.id, t - 1] - i.nivel_demanda)
             solver.Add(I[i.id, t] >= i.nivel_minimo)
-            solver.Add(x[i.id, t] >= 1)
-
+            
     if contexto.politica_reabastecimiento == "OU":
         ## (5) **Inventario debe estar entre 0 y el máximo del cliente**
         for i in contexto.clientes:
             for t in range(contexto.horizonte_tiempo):
                 solver.Add(I[i.id, t] - i.nivel_demanda >= 0)
-                solver.Add(I[i.id, t] <= i.nivel_maximo)
+                solver.Add(I[i.id, t] + x[i.id, t] <= i.nivel_maximo)
+                solver.Add(I[i.id, t] + x[i.id, t] >= i.nivel_maximo)
 
         ## (6) **Un cliente solo puede recibir entrega si su inventario lo permite**
         for i in contexto.clientes:
@@ -229,6 +228,7 @@ def mip1_route_assignment(solucion: Solucion):
         for i in contexto.clientes:
             for t in range(contexto.horizonte_tiempo):
                 solver.Add(x[i.id, t] <= i.nivel_maximo * y[i.id, r, t])
+                solver.Add(x[i.id, t] >= i.nivel_maximo * y[i.id, r, t])
 
     ## (8) **Restricción de capacidad del vehículo**
     for t in range(contexto.horizonte_tiempo):
@@ -398,7 +398,8 @@ def mip2_asignacion_clientes(solucion):
         for i in contexto.clientes:
             for t in range(contexto.horizonte_tiempo):
                 solver.Add(I[i.id, t] - i.nivel_demanda >= 0)
-                solver.Add(I[i.id, t] <= i.nivel_maximo)
+                solver.Add(I[i.id, t] + x[i.id, t] <= i.nivel_maximo)
+                solver.Add(I[i.id, t] + x[i.id, t] >= i.nivel_maximo)
 
         ## (6) **Un cliente solo puede recibir entrega si su inventario lo permite**
         for i in contexto.clientes:
@@ -409,6 +410,7 @@ def mip2_asignacion_clientes(solucion):
         for i in contexto.clientes:
             for t in range(contexto.horizonte_tiempo):
                 solver.Add(x[i.id, t] <= i.nivel_maximo * y[i.id, r, t])
+                solver.Add(x[i.id, t] >= i.nivel_maximo * y[i.id, r, t])
 
     ## (8) **Restricción de capacidad del vehículo**
     for t in range(contexto.horizonte_tiempo):
@@ -473,9 +475,9 @@ def mip2_asignacion_clientes(solucion):
         for cliente in clientes:
             for t in range(tiempo_max):
                 if w[cliente.id, t].solution_value() == 1:
-                    nueva_solucion = _eliminar_visita(nueva_solucion, cliente, t)
+                    nueva_solucion = nueva_solucion.eliminar_visita(cliente, t)
                 if v[cliente.id, t].solution_value() == 1:
-                    nueva_solucion = _insertar_visita(nueva_solucion, cliente, t)
+                    nueva_solucion = nueva_solucion.insertar_visita(cliente, t)
 
         return nueva_solucion
 
