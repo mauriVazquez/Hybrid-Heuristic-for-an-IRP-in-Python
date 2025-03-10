@@ -42,7 +42,7 @@ class Ruta:
         if clientes[-1].distancia_proveedor is not None:
             costo_total += clientes[-1].distancia_proveedor  # Distancia del último cliente de vuelta
 
-        return round(costo_total, 2)
+        return costo_total
 
 
 
@@ -114,7 +114,7 @@ class Ruta:
         return next((self.cantidades[i] for i, c in enumerate(self.clientes) if c == cliente), 0)
 
 
-    def insertar_visita(self, cliente: Cliente, cantidad: int, indice=None) -> "Ruta":
+    def insertar_visita(self, cliente: Cliente, cantidad: int, indice = None) -> "Ruta":
         clientes_lista = list(self.clientes)
         cantidades_lista = list(self.cantidades)
 
@@ -128,7 +128,7 @@ class Ruta:
 
         # Insertar cliente y cantidad en la mejor posición
         clientes_lista.insert(indice, cliente)
-        cantidades_lista.insert(indice, min(cliente.nivel_maximo, cantidad))
+        cantidades_lista.insert(indice, cantidad)
 
         return Ruta(tuple(clientes_lista), tuple(cantidades_lista))
 

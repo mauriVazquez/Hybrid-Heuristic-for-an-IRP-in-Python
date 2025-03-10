@@ -25,15 +25,15 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
     triplets = Triplets(contexto)
     solution_history = SolutionHistory()
 
-    max_ciclos_consecutivos = 3
+    max_ciclos_consecutivos = 5
     max_stagnation = 10
     
     # Parámetros de Simulated Annealing
-    temperatura_inicial = 200.0  
-    temperatura_final = 0.5  
-    factor_enfriamiento = 0.98  
+    temperatura_inicial = 1000.0  
+    temperatura_final = 0.5
+    factor_enfriamiento = 0.995
     temperatura_actual = temperatura_inicial
-
+    ultimo_enfriamiento = 0
     
     start = datetime.now()
     solucion = inicializacion()
@@ -54,9 +54,8 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
             mejor_solucion = solucion_prima.clonar()
             tiempo_best = datetime.now() - start
             iteraciones_sin_mejoras = 0
-        # Criterio de aceptación probabilística de SA (solo para soluciones factibles)
-        elif solucion_prima.es_factible and (delta_costo < 0 or random.random() < math.exp(-delta_costo / temperatura_actual)):
-            # Se acepta por criterio de SA
+        # Criterio de aceptación probabilística de SA
+        elif solucion.es_factible and (delta_costo < 0) or (random.random() < -delta_costo / max(temperatura_actual, 1e-10) + 0.1):
             iteraciones_sin_mejoras += 1
         else:
             # No se acepta la solución
@@ -67,7 +66,8 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
         solution_history.add_solution(solucion_prima)
 
         # Enfriamiento de la temperatura
-        if iterador_principal % 10 == 0:  # Actualizar temperatura cada 10 iteraciones
+        if iterador_principal - ultimo_enfriamiento  > 15:  # Actualizar temperatura cada 10 iteraciones
+            ultimo_enfriamiento = iterador_principal
             temperatura_actual = max(temperatura_actual * factor_enfriamiento, temperatura_final)
 
         # **Detectar ciclos**
@@ -75,28 +75,21 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
         if cycle_length > 0 and repetitions >= 3:
             if solution_history.cycle_count >= max_ciclos_consecutivos:
                 iteraciones_hasta_salto = contexto.jump_iter - (iteraciones_sin_mejoras % contexto.jump_iter)
-                iteraciones_sin_mejoras += int(iteraciones_hasta_salto * 0.5)
-                iterador_principal += int(iteraciones_hasta_salto * 0.5)
+                iteraciones_sin_mejoras += int(iteraciones_hasta_salto * 0.05)
+                iterador_principal += int(iteraciones_hasta_salto * 0.05)
                 solution_history.clear()
                 
-                # Reiniciar temperatura cuando se detecta un ciclo persistente
-                temperatura_actual = temperatura_inicial * 0.5
-                continue
-
         # **Detectar estancamiento**
         if solution_history.stagnation_count >= max_stagnation:
             iteraciones_hasta_salto = contexto.jump_iter - (iteraciones_sin_mejoras % contexto.jump_iter)
-            iteraciones_sin_mejoras += int(iteraciones_hasta_salto * 0.5)
-            iterador_principal += int(iteraciones_hasta_salto * 0.5)
+            iteraciones_sin_mejoras += int(iteraciones_hasta_salto * 0.05)
+            iterador_principal += int(iteraciones_hasta_salto * 0.05)
             solution_history.clear()
             
-            # Reiniciar temperatura cuando hay estancamiento
-            temperatura_actual = temperatura_inicial * 0.7
-            continue
-
         # **Aplicar salto si es necesario**
         if (0 < iteraciones_sin_mejoras < contexto.max_iter) and ((iteraciones_sin_mejoras % contexto.jump_iter) == 0):
             solucion = salto(solucion, iterador_principal, triplets)
+            solucion = mejora(solucion, iterador_principal)
             contexto.alfa.reiniciar()
             contexto.beta.reiniciar()
             triplets = Triplets(contexto)
@@ -104,11 +97,16 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
             solution_history.clear()
             
             # Reiniciar temperatura después de un salto
-            temperatura_actual = temperatura_inicial * 0.8
+            temperatura_actual = temperatura_inicial
 
+    contexto.alfa.reiniciar()
+    contexto.beta.reiniciar()
+    mejor_solucion.graficar_rutas()
+    mejor_solucion = mejor_solucion.clonar()
     print(f"{politica_reabastecimiento} => Tiempo best {tiempo_best}")
     execution_time = int((datetime.now() - start).total_seconds())
     admisibilidad = 'N' if (not mejor_solucion.es_admisible) else ('F' if mejor_solucion.es_factible else 'A')
+    mejor_solucion.imprimir_detalle()
     return mejor_solucion, iterador_principal, execution_time, admisibilidad
 
 def async_execute(plantilla_id, horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, user_id):

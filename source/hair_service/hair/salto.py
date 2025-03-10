@@ -1,6 +1,6 @@
 from modelos.solucion import Solucion
+from modelos.ruta import Ruta
 from hair.mejora import mip2_asignacion_clientes
-from hair.movimiento import _eliminar_visita, _insertar_visita
 
 def salto(solucion, iterador_principal, triplets) -> Solucion:
     """
@@ -8,35 +8,52 @@ def salto(solucion, iterador_principal, triplets) -> Solucion:
     a periodos donde no han sido visitados recientemente, asegurando que no haya stockout.
     """
     mejor_solucion = solucion.clonar()
-    solucion_antes_salto = solucion.clonar()
-
     if not triplets.triplets:
         return mejor_solucion  
-
-    # Ordenar tripletes priorizando clientes con más inventario
-    triplets.triplets.sort(key=lambda t: mejor_solucion.inventario_clientes[t[0].id][t[1]], reverse=True)
 
     cambios_realizados = 0
     while triplets.triplets:
         cliente, tiempo_visitado, tiempo_no_visitado = triplets.obtener_triplet_aleatorio()
-        if not cliente or (tiempo_no_visitado in mejor_solucion.tiempos_cliente(cliente)):
-            continue  
-        
-        nueva_solucion = mejor_solucion.eliminar_visita(cliente, tiempo_visitado)
-        nueva_solucion = nueva_solucion.insertar_visita(cliente, tiempo_no_visitado)
-        
-        if nueva_solucion.es_admisible and nueva_solucion.verificar_politica_reabastecimiento():
-            mejor_solucion = nueva_solucion.clonar()
-            cambios_realizados += 1
+
+        # Verificar que el cliente realmente se encuentra en el tiempo_visitado y no en el tiempo_no_visitado
+        if mejor_solucion.rutas[tiempo_visitado].es_visitado(cliente) and (not mejor_solucion.rutas[tiempo_no_visitado].es_visitado(cliente)):
+
+            # Copiar el estado de inventario antes de reconstruir
+            nivel_inventario = {c.id: c.nivel_almacenamiento for c in mejor_solucion.contexto.clientes}
+
+            # Modificar los tiempos de visita del cliente
+            tiempos_cliente_modificado = mejor_solucion.tiempos_cliente(cliente)
+            tiempos_cliente_modificado = [t for t in tiempos_cliente_modificado if t != tiempo_visitado]  # Eliminar visita original
+            tiempos_cliente_modificado.append(tiempo_no_visitado)  # Agregar en el nuevo tiempo
+
+            # Reconstrucción total de las rutas
+            nueva_solucion = Solucion(rutas=tuple(Ruta(tuple([]), tuple([])) for _ in solucion.rutas))
+            for c in solucion.contexto.clientes:
+                if c.id == cliente.id:
+                    for t in tiempos_cliente_modificado:
+                        nueva_solucion = nueva_solucion.insertar_visita(c, t)  
+                else:
+                    for t in solucion.tiempos_cliente(c):
+                        nueva_solucion = nueva_solucion.insertar_visita(c, t)
+                
+            # Verificar si la nueva solución es admisible
+            if nueva_solucion.es_admisible:
+                mejor_solucion = nueva_solucion.clonar()
+                cambios_realizados += 1
+
 
     if cambios_realizados == 0:
-        return solucion_antes_salto.clonar()  # No se realizó ningún cambio válido
+        return solucion.clonar()  # No se realizó ningún cambio válido
+
+    if not mejor_solucion.cumple_politica():
+        print("DEFASAJE EN SALTO 1")
+        exit(0)
 
     # Aplicar mip2_asignacion_clientes solo si la solución sigue siendo admisible
-    if mejor_solucion.es_admisible and mejor_solucion.verificar_politica_reabastecimiento():
-        mejor_solucion = mip2_asignacion_clientes(mejor_solucion)
-    else:
-        mejor_solucion = solucion_antes_salto.clonar()
-
+    # mejor_solucion = mip2_asignacion_clientes(mejor_solucion)
+    
     print(f"SALTO {mejor_solucion}")
+    if not mejor_solucion.cumple_politica():
+        print("DEFASAJE EN SALTO 2")
+        exit(0)
     return mejor_solucion
