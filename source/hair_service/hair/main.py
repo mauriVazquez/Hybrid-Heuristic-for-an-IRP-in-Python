@@ -89,7 +89,6 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
         # **Aplicar salto si es necesario**
         if (0 < iteraciones_sin_mejoras < contexto.max_iter) and ((iteraciones_sin_mejoras % contexto.jump_iter) == 0):
             solucion = salto(solucion, iterador_principal, triplets)
-            solucion = mejora(solucion, iterador_principal)
             contexto.alfa.reiniciar()
             contexto.beta.reiniciar()
             triplets = Triplets(contexto)
@@ -99,9 +98,9 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
             # Reiniciar temperatura después de un salto
             temperatura_actual = temperatura_inicial
 
+    # mejor_solucion.graficar_rutas()
     contexto.alfa.reiniciar()
     contexto.beta.reiniciar()
-    mejor_solucion.graficar_rutas()
     mejor_solucion = mejor_solucion.clonar()
     print(f"{politica_reabastecimiento} => Tiempo best {tiempo_best}")
     execution_time = int((datetime.now() - start).total_seconds())

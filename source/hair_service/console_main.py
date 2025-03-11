@@ -38,7 +38,7 @@ def read_input_irp(filename, horizonte_tiempo):
     return horizonte_tiempo, proveedor, clientes, capacidad_vehiculo
 
 def compute_dist(xi, xj, yi, yj):
-    return round(math.sqrt(math.pow(xi - xj, 2) + math.pow(yi - yj, 2)))
+    return math.sqrt(math.pow(xi - xj, 2) + math.pow(yi - yj, 2))
     
 def read_elem(filename):
     with open(f'./instancias/{filename}') as f:

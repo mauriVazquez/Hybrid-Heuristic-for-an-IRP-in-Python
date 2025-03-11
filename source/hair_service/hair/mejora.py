@@ -1,18 +1,12 @@
-import math
 from modelos.solucion import Solucion
 from modelos.ruta import Ruta
 from ortools.constraint_solver import routing_enums_pb2, pywrapcp
 from ortools.linear_solver import pywraplp
-from copy import deepcopy
 def mejora(solucion: Solucion, iterador_principal: int) -> Solucion:
     """
     Aplica un procedimiento iterativo de mejoras basado en MIP1, MIP2 y Lin-Kernighan (LK).
     """
-    print("LK abs4n5")
-    print(solucion)
     mejor_solucion = LK(None, solucion)
-    print(mejor_solucion)
-
     do_continue = True
     
     while do_continue:
@@ -20,8 +14,8 @@ def mejora(solucion: Solucion, iterador_principal: int) -> Solucion:
         # PRIMERA MEJORA: Aplicación iterativa de MIP1 + LK
         solucion_prima = mip1_route_assignment(mejor_solucion)
         solucion_prima = LK(mejor_solucion, solucion_prima)
-        if solucion_prima.es_admisible and solucion_prima.cumple_politica() and solucion_prima.costo < mejor_solucion.costo:
-            print("MEJORA1")
+        if solucion_prima.costo < mejor_solucion.costo:
+            # print("MEJORA1")
             mejor_solucion = solucion_prima.clonar()
             do_continue = True
         
@@ -69,19 +63,19 @@ def mejora(solucion: Solucion, iterador_principal: int) -> Solucion:
        
         # Aplicar el mejor resultado de los merges
         if solucion_merge.es_admisible and solucion_merge.cumple_politica() and solucion_merge.costo < mejor_solucion.costo:
-            print("MEJORA2")
+            # print("MEJORA2")
             mejor_solucion = solucion_merge.clonar()
             do_continue = True
 
         # TERCERA MEJORA: Aplicación de MIP2 + LK
         solucion_prima = mip2_asignacion_clientes(mejor_solucion)
         solucion_prima = LK(mejor_solucion, solucion_prima)
-        if solucion_prima.es_admisible and solucion_prima.cumple_politica() and solucion_prima.costo < mejor_solucion.costo:
-            print("MEJORA3")
+        if solucion_prima.costo < mejor_solucion.costo:
+            # print("MEJORA3")
             mejor_solucion = solucion_prima.clonar()
             do_continue = True
             
-    print(f"MEJORA {mejor_solucion}")
+    # print(f"MEJORA {mejor_solucion}")
     return mejor_solucion
 
 def LK(solucion: Solucion, solucion_prima : Solucion) -> Solucion:
@@ -97,13 +91,13 @@ def LK(solucion: Solucion, solucion_prima : Solucion) -> Solucion:
             clientes = ruta.clientes
             # Crear matriz de distancias original
             matriz_distancia = [
-                [int(iter_sol.contexto.matriz_distancia[c1.id][c2.id]) for c1 in clientes]
+                [round(iter_sol.contexto.matriz_distancia[c1.id][c2.id]) for c1 in clientes]
                 for c2 in clientes
             ]
-            fila_proveedor = [int(c.distancia_proveedor) for c in clientes]
+            fila_proveedor = [round(c.distancia_proveedor) for c in clientes]
             fila_proveedor.insert(0, 0)  # Distancia del proveedor a sí mismo
             for i, c in enumerate(clientes):
-                matriz_distancia[i].insert(0, int(c.distancia_proveedor))
+                matriz_distancia[i].insert(0, round(c.distancia_proveedor))
 
             # Finalmente, agregar la fila del proveedor a la matriz
             matriz_distancia.insert(0, fila_proveedor)
@@ -180,12 +174,10 @@ def mip1_route_assignment(solucion: Solucion):
         for r in solucion.rutas
     }
     
-    demanda = {cliente.id: cliente.nivel_demanda for cliente in contexto.clientes}
-    C = contexto.capacidad_vehiculo
     U = {cliente.id: cliente.nivel_maximo for cliente in contexto.clientes}
     
+    # Definición de variables
     w, theta, z, x, I, B = {}, {}, {}, {}, {}, {}
-    
     for r in solucion.rutas:
         for i in contexto.clientes:
             w[i.id, r] = solver.BoolVar(f"w_{i.id}_{r}")
@@ -193,7 +185,7 @@ def mip1_route_assignment(solucion: Solucion):
     for t in range(contexto.horizonte_tiempo):
         for i in contexto.clientes:
             theta[i.id, t] = solver.BoolVar(f"theta_{i.id}_{t}")
-            x[i.id, t] = solver.IntVar(0, i.nivel_maximo, f"x_{i.id}_{t}")
+            x[i.id, t] = solver.IntVar(0,U[i.id], f"x_{i.id}_{t}")
     
     for r in solucion.rutas:
         for t in range(contexto.horizonte_tiempo):
@@ -201,40 +193,88 @@ def mip1_route_assignment(solucion: Solucion):
     
     for t in range(contexto.horizonte_tiempo + 1):
         for i in contexto.clientes:
-            I[i.id, t] = solver.IntVar(0, i.nivel_maximo, f"I_{i.id}_{t}")
+            I[i.id, t] = solver.IntVar(0,U[i.id], f"I_{i.id}_{t}")
         B[t] = solver.IntVar(0, solver.infinity(), f"B_{t}")
+    
+    # (2) El inventario del proveedor en cada periodo se calcula como el inventario del periodo anterior,
+    # más la producción del proveedor, menos la cantidad entregada a los clientes en el tiempo anterior.
+    solver.Add(B[0] == contexto.proveedor.nivel_almacenamiento) 
+    for t in range(1, contexto.horizonte_tiempo + 1):
+        solver.Add(B[t] == B[t - 1] + contexto.proveedor.nivel_produccion - sum(x[i.id, t - 1] for i in contexto.clientes))
+    
+    # (3) **Balance de inventario del proveedor**
+    for t in range(contexto.horizonte_tiempo):
+        solver.Add(B[t] >= sum(x[i.id, t] for i in contexto.clientes))
+
+    # (4) **Balance de inventario del cliente**
+    for i in contexto.clientes:
+        solver.Add(I[i.id, t] == i.nivel_almacenamiento)
+        for t in range(1, contexto.horizonte_tiempo + 1):
+            solver.Add(I[i.id, t] == I[i.id, t - 1] + x[i.id, t - 1] - i.nivel_demanda)
+        
+    if contexto.politica_reabastecimiento == "OU":
+        for i in contexto.clientes:
+            for t in range(contexto.horizonte_tiempo):
+                ## (5) **Inventario debe estar entre 0 y el máximo del cliente**
+                solver.Add(x[i.id, t] >= U[i.id] * theta[i.id, t] - I[i.id, t + 1])
+                ## (7) **Restricciones de la política OU**
+                solver.Add(x[i.id, t] <=U [i.id] * theta[i.id, t])
+    
+    ## (6) **Un cliente solo puede recibir entrega si su inventario lo permite**
+    for i in contexto.clientes:
+        for t in range(contexto.horizonte_tiempo):
+            solver.Add(x[i.id, t] <= U[i.id] - I[i.id, t + 1])
+        
+    ## (8) **Restricción de capacidad del vehículo**
+    for t in range(contexto.horizonte_tiempo):
+        solver.Add(sum(x[i.id, t] for i in contexto.clientes) <= contexto.capacidad_vehiculo)
+        
+    ## (9) **Cada ruta r solo puede ser asignada a un periodo t**
+    for r in solucion.rutas:
+        solver.Add(sum(z[r, t] for t in range(contexto.horizonte_tiempo)) <= 1)
+
+    ## (10) **Máximo de una ruta en cada periodo**
+    for t in range(contexto.horizonte_tiempo):
+        solver.Add(sum(z[r, t] for r in solucion.rutas) <= 1)
+
+    ## (11) **Un cliente solo puede ser servido si está en la ruta asignada al tiempo t**
+    for i in contexto.clientes:
+        for t, r in enumerate(solucion.rutas):
+            solver.Add(x[i.id, t] <= U[i.id] * sum(sigma[i.id, r] * z[r, t] for r in solucion.rutas))
+
+    ## (12) **Si un cliente es removido, no puede ser servido en t**
+    for i in contexto.clientes:
+        for t, r in enumerate(solucion.rutas):
+            solver.Add(x[i.id, t] <= U[i.id] * (2 - (sigma[i.id, r] * (z[r, t] + w[i.id, r]))))
+
+    ## (13) **Un cliente solo puede ser removido si estaba en la ruta original**
+    for i in contexto.clientes:
+        for r in solucion.rutas:
+            solver.Add(w[i.id, r] <= sigma[i.id, r] * sum(z[r, t] for t in range(contexto.horizonte_tiempo)))
+
+    ## (14) Restricción de no negatividad en la cantidad entregada x_{it}
+    # La cantidad de productos entregados a un cliente en un período no puede ser negativa.
+    for i in contexto.clientes:
+        for t in range(contexto.horizonte_tiempo):
+            solver.Add(x[i.id, t] >= 0)
+
+    ## (15) Restricción de no negatividad en el inventario I_{it}
+    # El inventario de un cliente en un período no puede ser negativo.
+    for i in contexto.clientes:
+        for t in range(contexto.horizonte_tiempo + 1):
+            solver.Add(I[i.id, t] >= 0)
+
+    ## (16) Restricción de no negatividad en el inventario del proveedor B_t
+    # El inventario del proveedor en un período no puede ser negativo.
+    for t in range(contexto.horizonte_tiempo + 1):
+        solver.Add(B[t] >= 0)
+
     
     solver.Minimize(
         sum(contexto.proveedor.costo_almacenamiento * B[t] for t in range(contexto.horizonte_tiempo + 1))
         + sum(sum(i.costo_almacenamiento * I[i.id, t] for i in contexto.clientes) for t in range(contexto.horizonte_tiempo + 1))
         - sum(sum(matriz_ahorro[i.id, r] * w[i.id, r] for i in contexto.clientes) for r in solucion.rutas)
     )
-    
-    for t in range(1, contexto.horizonte_tiempo + 1):
-        solver.Add(B[t] == B[t - 1] + contexto.proveedor.nivel_produccion - sum(x[i.id, t - 1] for i in contexto.clientes))
-    
-    for t in range(contexto.horizonte_tiempo):
-        solver.Add(B[t] >= sum(x[i.id, t] for i in contexto.clientes))
-    
-    for i in contexto.clientes:
-        solver.Add(I[i.id, t] == i.nivel_almacenamiento)
-        for t in range(1, contexto.horizonte_tiempo + 1):
-            solver.Add(I[i.id, t] == I[i.id, t - 1] + x[i.id, t - 1] - demanda[i.id])
-            solver.Add(I[i.id, t] <= U[i.id])
-    
-    for i in contexto.clientes:
-        for t in range(contexto.horizonte_tiempo):
-            solver.Add(x[i.id, t] <= U[i.id] * sum(sigma[i.id, r] * z[r, t] for r in solucion.rutas))
-            solver.Add(x[i.id, t] >= 0)
-    
-    for t in range(contexto.horizonte_tiempo):
-        solver.Add(sum(x[i.id, t] for i in contexto.clientes) <= C)
-    
-    for r in solucion.rutas:
-        solver.Add(sum(z[r, t] for t in range(contexto.horizonte_tiempo)) <= 1)
-    
-    for t in range(contexto.horizonte_tiempo):
-        solver.Add(sum(z[r, t] for r in solucion.rutas) <= 1)
     
     status = solver.Solve()
     if status == pywraplp.Solver.OPTIMAL:
@@ -260,9 +300,9 @@ def mip2_asignacion_clientes(solucion: Solucion):
         return solucion
 
     # Indica si el cliente i es visitado en el tiempo t
-    delta = {
-        (i.id, t): 1 if any(i in ruta.clientes for ruta in solucion.rutas if ruta == solucion.rutas[t]) else 0
-        for i in contexto.clientes for t in range(contexto.horizonte_tiempo)
+    sigma = {
+        (i.id, t): (1 if (i in r.clientes) else 0)
+        for i in contexto.clientes for t, r in enumerate(solucion.rutas)
     }
 
     # Calcular costos de ahorro
@@ -277,6 +317,8 @@ def mip2_asignacion_clientes(solucion: Solucion):
         for cliente in contexto.clientes for r in solucion.rutas
     }
 
+    U = {cliente.id: cliente.nivel_maximo for cliente in contexto.clientes}
+    
     # Variables de decisión
     x = {}      # Cantidad entregada a cliente i en tiempo t
     I = {}      # Inventario del cliente i en tiempo t
@@ -290,11 +332,11 @@ def mip2_asignacion_clientes(solucion: Solucion):
         for i in contexto.clientes:
             w[i.id, t] = solver.BoolVar(f"w_{i.id}_{t}")
             v[i.id, t] = solver.BoolVar(f"v_{i.id}_{t}")
-            x[i.id, t] = solver.IntVar(0, i.nivel_maximo, f"x_{i.id}_{t}")
+            x[i.id, t] = solver.IntVar(0,U[i.id], f"x_{i.id}_{t}")
 
     for t in range(contexto.horizonte_tiempo + 1):
         for i in contexto.clientes:
-            I[i.id, t] = solver.IntVar(-solver.infinity(), i.nivel_maximo, f"I_{i.id}_{t}")
+            I[i.id, t] = solver.IntVar(-solver.infinity(),U[i.id], f"I_{i.id}_{t}")
             theta[i.id, t] = solver.BoolVar(f"theta_{i.id}_{t}")
         B[t] = solver.IntVar(-solver.infinity(), solver.infinity(), f"B_{t}")
 
@@ -318,44 +360,50 @@ def mip2_asignacion_clientes(solucion: Solucion):
         for i in contexto.clientes:
             for t in range(contexto.horizonte_tiempo):
                 ## (5) **Inventario debe estar entre 0 y el máximo del cliente**
-                solver.Add(x[i.id, t] >= i.nivel_maximo * theta[i.id, t] - I[i.id, t + 1])
-                ## (6) **Un cliente solo puede recibir entrega si su inventario lo permite**
-                solver.Add(x[i.id, t] <= i.nivel_maximo - I[i.id, t + 1])
+                solver.Add(x[i.id, t] >= U[i.id] * theta[i.id, t] - I[i.id, t + 1])
                 ## (7) **Restricciones de la política OU**
-                solver.Add(x[i.id, t] <= i.nivel_maximo * theta[i.id, t])
+                solver.Add(x[i.id, t] <=U [i.id] * theta[i.id, t])
+    
+    ## (6) **Un cliente solo puede recibir entrega si su inventario lo permite**
+    for i in contexto.clientes:
+        for t in range(contexto.horizonte_tiempo):
+            solver.Add(x[i.id, t] <= U[i.id] - I[i.id, t + 1])
 
     ## (8) **Restricción de capacidad del vehículo**
     for t in range(contexto.horizonte_tiempo):
         solver.Add(sum(x[i.id, t] for i in contexto.clientes) <= contexto.capacidad_vehiculo)
         
-    ## (14) Restricción de no negatividad en la cantidad entregada a un cliente en todo momento
+    ## (14) Restricción de no negatividad en la cantidad entregada x_{it}
+    # La cantidad de productos entregados a un cliente en un período no puede ser negativa.
     for i in contexto.clientes:
         for t in range(contexto.horizonte_tiempo):
             solver.Add(x[i.id, t] >= 0)
 
-    ## (15) Restricción de no negatividad en el inventario de los clientes
+    ## (15) Restricción de no negatividad en el inventario I_{it}
+    # El inventario de un cliente en un período no puede ser negativo.
     for i in contexto.clientes:
         for t in range(contexto.horizonte_tiempo + 1):
             solver.Add(I[i.id, t] >= 0)
 
-    ## (16) Restricción de no negatividad en el inventario del proveedor
+    ## (16) Restricción de no negatividad en el inventario del proveedor B_t
+    # El inventario del proveedor en un período no puede ser negativo.
     for t in range(contexto.horizonte_tiempo + 1):
         solver.Add(B[t] >= 0)
                 
     # (21) El cliente no puede insertarse si ya está en la ruta
     for i in contexto.clientes:
         for t in range(contexto.horizonte_tiempo):
-            solver.Add(v[i.id, t] <= 1 - delta[i.id, t])
+            solver.Add(v[i.id, t] <= 1 - sigma[i.id, t])
 
     # (22) El cliente no puede removerse si no está en la ruta
     for i in contexto.clientes:
         for t in range(contexto.horizonte_tiempo):
-            solver.Add(w[i.id, t] <= delta[i.id, t])
+            solver.Add(w[i.id, t] <= sigma[i.id, t])
 
     # (23) Cindicion de servicio de cliente
     for i in contexto.clientes:
         for t in range(contexto.horizonte_tiempo):
-            solver.Add(x[i.id, t] <= i.nivel_maximo * (delta[i.id, t] - w[i.id, t] + v[i.id, t]))
+            solver.Add(x[i.id, t] <=U[i.id] * (sigma[i.id, t] - w[i.id, t] + v[i.id, t]))
 
     # Objective function (20)
     objective = (
@@ -374,7 +422,7 @@ def mip2_asignacion_clientes(solucion: Solucion):
     status = solver.Solve()
 
     if status == pywraplp.Solver.OPTIMAL:
-        nueva_solucion =  reconstruir_solucion_MIP2(solucion, x)
+        nueva_solucion =  reconstruir_solucion_MIP2(solucion, v, w, x)
         return nueva_solucion
     # else:
         # print("NO RESUELVE2")
@@ -398,45 +446,38 @@ def reconstruir_solucion_MIP1(solucion, x, z):
 
     for t in range(solucion.contexto.horizonte_tiempo):
         rutas_modificadas = list(nueva_solucion.rutas)  # Copia de rutas
-        rutas_activas = [r for r in solucion.rutas if z[r, t].solution_value() > 0.5]
+        rutas_activas = [r for r in solucion.rutas if z[r, t].solution_value()]
         for r in rutas_activas:
-            clientes_en_ruta = [cliente for cliente in solucion.contexto.clientes if x[cliente.id, solucion.rutas.index(r)].solution_value() > 0]
+            clientes_en_ruta = [cliente for cliente in solucion.contexto.clientes if x[cliente.id, solucion.rutas.index(r)].solution_value()]
             for cliente in clientes_en_ruta:
                 cantidad_entregada = x[cliente.id, solucion.rutas.index(r)].solution_value()
                 if cantidad_entregada > 0:
-                    rutas_modificadas[t] = rutas_modificadas[t].insertar_visita(cliente, round(cantidad_entregada))
+                    rutas_modificadas[t] = rutas_modificadas[t].insertar_visita(cliente, int(cantidad_entregada))
         nueva_solucion = Solucion(rutas=tuple(rutas_modificadas))
+    
+    return nueva_solucion
 
-    return nueva_solucion if nueva_solucion.es_admisible else nueva_solucion
 
-
-def reconstruir_solucion_MIP2(solucion, x):
-    nueva_solucion = solucion.clonar()
-
-    # Actualizar la cantidad entregada a los clientes
-    for t in range(solucion.contexto.horizonte_tiempo):
-        for cliente in solucion.contexto.clientes:
-            cantidad_entregada = x[cliente.id, t].solution_value()
+def reconstruir_solucion_MIP2(solucion, v, w, x):
+    nueva_solucion = Solucion(tuple(Ruta((), ()) for _ in range(solucion.contexto.horizonte_tiempo)))
+    for i in solucion.contexto.clientes:
+        tiempos_clientes_modificado = solucion.tiempos_cliente(i)
+        rutas_modificadas = list(nueva_solucion.rutas)  # Copia de rutas
+        for t in range(solucion.contexto.horizonte_tiempo):
+            w_i_t = w[i.id, t].solution_value()
+            v_i_t = v[i.id, t].solution_value()
+            if w_i_t and (not v_i_t) and (t in tiempos_clientes_modificado):
+                tiempos_clientes_modificado = [tc for tc in tiempos_clientes_modificado if tc != t]
+            if (not w_i_t) and (v_i_t) and (t not in tiempos_clientes_modificado):
+                tiempos_clientes_modificado.append(t)
+                
+        for t in tiempos_clientes_modificado:
+            cantidad_entregada_var = x.get((i.id, t), None)
+            cantidad_entregada = cantidad_entregada_var.solution_value() if (cantidad_entregada_var is not None) else 0
             if cantidad_entregada > 0:
-                # Agregar entrega al cliente en la nueva solución
-                nueva_solucion = nueva_solucion.insertar_visita(cliente, t, int(cantidad_entregada))
-
-    # Reconstruir rutas si hubo inserciones o remociones de clientes
-    for t, ruta in enumerate(solucion.rutas):
-        nueva_ruta = []
-        for cliente in ruta.clientes:
-            if (cliente.id, t) not in x or x[cliente.id, t].solution_value() == 0:
-                continue  # Si la entrega es 0, remover el cliente de la ruta
-            nueva_ruta.append(cliente)
-        
-        # Agregar nuevos clientes si se insertaron
-        for cliente in solucion.contexto.clientes:
-            if x[cliente.id, t].solution_value() > 0 and cliente not in nueva_ruta:
-                nueva_ruta.append(cliente)
-        
-        nueva_solucion.rutas[t].clientes = nueva_ruta
-
-    return nueva_solucion if nueva_solucion.es_admisible else solucion
+                rutas_modificadas[t] = rutas_modificadas[t].insertar_visita(i, int(cantidad_entregada))
+        nueva_solucion = Solucion(rutas=tuple(rutas_modificadas))
+    return nueva_solucion
 
 def calcular_ahorro_eliminar_cliente(ruta, cliente):
     """

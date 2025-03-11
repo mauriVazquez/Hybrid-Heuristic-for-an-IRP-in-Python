@@ -18,9 +18,6 @@ def salto(solucion, iterador_principal, triplets) -> Solucion:
         # Verificar que el cliente realmente se encuentra en el tiempo_visitado y no en el tiempo_no_visitado
         if mejor_solucion.rutas[tiempo_visitado].es_visitado(cliente) and (not mejor_solucion.rutas[tiempo_no_visitado].es_visitado(cliente)):
 
-            # Copiar el estado de inventario antes de reconstruir
-            nivel_inventario = {c.id: c.nivel_almacenamiento for c in mejor_solucion.contexto.clientes}
-
             # Modificar los tiempos de visita del cliente
             tiempos_cliente_modificado = mejor_solucion.tiempos_cliente(cliente)
             tiempos_cliente_modificado = [t for t in tiempos_cliente_modificado if t != tiempo_visitado]  # Eliminar visita original
@@ -29,12 +26,11 @@ def salto(solucion, iterador_principal, triplets) -> Solucion:
             # Reconstrucción total de las rutas
             nueva_solucion = Solucion(rutas=tuple(Ruta(tuple([]), tuple([])) for _ in solucion.rutas))
             for c in solucion.contexto.clientes:
-                if c.id == cliente.id:
-                    for t in tiempos_cliente_modificado:
+                for t in range(solucion.contexto.horizonte_tiempo):
+                    if (t in tiempos_cliente_modificado) and (c not in nueva_solucion.rutas[t].clientes):
                         nueva_solucion = nueva_solucion.insertar_visita(c, t)  
-                else:
-                    for t in solucion.tiempos_cliente(c):
-                        nueva_solucion = nueva_solucion.insertar_visita(c, t)
+                    elif (t not in tiempos_cliente_modificado) and (c in nueva_solucion.rutas[t].clientes):
+                        nueva_solucion = nueva_solucion.eliminar_visita(c, t)  
                 
             # Verificar si la nueva solución es admisible
             if nueva_solucion.es_admisible:
@@ -49,11 +45,8 @@ def salto(solucion, iterador_principal, triplets) -> Solucion:
         print("DEFASAJE EN SALTO 1")
         exit(0)
 
-    # Aplicar mip2_asignacion_clientes solo si la solución sigue siendo admisible
-    # mejor_solucion = mip2_asignacion_clientes(mejor_solucion)
+    # # Aplicar mip2_asignacion_clientes solo si la solución sigue siendo admisible
+    mejor_solucion = mip2_asignacion_clientes(mejor_solucion)
     
     print(f"SALTO {mejor_solucion}")
-    if not mejor_solucion.cumple_politica():
-        print("DEFASAJE EN SALTO 2")
-        exit(0)
     return mejor_solucion

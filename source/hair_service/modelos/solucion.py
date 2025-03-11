@@ -129,15 +129,15 @@ class Solucion:
     def _insertar_visita(self, cliente: Cliente, tiempo: int, index = None) -> 'Solucion':            
         if self.contexto.politica_reabastecimiento == "OU":
             cantidad = cliente.nivel_maximo - self.inventario_clientes[cliente.id][tiempo]
-        elif self.contexto.politica_reabastecimiento == "ML":
+        
+        if self.contexto.politica_reabastecimiento == "ML":
             cantidad = min(
                 cliente.nivel_maximo - self.inventario_clientes[cliente.id][tiempo],
                 self.inventario_proveedor[tiempo],
                 self.contexto.capacidad_vehiculo - self.rutas[tiempo].obtener_total_entregado()
-            )      
-            if cantidad <= cliente.nivel_demanda:
+            )     
+            if cantidad <= 0:
                 cantidad = cliente.nivel_demanda
-            cantidad = randint(cliente.nivel_demanda, cantidad)
             
         rutas_modificadas = list(ruta for ruta in self.rutas)
         rutas_modificadas[tiempo] = rutas_modificadas[tiempo].insertar_visita(cliente, cantidad, index)
@@ -275,9 +275,8 @@ class Solucion:
             return nueva_solucion if nueva_solucion.es_admisible else self.clonar()
         
         elif nueva_solucion.contexto.politica_reabastecimiento == "ML":
-            
             if min(nueva_solucion.inventario_clientes[cliente.id]) >= cliente.nivel_minimo:
-                return nueva_solucion
+                return nueva_solucion.clonar()
             
             t_prev = next((t_pasado for t_pasado in reversed(tiempos_cliente) if t_pasado < t), None)
             
@@ -287,38 +286,41 @@ class Solucion:
                 if y < cantidad_eliminada:
                     nueva_solucion = nueva_solucion.agregar_cantidad_cliente(cliente, t_prev, cantidad_eliminada - y)
                     if max(nueva_solucion.inventario_clientes[cliente.id]) <= cliente.nivel_maximo:
-                        return nueva_solucion
+                        return nueva_solucion.clonar()
             return self.clonar()
     
     def _obtener_niveles_inventario_cliente(self, cliente: Cliente):
-        inventario = [cliente.nivel_almacenamiento + self.rutas[0].obtener_cantidad_entregada(cliente) - cliente.nivel_demanda]   
-        for t in range(1, self.contexto.horizonte_tiempo):
-            inventario.append(inventario[-1] + self.rutas[t].obtener_cantidad_entregada(cliente) - cliente.nivel_demanda)
-        inventario.append(inventario[-1] - cliente.nivel_demanda)
+        inventario = [cliente.nivel_almacenamiento]   
+        for t in range(1, self.contexto.horizonte_tiempo + 1):
+            inventario.append(inventario[-1] + self.rutas[t - 1].obtener_cantidad_entregada(cliente) - cliente.nivel_demanda)
         return inventario
     
     def _obtener_niveles_inventario_proveedor(self):
         proveedor = self.contexto.proveedor
-        inventario = [proveedor.nivel_almacenamiento + proveedor.nivel_produccion - self.rutas[0].obtener_total_entregado()]
-        for t in range(1, self.contexto.horizonte_tiempo):
-            inventario.append(inventario[-1] + proveedor.nivel_produccion - self.rutas[t].obtener_total_entregado())
-        inventario.append(inventario[-1] + proveedor.nivel_produccion)
+        inventario = [proveedor.nivel_almacenamiento]
+        for t in range(1, self.contexto.horizonte_tiempo + 1):
+            inventario.append(inventario[-1] + proveedor.nivel_produccion - self.rutas[t - 1].obtener_total_entregado())
         return inventario
 
 
-
     def cumple_politica(self) -> bool:
-        for r in self.rutas:
-            for r2 in self.rutas:
-                if r != r2:
-                    if r.clientes == r2.clientes and r.cantidades == r2.cantidades:
-                        return False
+        # for r in self.rutas:
+        #     for r2 in self.rutas:
+        #         if r != r2:
+        #             if r.clientes == r2.clientes and r.cantidades == r2.cantidades:
+        #                 return False
                     
-        if self.contexto.politica_reabastecimiento == "OU":
-            for cliente in self.contexto.clientes:
-                for t in self.tiempos_cliente(cliente):
-                    if self.inventario_clientes[cliente.id][t] != cliente.nivel_maximo:
-                        return False
+        # if self.contexto.politica_reabastecimiento == "OU":
+        #     for cliente in self.contexto.clientes:
+        #         for t in self.tiempos_cliente(cliente):
+        #             if self.inventario_clientes[cliente.id][t] != cliente.nivel_maximo:
+        #                 return False
+                    
+        # if self.contexto.politica_reabastecimiento == "ML":
+        #     for cliente in self.contexto.clientes:
+        #         for t in self.tiempos_cliente(cliente):
+        #             if self.inventario_clientes[cliente.id][t] > cliente.nivel_maximo or self.rutas[t].obtener_cantidad_entregada(cliente) <= 0:
+        #                 return False
         return True
         
         
