@@ -18,13 +18,13 @@ def movimiento(solucion: Solucion, tabulists, iterador_principal: int) -> Soluci
     
     if len(vecindario) > 0:
         mejor_solucion = min(
-            (vecino for vecino in vecindario if (tabulists.movimiento_permitido(solucion, vecino))),
+            (vecino for vecino in vecindario if vecino.cumple_politica() and (tabulists.movimiento_permitido(solucion, vecino))),
             default=None,
             key=lambda v: v.costo
         )
 
         mejor_solucion_no_permitida = min(
-            (vecino for vecino in vecindario if (not tabulists.movimiento_permitido(solucion, vecino))),
+            (vecino for vecino in vecindario if vecino.cumple_politica() and (not tabulists.movimiento_permitido(solucion, vecino))),
             default=None,
             key=lambda v: v.costo
         )
@@ -69,7 +69,7 @@ def _crear_vecindario(solucion: Solucion) -> list[Solucion]:
             _variante_insercion,
             _variante_mover_visita,
             _variante_intercambiar_visitas
-        ] for vecino in variante(solucion) if not vecino.es_igual(solucion)
+        ] for vecino in variante(solucion) if (not vecino.es_igual(solucion)) and vecino.cumple_politica()
     ]
     
     # Paso 2: Aplicar ajustes adicionales basados en la teoría
@@ -210,7 +210,7 @@ def _variante_intercambiar_visitas(solucion: Solucion) -> list[Solucion]:
                 solucion_intermedia = solucion.eliminar_visita(cliente1, iter_t)
                 solucion_intermedia = solucion_intermedia.insertar_visita(cliente2, iter_t)
                 for iter_tprima in posibles_tiempos2:
-                    nueva_solucion = solucion_intermedia
+                    nueva_solucion = solucion_intermedia.clonar()
                     nueva_solucion = nueva_solucion.insertar_visita(cliente1, iter_tprima)
                     nueva_solucion = solucion.eliminar_visita(cliente2, iter_tprima)
                     if (nueva_solucion.es_admisible 

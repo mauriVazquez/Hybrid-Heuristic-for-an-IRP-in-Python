@@ -14,7 +14,7 @@ def mejora(solucion: Solucion, iterador_principal: int) -> Solucion:
         # PRIMERA MEJORA: Aplicación iterativa de MIP1 + LK
         solucion_prima = mip1_route_assignment(mejor_solucion)
         solucion_prima = LK(mejor_solucion, solucion_prima)
-        if solucion_prima.costo < mejor_solucion.costo:
+        if solucion_prima.es_admisible and solucion_prima.cumple_politica() and solucion_prima.costo < mejor_solucion.costo:
             # print("MEJORA1")
             mejor_solucion = solucion_prima.clonar()
             do_continue = True
@@ -70,7 +70,7 @@ def mejora(solucion: Solucion, iterador_principal: int) -> Solucion:
         # TERCERA MEJORA: Aplicación de MIP2 + LK
         solucion_prima = mip2_asignacion_clientes(mejor_solucion)
         solucion_prima = LK(mejor_solucion, solucion_prima)
-        if solucion_prima.costo < mejor_solucion.costo:
+        if solucion_prima.es_admisible and solucion_prima.cumple_politica() and solucion_prima.costo < mejor_solucion.costo:
             # print("MEJORA3")
             mejor_solucion = solucion_prima.clonar()
             do_continue = True

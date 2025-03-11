@@ -304,11 +304,11 @@ class Solucion:
 
 
     def cumple_politica(self) -> bool:
-        # for r in self.rutas:
-        #     for r2 in self.rutas:
-        #         if r != r2:
-        #             if r.clientes == r2.clientes and r.cantidades == r2.cantidades:
-        #                 return False
+        for r in self.rutas:
+            for r2 in self.rutas:
+                if r != r2:
+                    if r.clientes == r2.clientes and r.cantidades == r2.cantidades:
+                        return False
                     
         # if self.contexto.politica_reabastecimiento == "OU":
         #     for cliente in self.contexto.clientes:

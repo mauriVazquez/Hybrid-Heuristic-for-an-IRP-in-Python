@@ -33,7 +33,7 @@ def salto(solucion, iterador_principal, triplets) -> Solucion:
                         nueva_solucion = nueva_solucion.eliminar_visita(c, t)  
                 
             # Verificar si la nueva solución es admisible
-            if nueva_solucion.es_admisible:
+            if nueva_solucion.es_admisible and nueva_solucion.cumple_politica():
                 mejor_solucion = nueva_solucion.clonar()
                 cambios_realizados += 1
 

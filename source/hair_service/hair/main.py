@@ -29,8 +29,8 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
     max_stagnation = 10
     
     # Parámetros de Simulated Annealing
-    temperatura_inicial = 1000.0  
-    temperatura_final = 0.5
+    temperatura_inicial = 200 * contexto.horizonte_tiempo * len(contexto.clientes)
+    temperatura_final = len(contexto.clientes)
     factor_enfriamiento = 0.995
     temperatura_actual = temperatura_inicial
     ultimo_enfriamiento = 0
@@ -48,7 +48,7 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
         delta_costo = solucion_prima.costo - solucion.costo
         
         # Si la solución es factible y mejor que la mejor solución encontrada hasta ahora
-        if solucion_prima.es_factible and solucion_prima.costo < mejor_solucion.costo:
+        if solucion_prima.costo < mejor_solucion.costo:
             # Se acepta porque es mejor solución global
             solucion_prima = mejora(solucion_prima, iterador_principal)
             mejor_solucion = solucion_prima.clonar()
@@ -66,7 +66,7 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
         solution_history.add_solution(solucion_prima)
 
         # Enfriamiento de la temperatura
-        if iterador_principal - ultimo_enfriamiento  > 15:  # Actualizar temperatura cada 10 iteraciones
+        if iterador_principal - ultimo_enfriamiento  > 5:  # Actualizar temperatura cada 10 iteraciones
             ultimo_enfriamiento = iterador_principal
             temperatura_actual = max(temperatura_actual * factor_enfriamiento, temperatura_final)
 
