@@ -15,16 +15,15 @@ def movimiento(solucion: Solucion, tabulists, iterador_principal: int) -> Soluci
     """
     # Crear el vecindario completo (N(s))
     vecindario = _crear_vecindario(solucion)
-    
     if len(vecindario) > 0:
         mejor_solucion = min(
-            (vecino for vecino in vecindario if vecino.cumple_politica() and (tabulists.movimiento_permitido(solucion, vecino))),
+            (vecino for vecino in vecindario if (tabulists.movimiento_permitido(solucion, vecino))),
             default=None,
             key=lambda v: v.costo
         )
 
         mejor_solucion_no_permitida = min(
-            (vecino for vecino in vecindario if vecino.cumple_politica() and (not tabulists.movimiento_permitido(solucion, vecino))),
+            (vecino for vecino in vecindario if (not tabulists.movimiento_permitido(solucion, vecino))),
             default=None,
             key=lambda v: v.costo
         )
@@ -32,7 +31,7 @@ def movimiento(solucion: Solucion, tabulists, iterador_principal: int) -> Soluci
         if mejor_solucion is not None:
             if mejor_solucion_no_permitida is not None: 
                 # Normalización del progreso dentro del ciclo de salto
-                multiplicador_tolerancia = 1.1 - 0.2 * (iterador_principal / (solucion.contexto.jump_iter - (iterador_principal % solucion.contexto.jump_iter))) 
+                multiplicador_tolerancia = 1.5 - 0.2 * (iterador_principal / (solucion.contexto.jump_iter - (iterador_principal % solucion.contexto.jump_iter))) 
                 umbral_costo = multiplicador_tolerancia * mejor_solucion.costo
                 if (mejor_solucion_no_permitida.costo < umbral_costo):
                     mejor_solucion = mejor_solucion_no_permitida.clonar()
@@ -44,13 +43,8 @@ def movimiento(solucion: Solucion, tabulists, iterador_principal: int) -> Soluci
         mejor_solucion.contexto.alfa.actualizar(mejor_solucion.respeta_capacidad_vehiculo())
         mejor_solucion.contexto.beta.actualizar(mejor_solucion.proveedor_sin_desabastecimiento())
     else:
-        print("NO MUEVE")
         mejor_solucion = solucion.clonar()
-        
-    if not mejor_solucion.cumple_politica():
-        print("DEFASAJE EN MOVIMIENTO")
-        mejor_solucion.imprimir_detalle()
-        exit(0)
+    # print(f"M {mejor_solucion}")
     return mejor_solucion
 
 def _crear_vecindario(solucion: Solucion) -> list[Solucion]:
@@ -69,7 +63,7 @@ def _crear_vecindario(solucion: Solucion) -> list[Solucion]:
             _variante_insercion,
             _variante_mover_visita,
             _variante_intercambiar_visitas
-        ] for vecino in variante(solucion) if (not vecino.es_igual(solucion)) and vecino.cumple_politica()
+        ] for vecino in variante(solucion) if (not vecino.es_igual(solucion))
     ]
     
     # Paso 2: Aplicar ajustes adicionales basados en la teoría
@@ -136,11 +130,7 @@ def _variante_eliminacion(solucion: Solucion) -> list[Solucion]:
         for cliente in ruta.clientes:
             nueva_solucion = solucion.eliminar_visita(cliente, t)
             if nueva_solucion.es_admisible:
-                vecindario_prima.append(nueva_solucion)
-                if not nueva_solucion.cumple_politica():
-                    print("DEFASAJE EN _VE")
-                    nueva_solucion.imprimir_detalle()
-                    exit(0)
+                vecindario_prima.append(nueva_solucion.clonar())
     return set(vecindario_prima)
 
 def _variante_insercion(solucion: Solucion) -> list[Solucion]:
@@ -153,11 +143,7 @@ def _variante_insercion(solucion: Solucion) -> list[Solucion]:
         for t in set(range(solucion.contexto.horizonte_tiempo)) - set(solucion.tiempos_cliente(cliente)):   
             nueva_solucion = solucion.insertar_visita(cliente, t)
             if nueva_solucion.es_admisible:
-                vecindario_prima.append(nueva_solucion)        
-                if not nueva_solucion.cumple_politica():
-                    print("DEFASAJE EN _VI")
-                    nueva_solucion.imprimir_detalle()
-                    exit(0)    
+                vecindario_prima.append(nueva_solucion.clonar())        
     return set(vecindario_prima)
 
 
@@ -176,12 +162,8 @@ def _variante_mover_visita(solucion: Solucion) -> list[Solucion]:
             solucion_intermedia = solucion.insertar_visita(cliente, t_destino)
             for t_origen in tiempos_cliente_actual:
                 nueva_solucion = solucion_intermedia.eliminar_visita(cliente, t_origen)
-                if nueva_solucion.es_admisible and (t_destino in nueva_solucion.tiempos_cliente(cliente)) and not (t_origen in nueva_solucion.tiempos_cliente(cliente)):
-                    vecindario_prima.append(nueva_solucion)
-                    if not nueva_solucion.cumple_politica():
-                        print("DEFASAJE EN _VM")
-                        nueva_solucion.imprimir_detalle()
-                        exit(0)
+                if nueva_solucion.es_admisible  and (t_destino in nueva_solucion.tiempos_cliente(cliente)) and not (t_origen in nueva_solucion.tiempos_cliente(cliente)):
+                    vecindario_prima.append(nueva_solucion.clonar())
     return vecindario_prima
 
 
@@ -213,14 +195,10 @@ def _variante_intercambiar_visitas(solucion: Solucion) -> list[Solucion]:
                     nueva_solucion = solucion_intermedia.clonar()
                     nueva_solucion = nueva_solucion.insertar_visita(cliente1, iter_tprima)
                     nueva_solucion = solucion.eliminar_visita(cliente2, iter_tprima)
-                    if (nueva_solucion.es_admisible 
+                    if (nueva_solucion.es_admisible
                         and (iter_tprima in nueva_solucion.tiempos_cliente(cliente1)) and not (iter_t in nueva_solucion.tiempos_cliente(cliente1))
                         and (iter_t in nueva_solucion.tiempos_cliente(cliente2)) and not (iter_tprima in nueva_solucion.tiempos_cliente(cliente2))
                     ):
-                        vecindario_prima.append(nueva_solucion)  # Agregar solo si sigue siendo admisible
-                        if not nueva_solucion.cumple_politica():
-                            print("DEFASAJE EN _VC")
-                            nueva_solucion.imprimir_detalle()
-                            exit(0)
+                        vecindario_prima.append(nueva_solucion.clonar())  # Agregar solo si sigue siendo admisible
 
     return vecindario_prima

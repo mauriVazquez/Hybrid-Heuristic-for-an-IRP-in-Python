@@ -57,7 +57,6 @@ class Solucion:
             resp += '¿Admisible? : '            + ('SI' if self.es_admisible else 'NO') + "\n"
             resp += '¿Factible? : '             + ('SI' if self.es_factible else 'NO') + "\n"
             resp += 'Función objetivo: '        + str(self.costo) + "\n"
-            resp += 'Cumple política: '         +str(self.cumple_politica())
             print(resp)
             
     def clonar(self) -> 'Solucion':
@@ -129,16 +128,14 @@ class Solucion:
     def _insertar_visita(self, cliente: Cliente, tiempo: int, index = None) -> 'Solucion':            
         if self.contexto.politica_reabastecimiento == "OU":
             cantidad = cliente.nivel_maximo - self.inventario_clientes[cliente.id][tiempo]
-        
+
         if self.contexto.politica_reabastecimiento == "ML":
-            cantidad = min(
+            cantidad = max(0, min(
                 cliente.nivel_maximo - self.inventario_clientes[cliente.id][tiempo],
                 self.inventario_proveedor[tiempo],
                 self.contexto.capacidad_vehiculo - self.rutas[tiempo].obtener_total_entregado()
-            )     
-            if cantidad <= 0:
-                cantidad = cliente.nivel_demanda
-            
+            ))  
+                
         rutas_modificadas = list(ruta for ruta in self.rutas)
         rutas_modificadas[tiempo] = rutas_modificadas[tiempo].insertar_visita(cliente, cantidad, index)
         return Solucion(rutas=tuple(rutas_modificadas))
@@ -302,31 +299,11 @@ class Solucion:
             inventario.append(inventario[-1] + proveedor.nivel_produccion - self.rutas[t - 1].obtener_total_entregado())
         return inventario
 
-
-    def cumple_politica(self) -> bool:
-        for r in self.rutas:
-            for r2 in self.rutas:
-                if r != r2:
-                    if r.clientes == r2.clientes and r.cantidades == r2.cantidades:
-                        return False
-                    
-        # if self.contexto.politica_reabastecimiento == "OU":
-        #     for cliente in self.contexto.clientes:
-        #         for t in self.tiempos_cliente(cliente):
-        #             if self.inventario_clientes[cliente.id][t] != cliente.nivel_maximo:
-        #                 return False
-                    
-        # if self.contexto.politica_reabastecimiento == "ML":
-        #     for cliente in self.contexto.clientes:
-        #         for t in self.tiempos_cliente(cliente):
-        #             if self.inventario_clientes[cliente.id][t] > cliente.nivel_maximo or self.rutas[t].obtener_cantidad_entregada(cliente) <= 0:
-        #                 return False
-        return True
-        
-        
     def _costo(self) -> float:
-        costo_almacenamiento = self.contexto.proveedor.costo_almacenamiento * sum(self.inventario_proveedor) + sum(
-            c.costo_almacenamiento * sum(self.inventario_clientes[c.id]) for c in self.contexto.clientes
+        costo_almacenamiento = (
+            self.contexto.proveedor.costo_almacenamiento * sum(self.inventario_proveedor) 
+            + 
+            sum(c.costo_almacenamiento * sum(self.inventario_clientes[c.id]) for c in self.contexto.clientes)
         )
         costo_transporte = sum(ruta.costo for ruta in self.rutas)
         

@@ -31,7 +31,7 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
     # Parámetros de Simulated Annealing
     temperatura_inicial = 200 * contexto.horizonte_tiempo * len(contexto.clientes)
     temperatura_final = len(contexto.clientes)
-    factor_enfriamiento = 0.995
+    factor_enfriamiento = 0.99
     temperatura_actual = temperatura_inicial
     ultimo_enfriamiento = 0
     
@@ -75,15 +75,15 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
         if cycle_length > 0 and repetitions >= 3:
             if solution_history.cycle_count >= max_ciclos_consecutivos:
                 iteraciones_hasta_salto = contexto.jump_iter - (iteraciones_sin_mejoras % contexto.jump_iter)
-                iteraciones_sin_mejoras += int(iteraciones_hasta_salto * 0.05)
-                iterador_principal += int(iteraciones_hasta_salto * 0.05)
+                iteraciones_sin_mejoras += int(iteraciones_hasta_salto * 0.25)
+                iterador_principal += int(iteraciones_hasta_salto * 0.25)
                 solution_history.clear()
                 
         # **Detectar estancamiento**
         if solution_history.stagnation_count >= max_stagnation:
             iteraciones_hasta_salto = contexto.jump_iter - (iteraciones_sin_mejoras % contexto.jump_iter)
-            iteraciones_sin_mejoras += int(iteraciones_hasta_salto * 0.05)
-            iterador_principal += int(iteraciones_hasta_salto * 0.05)
+            iteraciones_sin_mejoras += int(iteraciones_hasta_salto * 0.25)
+            iterador_principal += int(iteraciones_hasta_salto * 0.25)
             solution_history.clear()
             
         # **Aplicar salto si es necesario**
@@ -105,7 +105,8 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
     print(f"{politica_reabastecimiento} => Tiempo best {tiempo_best}")
     execution_time = int((datetime.now() - start).total_seconds())
     admisibilidad = 'N' if (not mejor_solucion.es_admisible) else ('F' if mejor_solucion.es_factible else 'A')
-    mejor_solucion.imprimir_detalle()
+    # mejor_solucion.imprimir_detalle()
+    # mejor_solucion.graficar_rutas()
     return mejor_solucion, iterador_principal, execution_time, admisibilidad
 
 def async_execute(plantilla_id, horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, user_id):
