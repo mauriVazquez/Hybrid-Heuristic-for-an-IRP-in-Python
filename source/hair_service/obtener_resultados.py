@@ -37,7 +37,6 @@ def procesar_datos(rp, filename):
 def escribir_resultado(rp, filename, mejor_solucion, iterador, execution_time, admisibilidad):
     # Crear el directorio `/resultados` si no existe
     os.makedirs('resultados', exist_ok=True)
-    print(mejor_solucion)
     os.makedirs(os.path.join('resultados', rp, str(len(mejor_solucion.contexto.clientes))), exist_ok=True)
 
     # Ruta completa del archivo
@@ -92,12 +91,12 @@ def read_elem(filename):
 if __name__ == '__main__':
     filenames = [
         'abs1n5.dat', 'abs2n5.dat', 'abs3n5.dat', 'abs4n5.dat','abs5n5.dat',
-        # 'abs1n10.dat', 'abs2n10.dat', 'abs3n10.dat', 'abs4n10.dat', 'abs5n10.dat',
-        # 'abs1n15.dat', 'abs2n15.dat', 'abs3n15.dat', 'abs4n15.dat', 'abs5n15.dat',
-        # 'abs1n20.dat', 'abs2n20.dat', 'abs3n20.dat', 'abs4n20.dat', 'abs5n20.dat',
-        # 'abs1n25.dat', 'abs2n25.dat', 'abs3n25.dat', 'abs4n25.dat', 'abs5n25.dat',
-        # 'abs1n30.dat', 'abs2n30.dat', 'abs3n30.dat', 'abs4n30.dat', 'abs5n30.dat',
-        # 'abs1n35.dat', 'abs2n35.dat', 'abs3n35.dat', 'abs4n35.dat', 'abs5n35.dat',
+        'abs1n10.dat', 'abs2n10.dat', 'abs3n10.dat', 'abs4n10.dat', 'abs5n10.dat',
+        'abs1n15.dat', 'abs2n15.dat', 'abs3n15.dat', 'abs4n15.dat', 'abs5n15.dat',
+        'abs1n20.dat', 'abs2n20.dat', 'abs3n20.dat', 'abs4n20.dat', 'abs5n20.dat',
+        'abs1n25.dat', 'abs2n25.dat', 'abs3n25.dat', 'abs4n25.dat', 'abs5n25.dat',
+        'abs1n30.dat', 'abs2n30.dat', 'abs3n30.dat', 'abs4n30.dat', 'abs5n30.dat',
+        'abs1n35.dat', 'abs2n35.dat', 'abs3n35.dat', 'abs4n35.dat', 'abs5n35.dat',
         # 'abs1n40.dat', 'abs2n40.dat', 'abs3n40.dat', 'abs4n40.dat', 'abs5n40.dat',
         # 'abs1n45.dat', 'abs2n45.dat', 'abs3n45.dat', 'abs4n45.dat', 'abs5n45.dat',
         # 'abs1n50.dat', 'abs2n50.dat', 'abs3n50.dat', 'abs4n50.dat', 'abs5n50.dat'
@@ -106,10 +105,8 @@ if __name__ == '__main__':
 
     for filename in filenames:
         for rp in ['ML','OU']:
-            for _ in range(3):            
+            for _ in range(5):            
                 horizonte_tiempo, proveedor, clientes, capacidad_vehiculo = read_input_irp(filename)
                 mejor_solucion, iterador, execution_time, admisibilidad = execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, rp)
-                if admisibilidad != "N":
-                    continuar = False
                 escribir_resultado(rp, filename, mejor_solucion, iterador, execution_time, admisibilidad)
             procesar_datos(rp, filename)

@@ -29,11 +29,12 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
     max_stagnation = 10
     
     # Parámetros de Simulated Annealing
-    temperatura_inicial = 500.00
-    temperatura_final = 5.0
-    factor_enfriamiento = 0.995
+    temperatura_inicial = 200 * contexto.horizonte_tiempo * len(contexto.clientes)
+    temperatura_final = max(1, 0.01 * temperatura_inicial)  # Evita que sea demasiado alta
+    factor_enfriamiento = 0.95
     temperatura_actual = temperatura_inicial
-    ultimo_enfriamiento = 0
+    ultimo_enfriamiento = 0  # Si lo necesitas para control o ajuste dinámico
+
     
     start = datetime.now()
     solucion = inicializacion()
@@ -75,15 +76,15 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
         if cycle_length > 0 and repetitions >= 3:
             if solution_history.cycle_count >= max_ciclos_consecutivos:
                 iteraciones_hasta_salto = contexto.jump_iter - (iteraciones_sin_mejoras % contexto.jump_iter)
-                iteraciones_sin_mejoras += int(iteraciones_hasta_salto * 0.25)
-                iterador_principal += int(iteraciones_hasta_salto * 0.25)
+                iteraciones_sin_mejoras += int(iteraciones_hasta_salto * 0.33)
+                iterador_principal += int(iteraciones_hasta_salto * 0.33)
                 solution_history.clear()
                 
         # **Detectar estancamiento**
         if solution_history.stagnation_count >= max_stagnation:
             iteraciones_hasta_salto = contexto.jump_iter - (iteraciones_sin_mejoras % contexto.jump_iter)
-            iteraciones_sin_mejoras += int(iteraciones_hasta_salto * 0.25)
-            iterador_principal += int(iteraciones_hasta_salto * 0.25)
+            iteraciones_sin_mejoras += int(iteraciones_hasta_salto * 0.33)
+            iterador_principal += int(iteraciones_hasta_salto * 0.33)
             solution_history.clear()
             
         # **Aplicar salto si es necesario**

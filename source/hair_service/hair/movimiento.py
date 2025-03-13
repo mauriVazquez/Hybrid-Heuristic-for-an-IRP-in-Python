@@ -32,7 +32,7 @@ def movimiento(solucion: Solucion, tabulists, iterador_principal: int) -> Soluci
         if mejor_solucion is not None:
             if mejor_solucion_no_permitida is not None: 
                 # Normalización del progreso dentro del ciclo de salto
-                multiplicador_tolerancia = 1.5 - 0.2 * (iterador_principal / (solucion.contexto.jump_iter - (iterador_principal % solucion.contexto.jump_iter))) 
+                multiplicador_tolerancia = 1.1 - 0.2 * (iterador_principal / (solucion.contexto.jump_iter - (iterador_principal % solucion.contexto.jump_iter))) 
                 umbral_costo = multiplicador_tolerancia * mejor_solucion.costo
                 if (mejor_solucion_no_permitida.costo < umbral_costo):
                     mejor_solucion = mejor_solucion_no_permitida.clonar()
@@ -130,7 +130,7 @@ def _variante_eliminacion(solucion: Solucion) -> list[Solucion]:
     for t, ruta in enumerate(solucion.rutas):
         for cliente in ruta.clientes:
             nueva_solucion = solucion.eliminar_visita(cliente, t)
-            if nueva_solucion.es_admisible:
+            if nueva_solucion.es_admisible and (not nueva_solucion.es_igual(solucion)):
                 vecindario_prima.append(nueva_solucion.clonar())
     return set(vecindario_prima)
 
@@ -143,7 +143,7 @@ def _variante_insercion(solucion: Solucion) -> list[Solucion]:
     for cliente in contexto.clientes:
         for t in set(range(solucion.contexto.horizonte_tiempo)) - set(solucion.tiempos_cliente(cliente)):   
             nueva_solucion = solucion.insertar_visita(cliente, t)
-            if nueva_solucion.es_admisible:
+            if nueva_solucion.es_admisible and (not nueva_solucion.es_igual(solucion)):
                 vecindario_prima.append(nueva_solucion.clonar())        
     return set(vecindario_prima)
 
@@ -163,7 +163,7 @@ def _variante_mover_visita(solucion: Solucion) -> list[Solucion]:
             solucion_intermedia = solucion.insertar_visita(cliente, t_destino)
             for t_origen in tiempos_cliente_actual:
                 nueva_solucion = solucion_intermedia.eliminar_visita(cliente, t_origen)
-                if nueva_solucion.es_admisible  and (t_destino in nueva_solucion.tiempos_cliente(cliente)) and not (t_origen in nueva_solucion.tiempos_cliente(cliente)):
+                if nueva_solucion.es_admisible  and (not nueva_solucion.es_igual(solucion)) and (t_destino in nueva_solucion.tiempos_cliente(cliente)) and not (t_origen in nueva_solucion.tiempos_cliente(cliente)):
                     vecindario_prima.append(nueva_solucion.clonar())
     return vecindario_prima
 
@@ -197,6 +197,7 @@ def _variante_intercambiar_visitas(solucion: Solucion) -> list[Solucion]:
                     nueva_solucion = nueva_solucion.insertar_visita(cliente1, iter_tprima)
                     nueva_solucion = solucion.eliminar_visita(cliente2, iter_tprima)
                     if (nueva_solucion.es_admisible
+                        and (not nueva_solucion.es_igual(solucion))
                         and (iter_tprima in nueva_solucion.tiempos_cliente(cliente1)) and not (iter_t in nueva_solucion.tiempos_cliente(cliente1))
                         and (iter_t in nueva_solucion.tiempos_cliente(cliente2)) and not (iter_tprima in nueva_solucion.tiempos_cliente(cliente2))
                     ):
