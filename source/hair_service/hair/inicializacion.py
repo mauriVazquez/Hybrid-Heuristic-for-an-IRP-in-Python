@@ -13,8 +13,5 @@ def inicializacion():
                 rutas_modificadas = list(solucion.rutas)
                 rutas_modificadas[t - 1] = rutas_modificadas[t -1].insertar_visita(cliente, cliente.nivel_maximo - solucion.inventario_clientes[cliente.id][t], len(solucion.rutas[t -1].clientes))             
                 solucion = Solucion(tuple(r for r in rutas_modificadas))
-    print(f"Inicio {solucion}")
-    if not solucion.es_admisible:
-        solucion.imprimir_detalle()
-        exit(0)
+    # print(f"Inicio {solucion}")
     return solucion

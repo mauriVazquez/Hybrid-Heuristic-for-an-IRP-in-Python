@@ -31,6 +31,10 @@ def salto(solucion, iterador_principal, triplets) -> Solucion:
                         nueva_solucion = nueva_solucion.insertar_visita(c, t)  
                     if (t not in tiempos_cliente_modificado) and (c in nueva_solucion.rutas[t].clientes):
                         nueva_solucion = nueva_solucion.eliminar_visita(c, t)  
+                    
+                    if nueva_solucion.rutas[t].obtener_cantidad_entregada(c):
+                        nueva_solucion = nueva_solucion.eliminar_visita(c, t)
+                    
                 
             # Verificar si la nueva solución es admisible
             if nueva_solucion.es_admisible:
@@ -42,7 +46,7 @@ def salto(solucion, iterador_principal, triplets) -> Solucion:
         return solucion.clonar()  # No se realizó ningún cambio válido
 
     # # Aplicar mip2_asignacion_clientes solo si la solución sigue siendo admisible
-    # mejor_solucion = mip2_asignacion_clientes(mejor_solucion)
+    mejor_solucion = mip2_asignacion_clientes(mejor_solucion)
     
-    print(f"SALTO {mejor_solucion}")
+    # print(f"SALTO {mejor_solucion}")
     return mejor_solucion

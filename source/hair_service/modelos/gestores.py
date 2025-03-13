@@ -91,7 +91,7 @@ class FactorPenalizacion:
         soluciones_factibles (int): Número de soluciones factibles encontradas.
     """
 
-    def __init__(self, iteraciones_max: int = 10) -> None:
+    def __init__(self, initial_value, iteraciones_max: int = 10) -> None:
         """
         Inicializa el factor de penalización y el contador.
 
@@ -101,19 +101,19 @@ class FactorPenalizacion:
         Returns:
             None
         """
-        self.value = 1.0
+        self.value = initial_value
         self.contador = 0
         self.iteraciones_max = iteraciones_max
         self.soluciones_factibles = 0
 
-    def reiniciar(self) -> None:
+    def reiniciar(self, initial_value) -> None:
         """
         Reinicia el valor del factor de penalización y los contadores.
 
         Returns:
             None
         """
-        self.value = 1.0
+        self.value = initial_value
         self.contador = 0
         self.soluciones_factibles = 0
 
@@ -135,7 +135,7 @@ class FactorPenalizacion:
         if self.contador >= self.iteraciones_max:
             if (self.soluciones_factibles == self.iteraciones_max):
                 self.value = max(self.value * 0.5, contexto.penalty_min_limit) 
-            else:
+            elif (self.soluciones_factibles == 0):
                 self.value = min(self.value * 2, contexto.penalty_max_limit)
             self.contador = 0
             self.soluciones_factibles = 0

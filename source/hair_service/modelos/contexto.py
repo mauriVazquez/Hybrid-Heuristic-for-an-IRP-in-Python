@@ -33,14 +33,14 @@ class Contexto:
         self.politica_reabastecimiento = politica_reabastecimiento
         self.taboo_len = 10
         self.lambda_ttl = float(config['Taboo']['lambda_ttl'])
-        self.penalty_min_limit = float(config['Penalty_factor']['min_limit'])
-        self.penalty_max_limit = float(config['Penalty_factor']['max_limit'])
+        self.penalty_min_limit = len(clientes) * horizonte_tiempo
+        self.penalty_max_limit = float('inf')
         self.capacidad_vehiculo = capacidad_vehiculo
         self.horizonte_tiempo = horizonte_tiempo
         self.max_iter = 200 * len(clientes) * horizonte_tiempo
         self.jump_iter = self.max_iter // 2
-        self.alfa = FactorPenalizacion()
-        self.beta = FactorPenalizacion()
+        self.alfa = FactorPenalizacion(self.penalty_min_limit)
+        self.beta = FactorPenalizacion(self.penalty_min_limit)
         self.debug = debug
 
         self.proveedor = Proveedor(

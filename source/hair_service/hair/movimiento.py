@@ -1,4 +1,5 @@
 from modelos.solucion import Solucion
+from random import randint
 
 def movimiento(solucion: Solucion, tabulists, iterador_principal: int) -> Solucion:
     """
@@ -40,11 +41,11 @@ def movimiento(solucion: Solucion, tabulists, iterador_principal: int) -> Soluci
         
         # Actualizar la lista tabú con la mejor solución seleccionada
         tabulists.actualizar(solucion, mejor_solucion, iterador_principal)
-        mejor_solucion.contexto.alfa.actualizar(mejor_solucion.respeta_capacidad_vehiculo())
-        mejor_solucion.contexto.beta.actualizar(mejor_solucion.proveedor_sin_desabastecimiento())
+        contexto = mejor_solucion.contexto
+        contexto.alfa.actualizar(mejor_solucion.respeta_capacidad_vehiculo())
+        contexto.beta.actualizar(mejor_solucion.proveedor_sin_desabastecimiento())
     else:
         mejor_solucion = solucion.clonar()
-    # print(f"M {mejor_solucion}")
     return mejor_solucion
 
 def _crear_vecindario(solucion: Solucion) -> list[Solucion]:
@@ -70,7 +71,7 @@ def _crear_vecindario(solucion: Solucion) -> list[Solucion]:
     for solucion_prima in vecindario_prima:
         conjunto_A = [cliente for cliente in contexto.clientes if (solucion.tiempos_cliente(cliente) != solucion_prima.tiempos_cliente(cliente))]
         while conjunto_A:
-            cliente_i = conjunto_A.pop(0)
+            cliente_i = conjunto_A.pop(randint(0, len(conjunto_A) - 1))
             tiempos_cliente = solucion_prima.tiempos_cliente(cliente_i)
             for t in tiempos_cliente:
                 # Por cada cliente j atendidos en el tiempo t en s' y si t pertenece a Tj(s') 

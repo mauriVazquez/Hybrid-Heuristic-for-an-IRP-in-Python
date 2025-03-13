@@ -29,9 +29,9 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
     max_stagnation = 10
     
     # Parámetros de Simulated Annealing
-    temperatura_inicial = 200 * contexto.horizonte_tiempo * len(contexto.clientes)
-    temperatura_final = len(contexto.clientes)
-    factor_enfriamiento = 0.99
+    temperatura_inicial = 500.00
+    temperatura_final = 5.0
+    factor_enfriamiento = 0.995
     temperatura_actual = temperatura_inicial
     ultimo_enfriamiento = 0
     
@@ -89,8 +89,8 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
         # **Aplicar salto si es necesario**
         if (0 < iteraciones_sin_mejoras < contexto.max_iter) and ((iteraciones_sin_mejoras % contexto.jump_iter) == 0):
             solucion = salto(solucion, iterador_principal, triplets)
-            contexto.alfa.reiniciar()
-            contexto.beta.reiniciar()
+            contexto.alfa.reiniciar(contexto.penalty_min_limit)
+            contexto.beta.reiniciar(contexto.penalty_min_limit)
             triplets = Triplets(contexto)
             tabulists = TabuLists()
             solution_history.clear()
@@ -99,10 +99,8 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
             temperatura_actual = temperatura_inicial
 
     # mejor_solucion.graficar_rutas()
-    contexto.alfa.reiniciar()
-    contexto.beta.reiniciar()
     mejor_solucion = mejor_solucion.clonar()
-    print(f"{politica_reabastecimiento} => Tiempo best {tiempo_best}")
+    print(f"{len(solucion.contexto.clientes)} {politica_reabastecimiento} => {mejor_solucion.costo}")
     execution_time = int((datetime.now() - start).total_seconds())
     admisibilidad = 'N' if (not mejor_solucion.es_admisible) else ('F' if mejor_solucion.es_factible else 'A')
     # mejor_solucion.imprimir_detalle()
