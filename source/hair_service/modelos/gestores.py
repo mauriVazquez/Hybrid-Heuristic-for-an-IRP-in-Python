@@ -102,18 +102,19 @@ class FactorPenalizacion:
             None
         """
         self.value = initial_value
+        self.min_value = initial_value
         self.contador = 0
         self.iteraciones_max = iteraciones_max
         self.soluciones_factibles = 0
 
-    def reiniciar(self, initial_value) -> None:
+    def reiniciar(self) -> None:
         """
         Reinicia el valor del factor de penalización y los contadores.
 
         Returns:
             None
         """
-        self.value = initial_value
+        self.value = self.min_value
         self.contador = 0
         self.soluciones_factibles = 0
 

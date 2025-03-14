@@ -15,11 +15,11 @@ def mejora(solucion: Solucion, iterador_principal: int) -> Solucion:
         solucion_prima = LK(mejor_solucion, solucion_prima)
         if solucion_prima.costo < mejor_solucion.costo:
             # print("MEJORA1")
-            mejor_solucion = solucion_prima.clonar()
+            mejor_solucion = solucion_prima
             do_continue = True
         
         # SEGUNDA MEJORA: Merge de rutas consecutivas en ambas direcciones + MIP2
-        solucion_merge = mejor_solucion.clonar()
+        solucion_merge = mejor_solucion
         # Crear lista de pares de rutas consecutivas
         L = [(i, i + 1) for i in range(len(solucion_merge.rutas) - 1)]
         # Iteración sobre pares de rutas
@@ -31,16 +31,16 @@ def mejora(solucion: Solucion, iterador_principal: int) -> Solucion:
             if not mip2.es_factible:
                 if ruta2_idx < solucion.contexto.horizonte_tiempo - 1:
                     rutas_modificadas = [r for r in s1.rutas]
-                    r_aux = rutas_modificadas[ruta2_idx].clonar()
-                    rutas_modificadas[ruta2_idx] = rutas_modificadas[ruta2_idx + 1].clonar()
-                    rutas_modificadas[ruta2_idx + 1] = r_aux.clonar()
+                    r_aux = rutas_modificadas[ruta2_idx]
+                    rutas_modificadas[ruta2_idx] = rutas_modificadas[ruta2_idx + 1]
+                    rutas_modificadas[ruta2_idx + 1] = r_aux
                     s1 = Solucion(rutas=tuple(r for r in rutas_modificadas))
                     
             mip2 = mip2_asignacion_clientes(s1)  # Aplicar MIP2
             if mip2.es_factible:
                 solucion_prima = LK(s1, mip2)
                 if solucion_prima.costo < solucion_merge.costo:
-                    solucion_merge = solucion_prima.clonar()
+                    solucion_merge = solucion_prima
        
             # Merge hacia atrás (ruta i+1 con ruta i)
             s2 = solucion_merge.merge_rutas(ruta2_idx, ruta1_idx)
@@ -48,21 +48,21 @@ def mejora(solucion: Solucion, iterador_principal: int) -> Solucion:
             if not mip2.es_factible:
                 if ruta1_idx > 0:
                     rutas_modificadas = [r for r in s2.rutas]
-                    r_aux = rutas_modificadas[ruta1_idx].clonar()
-                    rutas_modificadas[ruta1_idx] = rutas_modificadas[ruta1_idx - 1].clonar()
-                    rutas_modificadas[ruta1_idx - 1] = r_aux.clonar()
+                    r_aux = rutas_modificadas[ruta1_idx]
+                    rutas_modificadas[ruta1_idx] = rutas_modificadas[ruta1_idx - 1]
+                    rutas_modificadas[ruta1_idx - 1] = r_aux
                     s2 = Solucion(rutas=tuple(r for r in rutas_modificadas))
                     
             mip2 = mip2_asignacion_clientes(s2)  # Aplicar MIP2
             if mip2.es_factible:
                 solucion_prima = LK(s2, mip2)
                 if solucion_prima.costo < solucion_merge.costo:
-                    solucion_merge = solucion_prima.clonar()
+                    solucion_merge = solucion_prima
        
         # Aplicar el mejor resultado de los merges
         if solucion_merge.costo < mejor_solucion.costo:
             # print("MEJORA2")
-            mejor_solucion = solucion_merge.clonar()
+            mejor_solucion = solucion_merge
             do_continue = True
 
         # TERCERA MEJORA: Aplicación de MIP2 + LK
@@ -70,7 +70,7 @@ def mejora(solucion: Solucion, iterador_principal: int) -> Solucion:
         solucion_prima = LK(mejor_solucion, solucion_prima)
         if solucion_prima.costo < mejor_solucion.costo:
             # print("MEJORA3")
-            mejor_solucion = solucion_prima.clonar()
+            mejor_solucion = solucion_prima
             do_continue = True
             
     # print(f"MEJORA {mejor_solucion}")
@@ -81,9 +81,9 @@ def LK(solucion: Solucion, solucion_prima : Solucion) -> Solucion:
     Aplica Lin-Kernighan heurístico para mejorar la solución.
     """
     if ((solucion is not None) and solucion.es_igual(solucion_prima)):
-        return solucion_prima.clonar()
+        return solucion_prima
         
-    iter_sol = solucion_prima.clonar()
+    iter_sol = solucion_prima
     for r, ruta in enumerate(iter_sol.rutas):
         if len(ruta.clientes) > 1:
             clientes = ruta.clientes
@@ -152,7 +152,7 @@ def optimizar_tsp(solucion, t, distance_matrix):
         rutas_modificadas[t] = Ruta(tuple(clientes_ordenados), tuple(cantidades_ordenadas))
         return Solucion(rutas=tuple(rutas_modificadas))
     else:
-        return solucion.clonar()
+        return solucion
     
     
 def mip1_route_assignment(solucion: Solucion):
@@ -274,12 +274,12 @@ def mip1_route_assignment(solucion: Solucion):
     )
     
     status = solver.Solve()
-    if status == pywraplp.Solver.OPTIMAL:
+    if status == pywraplp.Solver.FEASIBLE:
         nueva_solucion = reconstruir_solucion_MIP1(solucion, w, x, z)
         if nueva_solucion.es_admisible:
             return nueva_solucion
 
-    return solucion.clonar()
+    return solucion
 
 
 def mip2_asignacion_clientes(solucion: Solucion):
@@ -418,12 +418,12 @@ def mip2_asignacion_clientes(solucion: Solucion):
 
     # Solve the model
     status = solver.Solve()
-    if status == pywraplp.Solver.OPTIMAL:                
+    if status == pywraplp.Solver.FEASIBLE:                
         nueva_solucion =  reconstruir_solucion_MIP2(solucion, v, w, x)
         if nueva_solucion.es_admisible:
             return nueva_solucion
         
-    return solucion.clonar()
+    return solucion
 
 
 def reconstruir_solucion_MIP1(solucion: Solucion, w, x, z):
@@ -509,7 +509,7 @@ def calcular_ahorro_eliminar_cliente(ruta, cliente):
     if cliente not in ruta.clientes:
         return 0  # No hay ahorro si el cliente no está en la ruta
     
-    ruta2 = ruta.clonar()
+    ruta2 = ruta
     ruta2 = ruta2.eliminar_visita(cliente)
 
     return ruta.costo - ruta2.costo
@@ -521,7 +521,7 @@ def calcular_costo_insertar_cliente(ruta, cliente):
     if cliente in ruta.clientes:
         return 0  # No hay ahorro si el cliente no está en la ruta
     
-    ruta2 = ruta.clonar()
+    ruta2 = ruta
     ruta2 = ruta2.insertar_visita(cliente, 10)
 
     return ruta.costo - ruta2.costo
