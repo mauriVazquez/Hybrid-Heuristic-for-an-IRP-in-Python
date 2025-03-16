@@ -26,35 +26,34 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
     solution_history = SolutionHistory()
 
     max_ciclos_consecutivos = 3
-    max_stagnation = 12
+    max_stagnation = 9
     
     # Parámetros de Simulated Annealing
-    temperatura_inicial = 10 * (contexto.horizonte_tiempo ** 2) * (len(contexto.clientes) ** 2)
+    temperatura_inicial = 100 * (contexto.horizonte_tiempo ** 2) * (len(contexto.clientes) ** 2)
     temperatura_final = max(1, 0.01 * temperatura_inicial)  # Evita que sea demasiado alta
     factor_enfriamiento = 0.995
     temperatura_actual = temperatura_inicial
-    ultimo_enfriamiento = 0  # Si lo necesitas para control o ajuste dinámico
+    ultimo_enfriamiento = 0 
 
-    
     start = datetime.now()
     solucion = inicializacion()
     mejor_solucion = solucion.clonar()
 
-    while iteraciones_sin_mejoras < contexto.max_iter:
+    while iterador_principal < contexto.max_iter:
         iterador_principal += 1
         solucion_prima = movimiento(solucion, tabulists, iterador_principal)
 
         # Criterio de aceptación de Simulated Annealing
-        delta_costo = solucion_prima.costo - solucion.costo
+        delta_costo = solucion_prima.costo() - solucion.costo()
         
         # Si la solución es factible y mejor que la mejor solución encontrada hasta ahora
-        if solucion_prima.costo < mejor_solucion.costo:
+        if (solucion_prima.costo() < mejor_solucion.costo()):
             # Se acepta porque es mejor solución global
             solucion_prima = mejora(solucion_prima, iterador_principal)
             mejor_solucion = solucion_prima.clonar()
             iteraciones_sin_mejoras = 0
         # Criterio de aceptación probabilística de SA
-        elif solucion.es_factible and (delta_costo < 0) or (random.random() < -delta_costo / max(temperatura_actual, 1e-10) + 0.1):
+        elif solucion_prima.es_factible and (delta_costo < 0) or (random.random() < -delta_costo / max(temperatura_actual, 1e-10) + 0.1):
             iteraciones_sin_mejoras += 1
         else:
             # No se acepta la solución
@@ -98,10 +97,10 @@ def execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, politica_
             temperatura_actual = temperatura_inicial
 
     # mejor_solucion.graficar_rutas()
-    print(f"{len(solucion.contexto.clientes)} {politica_reabastecimiento} => {mejor_solucion.costo}")
+    print(f"{len(solucion.contexto.clientes)} {politica_reabastecimiento} => {mejor_solucion.costo()}")
     execution_time = int((datetime.now() - start).total_seconds())
     admisibilidad = 'N' if (not mejor_solucion.es_admisible) else ('F' if mejor_solucion.es_factible else 'A')
-    # mejor_solucion.imprimir_detalle()
+    mejor_solucion.imprimir_detalle()
     # mejor_solucion.graficar_rutas()
     return mejor_solucion, iterador_principal, execution_time, admisibilidad
 
@@ -114,7 +113,7 @@ def async_execute(plantilla_id, horizonte_tiempo, capacidad_vehiculo, proveedor,
     mejor_solucion, iterador_principal, execution_time, admisibilidad = execute(
         horizonte_tiempo, capacidad_vehiculo, proveedor, clientes
     )
-
+    
     requests.post(
         url=f"http://nginx/api/plantillas/{plantilla_id}/solucion",
         json={

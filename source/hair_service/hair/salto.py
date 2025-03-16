@@ -7,6 +7,7 @@ def salto(solucion, iterador_principal, triplets) -> Solucion:
     Aplica un salto en la búsqueda tabú moviendo clientes de periodos donde son típicamente visitados
     a periodos donde no han sido visitados recientemente, asegurando que no haya stockout.
     """
+    
     mejor_solucion = solucion.clonar()
     if not triplets.triplets:
         return mejor_solucion  
@@ -35,7 +36,6 @@ def salto(solucion, iterador_principal, triplets) -> Solucion:
                     if nueva_solucion.rutas[t].obtener_cantidad_entregada(c):
                         nueva_solucion = nueva_solucion.eliminar_visita(c, t)
                     
-                
             # Verificar si la nueva solución es admisible
             if nueva_solucion.es_admisible:
                 mejor_solucion = nueva_solucion.clonar()
@@ -46,7 +46,7 @@ def salto(solucion, iterador_principal, triplets) -> Solucion:
         return solucion.clonar()  # No se realizó ningún cambio válido
 
     # # Aplicar mip2_asignacion_clientes solo si la solución sigue siendo admisible
-    mejor_solucion = mip2_asignacion_clientes(mejor_solucion)
+    status, mejor_solucion = mip2_asignacion_clientes(mejor_solucion)
     
-    # print(f"SALTO {mejor_solucion}")
+    print(f"SALTO {mejor_solucion}")
     return mejor_solucion

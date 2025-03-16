@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 from modelos.ruta import Ruta
 from modelos.entidad import Cliente
 from modelos.contexto_file import contexto_ejecucion
-from random import randint
+import random
 
 class Solucion:
     """
@@ -26,14 +26,13 @@ class Solucion:
             for cliente in self.contexto.clientes
         }
         self.inventario_proveedor = self._obtener_niveles_inventario_proveedor()
-        self.costo = self._costo()
         self.es_admisible = self.es_admisible()
         self.es_factible = self.es_factible()
 
     def __str__(self) -> str:
         factibilidad = "F" if (self.es_factible == True) else ("A" if (self.es_admisible == True) else "N")
         rutas_str = " ".join(f"T{str(i + 1)} = {ruta}" for i, ruta in enumerate(self.rutas))
-        return f"{rutas_str} Costo: {self.costo} {factibilidad}"
+        return f"{rutas_str} Costo: {self.costo()} {factibilidad}"
 
     def __json__(self, iteration: int, tag: str) -> dict:
         return {
@@ -41,7 +40,7 @@ class Solucion:
             "iteration": iteration,
             "tag": tag,
             "rutas": {i: ruta.__json__() for i, ruta in enumerate(self.rutas)},
-            "costo": self.costo,
+            "costo": self.costo(),
         }
 
     def imprimir_detalle(self) -> str:
@@ -56,7 +55,7 @@ class Solucion:
             resp += 'Inventario de clientes: '  + str(self.inventario_clientes) + "\n"
             resp += '¿Admisible? : '            + ('SI' if self.es_admisible else 'NO') + "\n"
             resp += '¿Factible? : '             + ('SI' if self.es_factible else 'NO') + "\n"
-            resp += 'Función objetivo: '        + str(self.costo) + "\n"
+            resp += 'Función objetivo: '        + str(self.costo()) + "\n"
             print(resp)
             
     def clonar(self) -> 'Solucion':
@@ -125,22 +124,16 @@ class Solucion:
         """
         return all(self.contexto.capacidad_vehiculo >= ruta.obtener_total_entregado() for ruta in self.rutas)
 
-    def _insertar_visita(self, cliente: Cliente, tiempo: int, index = None) -> 'Solucion':            
-        if self.contexto.politica_reabastecimiento == "OU":
-            cantidad = cliente.nivel_maximo - self.inventario_clientes[cliente.id][tiempo]
-
+    def insertar_visita_atomica(self, cliente: Cliente, tiempo: int, index = None) -> 'Solucion':            
+        cantidad = cliente.nivel_maximo - self.inventario_clientes[cliente.id][tiempo]
         if self.contexto.politica_reabastecimiento == "ML":
-            cantidad = max(0, min(
-                cliente.nivel_maximo - self.inventario_clientes[cliente.id][tiempo],
-                self.inventario_proveedor[tiempo],
-                self.contexto.capacidad_vehiculo - self.rutas[tiempo].obtener_total_entregado()
-            ))  
+            cantidad = random.randint(min(cantidad, cliente.nivel_demanda), cantidad)  
                 
         rutas_modificadas = list(ruta for ruta in self.rutas)
         rutas_modificadas[tiempo] = rutas_modificadas[tiempo].insertar_visita(cliente, cantidad, index)
         return Solucion(rutas=tuple(rutas_modificadas))
 
-    def _eliminar_visita(self, cliente: Cliente, tiempo: int) -> 'Solucion':
+    def eliminar_visita_atomica(self, cliente: Cliente, tiempo: int) -> 'Solucion':
         rutas_modificadas = list(ruta for ruta in self.rutas)
         rutas_modificadas[tiempo] = rutas_modificadas[tiempo].eliminar_visita(cliente)
         return Solucion(rutas=tuple(rutas_modificadas))
@@ -238,14 +231,17 @@ class Solucion:
         - ML: min(Ui - nivel_actual, capacidad_vehiculo, stock_proveedor), o rit si es 0
                 (puede violar restricciones de capacidad pero mantiene solución admisible)
         """    
-        nueva_solucion = self._insertar_visita(cliente, t, indice)
+        nueva_solucion = self.insertar_visita_atomica(cliente, t, indice)
         if nueva_solucion.contexto.politica_reabastecimiento == "OU":     
             # Buscar siguiente visita y reducir la misma cantidad
             t_next = next((t_futuro for t_futuro in nueva_solucion.tiempos_cliente(cliente) if t_futuro > t), None)
             if t_next is not None:
-                nueva_solucion = nueva_solucion.quitar_cantidad_cliente(cliente, t_next, nueva_solucion.rutas[t].obtener_cantidad_entregada(cliente.id))
-                if nueva_solucion.rutas[t_next].obtener_cantidad_entregada(cliente) <= 0:
-                    nueva_solucion = nueva_solucion._eliminar_visita(cliente, t_next)
+                cantidad_entregada          = nueva_solucion.rutas[t].obtener_cantidad_entregada(cliente.id)
+                proxima_cantidad_entregada  = nueva_solucion.rutas[t_next].obtener_cantidad_entregada(cliente.id)
+                if proxima_cantidad_entregada > cantidad_entregada:
+                    nueva_solucion = nueva_solucion.quitar_cantidad_cliente(cliente, t_next, cantidad_entregada)
+                else:
+                    nueva_solucion = nueva_solucion.eliminar_visita_atomica(cliente, t_next)
         return nueva_solucion
 
 
@@ -262,63 +258,61 @@ class Solucion:
         # Obtener cantidad antes de eliminar
         tiempos_cliente = self.tiempos_cliente(cliente)
         cantidad_eliminada = self.rutas[t].obtener_cantidad_entregada(cliente)
-        nueva_solucion = self._eliminar_visita(cliente, t)
+        nueva_solucion = self.eliminar_visita_atomica(cliente, t)
         
         if nueva_solucion.contexto.politica_reabastecimiento == "OU":    
             # Transferir cantidad a siguiente visita        
             t_next = next((t_futuro for t_futuro in tiempos_cliente if t_futuro > t), None)
             if t_next is not None:
                 nueva_solucion = nueva_solucion.agregar_cantidad_cliente(cliente, t_next, cantidad_eliminada)
-            return nueva_solucion if nueva_solucion.es_admisible else self.clonar()
+            return nueva_solucion if all(nivel >= cliente.nivel_minimo for nivel in nueva_solucion.inventario_clientes[cliente.id]) else self.clonar()
         
         elif nueva_solucion.contexto.politica_reabastecimiento == "ML":
-            if min(nueva_solucion.inventario_clientes[cliente.id]) >= cliente.nivel_minimo:
+            if all(nivel >= cliente.nivel_minimo for nivel in nueva_solucion.inventario_clientes[cliente.id]):
                 return nueva_solucion.clonar()
             
             t_prev = next((t_pasado for t_pasado in reversed(tiempos_cliente) if t_pasado < t), None)
-            
             if t_prev is not None:
-                y = min(nueva_solucion.inventario_clientes[cliente.id][t+1:])
-            
+                y = min(nueva_solucion.inventario_clientes[cliente.id][t:])
                 if y < cantidad_eliminada:
                     nueva_solucion = nueva_solucion.agregar_cantidad_cliente(cliente, t_prev, cantidad_eliminada - y)
-                    if max(nueva_solucion.inventario_clientes[cliente.id]) <= cliente.nivel_maximo:
+                    if all(nivel <= cliente.nivel_maximo for nivel in nueva_solucion.inventario_clientes[cliente.id]) and (all(nivel >= cliente.nivel_minimo for nivel in nueva_solucion.inventario_clientes[cliente.id])):
                         return nueva_solucion.clonar()
             return self.clonar()
     
     def _obtener_niveles_inventario_cliente(self, cliente: Cliente):
         inventario = [cliente.nivel_almacenamiento]   
-        for t in range(1, self.contexto.horizonte_tiempo + 1):
-            inventario.append(inventario[-1] + self.rutas[t - 1].obtener_cantidad_entregada(cliente) - cliente.nivel_demanda)
-        return inventario
-    
-    def _obtener_niveles_inventario_proveedor(self):
-        proveedor = self.contexto.proveedor
-        inventario = [proveedor.nivel_almacenamiento]
-        for t in range(1, self.contexto.horizonte_tiempo + 1):
-            inventario.append(inventario[-1] + proveedor.nivel_produccion - self.rutas[t - 1].obtener_total_entregado())
+        for t in range(self.contexto.horizonte_tiempo):
+            cantidad_entregada = self.rutas[t].obtener_cantidad_entregada(cliente)
+            nuevo_nivel = inventario[-1] + cantidad_entregada - cliente.nivel_demanda
+            inventario.append(nuevo_nivel)
         return inventario
 
-    def _costo(self) -> float:
-        costo_almacenamiento = (
-            self.contexto.proveedor.costo_almacenamiento * sum(self.inventario_proveedor) 
-            + 
+    def _obtener_niveles_inventario_proveedor(self):
+        inventario = [self.contexto.proveedor.nivel_almacenamiento]
+        for t in range(self.contexto.horizonte_tiempo):
+            total_entregado = self.rutas[t].obtener_total_entregado()
+            nuevo_nivel = inventario[-1] + self.contexto.proveedor.nivel_produccion - total_entregado
+            inventario.append(nuevo_nivel)
+        return inventario
+
+
+    def costo(self) -> float:
+        costo_almacenamiento = ( self.contexto.proveedor.costo_almacenamiento * sum(self.inventario_proveedor) + 
             sum(c.costo_almacenamiento * sum(self.inventario_clientes[c.id]) for c in self.contexto.clientes)
         )
         costo_transporte = sum(ruta.costo for ruta in self.rutas)
-        
-        exceso_vehiculo = sum(
-            max(0, ruta.obtener_total_entregado() - self.contexto.capacidad_vehiculo) 
+               
+        exceso_vehiculo = sum( max(0, ruta.obtener_total_entregado() - self.contexto.capacidad_vehiculo) 
             for ruta in self.rutas
         )
         
         desabastecimiento_proveedor = sum(max(0, -nivel) for nivel in self.inventario_proveedor)
 
-        return round(
-            costo_almacenamiento + costo_transporte + 
+        return round(costo_almacenamiento + costo_transporte + 
             (exceso_vehiculo * self.contexto.alfa.obtener_valor()) +
-            (desabastecimiento_proveedor * self.contexto.beta.obtener_valor())
-        , 2)
+            (desabastecimiento_proveedor * self.contexto.beta.obtener_valor()), 2)
+        
 
     def graficar_rutas(self):
         contexto = self.contexto

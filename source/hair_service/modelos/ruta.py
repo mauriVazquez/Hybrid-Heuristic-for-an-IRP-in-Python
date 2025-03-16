@@ -30,21 +30,15 @@ class Ruta:
             return 0.0
 
         costo_total = 0.0
-
-        if clientes[0].distancia_proveedor is not None:
-            costo_total += clientes[0].distancia_proveedor  # Distancia del proveedor al primer cliente
+        costo_total += clientes[0].distancia_proveedor  # Distancia del proveedor al primer cliente
 
         costo_total += sum(
             compute_dist(c1.coord_x, c2.coord_x, c1.coord_y, c2.coord_y)
             for c1, c2 in zip(clientes, clientes[1:])
         )
 
-        if clientes[-1].distancia_proveedor is not None:
-            costo_total += clientes[-1].distancia_proveedor  # Distancia del último cliente de vuelta
-
+        costo_total += clientes[-1].distancia_proveedor  # Distancia del último cliente de vuelta
         return costo_total
-
-
 
     def __init__(self, clientes: tuple[Cliente, ...] = (), cantidades: tuple[int, ...] = ()) -> None:
         """
@@ -113,7 +107,6 @@ class Ruta:
 
         return next((self.cantidades[i] for i, c in enumerate(self.clientes) if c == cliente), 0)
 
-
     def insertar_visita(self, cliente: Cliente, cantidad: int, indice = None) -> "Ruta":
         clientes_lista = list(self.clientes)
         cantidades_lista = list(self.cantidades)
@@ -132,21 +125,15 @@ class Ruta:
 
         return Ruta(tuple(clientes_lista), tuple(cantidades_lista))
 
-
     def eliminar_visita(self, cliente: Cliente) -> "Ruta":
-        clientes_lista = list(self.clientes)
-        cantidades_lista = list(self.cantidades)
-
+        clientes_lista      = list(self.clientes)
+        cantidades_lista    = list(self.cantidades)
         if cliente not in clientes_lista:
             return self  # Si el cliente no está, no hacer nada
-
         indice = clientes_lista.index(cliente)
-
         clientes_lista.pop(indice)
         cantidades_lista.pop(indice)
-
         return Ruta(tuple(clientes_lista), tuple(cantidades_lista))
-
 
     def modificar_cantidad_cliente(self, cliente: Cliente, cantidad: int) -> "Ruta":
         """

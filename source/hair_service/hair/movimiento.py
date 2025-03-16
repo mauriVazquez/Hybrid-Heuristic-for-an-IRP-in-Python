@@ -20,21 +20,21 @@ def movimiento(solucion: Solucion, tabulists, iterador_principal: int) -> Soluci
         mejor_solucion = min(
             (vecino for vecino in vecindario if (tabulists.movimiento_permitido(solucion, vecino))),
             default=None,
-            key=lambda v: v.costo
+            key=lambda v: v.costo()
         )
 
         mejor_solucion_no_permitida = min(
             (vecino for vecino in vecindario if (not tabulists.movimiento_permitido(solucion, vecino))),
             default=None,
-            key=lambda v: v.costo
+            key=lambda v: v.costo()
         )
         
         if mejor_solucion is not None:
             if mejor_solucion_no_permitida is not None: 
                 # Normalización del progreso dentro del ciclo de salto
-                multiplicador_tolerancia = 0.953 #.1 - 0.2 * (iterador_principal / (solucion.contexto.jump_iter - (iterador_principal % solucion.contexto.jump_iter))) 
-                umbral_costo = multiplicador_tolerancia * mejor_solucion.costo
-                if (mejor_solucion_no_permitida.costo < umbral_costo):
+                multiplicador_tolerancia = 1.15 - 0.3 * (iterador_principal / (solucion.contexto.jump_iter - (iterador_principal % solucion.contexto.jump_iter))) 
+                umbral_costo = multiplicador_tolerancia * mejor_solucion.costo()
+                if (mejor_solucion_no_permitida.costo() < umbral_costo):
                     mejor_solucion = mejor_solucion_no_permitida
         else:
             mejor_solucion = mejor_solucion_no_permitida
@@ -46,6 +46,7 @@ def movimiento(solucion: Solucion, tabulists, iterador_principal: int) -> Soluci
         contexto.beta.actualizar(mejor_solucion.proveedor_sin_desabastecimiento())
     else:
         mejor_solucion = solucion
+    print(f"Movimiento {mejor_solucion}")
     return mejor_solucion
 
 def _crear_vecindario(solucion: Solucion) -> list[Solucion]:
@@ -64,64 +65,54 @@ def _crear_vecindario(solucion: Solucion) -> list[Solucion]:
             _variante_insercion,
             _variante_mover_visita,
             _variante_intercambiar_visitas
-        ] for vecino in variante(solucion) if (not vecino.es_igual(solucion))
+        ] for vecino in variante(solucion)
     ]
-    
     # Paso 2: Aplicar ajustes adicionales basados en la teoría
     for solucion_prima in vecindario_prima:
         conjunto_A = [cliente for cliente in contexto.clientes if (solucion.tiempos_cliente(cliente) != solucion_prima.tiempos_cliente(cliente))]
         while conjunto_A:
             cliente_i = conjunto_A.pop(randint(0, len(conjunto_A) - 1))
-            tiempos_cliente = solucion_prima.tiempos_cliente(cliente_i)
-            for t in tiempos_cliente:
-                # Por cada cliente j atendidos en el tiempo t en s' y si t pertenece a Tj(s') 
-                clientes_j =  [cliente for cliente in solucion_prima.rutas[t].clientes]
-                
-                for cliente_j in clientes_j: 
+            for t in solucion_prima.tiempos_cliente(cliente_i):
+                for cliente_j in solucion_prima.rutas[t].clientes: 
                     if cliente_j.costo_almacenamiento > contexto.proveedor.costo_almacenamiento or \
                        solucion_prima.rutas[t].obtener_total_entregado() > contexto.capacidad_vehiculo or \
                        solucion_prima.inventario_proveedor[t] < 0:
 
                         if contexto.politica_reabastecimiento == "OU":
                             solucion_nueva = solucion_prima.eliminar_visita(cliente_j, t)                            
-                            if (solucion_nueva.es_admisible) and (solucion_nueva.costo < solucion_prima.costo):
-                               solucion_prima = solucion_nueva
+                            if solucion_nueva.es_admisible and solucion_nueva.costo() < solucion_prima.costo():
+                               solucion_prima = solucion_nueva.clonar()
                                conjunto_A.append(cliente_j)
 
                         # **ML Policy: Reducir entrega pero asegurando que no haya stockout**
                         if contexto.politica_reabastecimiento == "ML":
                             xjt = solucion_prima.rutas[t].obtener_cantidad_entregada(cliente_j)
-                            y = min(xjt, min(solucion_prima.inventario_clientes[cliente_j.id][t+1:], default=xjt))
+                            y = min(xjt, min(solucion_prima.inventario_clientes[cliente_j.id][t+1:]))
                             
                             if y >= xjt:  
                                 solucion_nueva = solucion_prima.eliminar_visita(cliente_j, t)
                             else:
                                 solucion_nueva = solucion_prima.quitar_cantidad_cliente(cliente_j, t, y)
                                 
-                            if solucion_nueva.es_admisible and solucion_nueva.costo < solucion_prima.costo:
-                                solucion_prima = solucion_nueva
+                            if solucion_nueva.es_admisible and solucion_nueva.costo() < solucion_prima.costo():
+                                solucion_prima = solucion_nueva.clonar()
                                 if not solucion_prima.rutas[t].es_visitado(cliente_j):
                                     conjunto_A.append(cliente_j) 
 
                 # **ML Policy: Revisar si se puede almacenar en cliente**
                 if contexto.politica_reabastecimiento == "ML":
-                    for cliente_j in solucion.rutas[t].clientes:
+                    for cliente_j in solucion_prima.rutas[t].clientes:
                         if cliente_j.costo_almacenamiento < contexto.proveedor.costo_almacenamiento:
                             # Obtener el nivel máximo proyectado en el futuro
-                            y = min(cliente_j.nivel_maximo, max(
-                                solucion.inventario_clientes[cliente_j.id][t_futuro] +
-                                solucion.rutas[t_futuro].obtener_cantidad_entregada(cliente_j)
+                            y = max(
+                                solucion_prima.inventario_clientes[cliente_j.id][t_futuro] +
+                                solucion_prima.rutas[t_futuro].obtener_cantidad_entregada(cliente_j)
                                 for t_futuro in range(t, contexto.horizonte_tiempo)
-                            ))
-
-                            cantidad_a_entregar = cliente_j.nivel_maximo - y
-                            # Verificar si se puede entregar sin superar capacidad del vehículo
-                            if solucion.rutas[t].obtener_total_entregado() + cantidad_a_entregar <= contexto.capacidad_vehiculo:
-                                solucion_nueva = solucion.agregar_cantidad_cliente(cliente_j, t, cantidad_a_entregar)
-                                if solucion_nueva.costo < solucion.costo:
-                                    solucion = solucion_nueva
-
-                                    
+                            )
+                            solucion_nueva = solucion_prima.agregar_cantidad_cliente(cliente_j, t, cliente_j.nivel_maximo - y)
+                            if solucion_nueva.costo() < solucion_prima.costo():
+                                solucion_prima = solucion_nueva.clonar()
+                                
         if solucion_prima.es_admisible and (not solucion_prima.es_igual(solucion)):
             vecindario.append(solucion_prima)
     return vecindario
@@ -135,7 +126,7 @@ def _variante_eliminacion(solucion: Solucion) -> list[Solucion]:
     for t, ruta in enumerate(solucion.rutas):
         for cliente in ruta.clientes:
             nueva_solucion = solucion.eliminar_visita(cliente, t)
-            if nueva_solucion.es_admisible and (not nueva_solucion.es_igual(solucion)):
+            if nueva_solucion.es_admisible:
                 vecindario_prima.append(nueva_solucion)
     return set(vecindario_prima)
 
@@ -148,7 +139,7 @@ def _variante_insercion(solucion: Solucion) -> list[Solucion]:
     for cliente in contexto.clientes:
         for t in set(range(solucion.contexto.horizonte_tiempo)) - set(solucion.tiempos_cliente(cliente)):   
             nueva_solucion = solucion.insertar_visita(cliente, t)
-            if nueva_solucion.es_admisible and (not nueva_solucion.es_igual(solucion)):
+            if nueva_solucion.es_admisible:
                 vecindario_prima.append(nueva_solucion)        
     return set(vecindario_prima)
 
@@ -168,7 +159,7 @@ def _variante_mover_visita(solucion: Solucion) -> list[Solucion]:
             solucion_intermedia = solucion.insertar_visita(cliente, t_destino)
             for t_origen in tiempos_cliente_actual:
                 nueva_solucion = solucion_intermedia.eliminar_visita(cliente, t_origen)
-                if nueva_solucion.es_admisible  and (not nueva_solucion.es_igual(solucion)) and (t_destino in nueva_solucion.tiempos_cliente(cliente)) and not (t_origen in nueva_solucion.tiempos_cliente(cliente)):
+                if nueva_solucion.es_admisible and (t_destino in nueva_solucion.tiempos_cliente(cliente)) and (t_origen not in nueva_solucion.tiempos_cliente(cliente)):
                     vecindario_prima.append(nueva_solucion)
     return vecindario_prima
 

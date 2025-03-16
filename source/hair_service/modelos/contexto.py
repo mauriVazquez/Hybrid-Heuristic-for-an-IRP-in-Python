@@ -31,17 +31,17 @@ class Contexto:
         config.read('hair/config.ini')
 
         self.politica_reabastecimiento = politica_reabastecimiento
-        self.taboo_len = 10
-        self.lambda_ttl = float(config['Taboo']['lambda_ttl'])
-        self.penalty_min_limit = 200 * len(clientes) * len(clientes) * horizonte_tiempo
-        self.penalty_max_limit = float('inf')
+        self.taboo_len          = 10
+        self.lambda_ttl         = float(config['Taboo']['lambda_ttl'])
+        self.penalty_min_limit  = 1
+        self.penalty_max_limit  = 100
         self.capacidad_vehiculo = capacidad_vehiculo
-        self.horizonte_tiempo = horizonte_tiempo
-        self.max_iter = 200 * len(clientes) * horizonte_tiempo
-        self.jump_iter = self.max_iter // 2
-        self.alfa = FactorPenalizacion(self.penalty_min_limit)
-        self.beta = FactorPenalizacion(self.penalty_min_limit)
-        self.debug = debug
+        self.horizonte_tiempo   = horizonte_tiempo
+        self.max_iter           = 200 * len(clientes) * horizonte_tiempo
+        self.jump_iter          = self.max_iter // 2
+        self.alfa               = FactorPenalizacion(self.penalty_min_limit)
+        self.beta               = FactorPenalizacion(self.penalty_min_limit)
+        self.debug              = debug
 
         self.proveedor = Proveedor(
             proveedor.id,
@@ -69,10 +69,10 @@ class Contexto:
 
         self.matriz_distancia = {
             cliente.id: {
-                otro_cliente.id: int(self.calcular_distancia(
+                otro_cliente.id: self.calcular_distancia(
                     cliente.coord_x, otro_cliente.coord_x,
                     cliente.coord_y, otro_cliente.coord_y
-                ))
+                )
                 for otro_cliente in self.clientes
             }
             for cliente in self.clientes
@@ -92,4 +92,4 @@ class Contexto:
         Returns:
             float: Distancia entre los dos puntos.
         """
-        return math.sqrt(math.pow(xi - xj, 2) + math.pow(yi - yj, 2))
+        return round(math.sqrt(math.pow(xi - xj, 2) + math.pow(yi - yj, 2)))

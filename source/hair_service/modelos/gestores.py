@@ -136,7 +136,7 @@ class FactorPenalizacion:
         if self.contador >= self.iteraciones_max:
             if (self.soluciones_factibles == self.iteraciones_max):
                 self.value = max(self.value * 0.5, contexto.penalty_min_limit) 
-            elif (self.soluciones_factibles == 0):
+            else:
                 self.value = min(self.value * 2, contexto.penalty_max_limit)
             self.contador = 0
             self.soluciones_factibles = 0
