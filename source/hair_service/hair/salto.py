@@ -48,5 +48,5 @@ def salto(solucion, iterador_principal, triplets) -> Solucion:
     # # Aplicar mip2_asignacion_clientes solo si la solución sigue siendo admisible
     status, mejor_solucion = mip2_asignacion_clientes(mejor_solucion)
     
-    print(f"SALTO {mejor_solucion}")
+    # print(f"SALTO {mejor_solucion}")
     return mejor_solucion

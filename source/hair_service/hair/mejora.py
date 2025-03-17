@@ -8,6 +8,7 @@ def mejora(solucion: Solucion, iterador_principal: int) -> Solucion:
     """
     continuar = True
     mejor_solucion = LK(None, solucion)
+    
     while continuar:
         continuar = False
         

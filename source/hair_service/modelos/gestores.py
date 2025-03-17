@@ -136,7 +136,7 @@ class FactorPenalizacion:
         if self.contador >= self.iteraciones_max:
             if (self.soluciones_factibles == self.iteraciones_max):
                 self.value = max(self.value * 0.5, contexto.penalty_min_limit) 
-            else:
+            elif (self.soluciones_factibles == self.iteraciones_max):
                 self.value = min(self.value * 2, contexto.penalty_max_limit)
             self.contador = 0
             self.soluciones_factibles = 0
@@ -230,9 +230,9 @@ class TabuLists:
         return True
 
 class SolutionHistory:
-    def __init__(self, max_history=750):
-        self.min_cycle_length = 4
-        self.max_cycle_length = 16
+    def __init__(self, max_history=500):
+        self.min_cycle_length = 3
+        self.max_cycle_length = 12
         self.history = deque(maxlen=max_history)
         self.cycle_count = 0
         self.stagnation_count = 0
@@ -271,5 +271,5 @@ class SolutionHistory:
         
         return 0, 0
 
-    def is_stagnant(self, threshold=5):
+    def is_stagnant(self, threshold=2):
         return self.stagnation_count >= threshold

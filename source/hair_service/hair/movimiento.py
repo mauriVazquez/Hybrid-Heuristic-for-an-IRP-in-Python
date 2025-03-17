@@ -32,7 +32,7 @@ def movimiento(solucion: Solucion, tabulists, iterador_principal: int) -> Soluci
         if mejor_solucion is not None:
             if mejor_solucion_no_permitida is not None: 
                 # Normalización del progreso dentro del ciclo de salto
-                multiplicador_tolerancia = 1.15 - 0.3 * (iterador_principal / (solucion.contexto.jump_iter - (iterador_principal % solucion.contexto.jump_iter))) 
+                multiplicador_tolerancia = 1.05 - 0.1 * (iterador_principal / (solucion.contexto.jump_iter - (iterador_principal % solucion.contexto.jump_iter))) 
                 umbral_costo = multiplicador_tolerancia * mejor_solucion.costo()
                 if (mejor_solucion_no_permitida.costo() < umbral_costo):
                     mejor_solucion = mejor_solucion_no_permitida
@@ -46,7 +46,7 @@ def movimiento(solucion: Solucion, tabulists, iterador_principal: int) -> Soluci
         contexto.beta.actualizar(mejor_solucion.proveedor_sin_desabastecimiento())
     else:
         mejor_solucion = solucion
-    print(f"Movimiento {mejor_solucion}")
+    # print(f"Movimiento {mejor_solucion}")
     return mejor_solucion
 
 def _crear_vecindario(solucion: Solucion) -> list[Solucion]:

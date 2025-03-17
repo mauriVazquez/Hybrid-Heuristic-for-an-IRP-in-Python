@@ -33,8 +33,8 @@ class Contexto:
         self.politica_reabastecimiento = politica_reabastecimiento
         self.taboo_len          = 10
         self.lambda_ttl         = float(config['Taboo']['lambda_ttl'])
-        self.penalty_min_limit  = 1
-        self.penalty_max_limit  = 100
+        self.penalty_min_limit  = 100
+        self.penalty_max_limit  = float("inf")
         self.capacidad_vehiculo = capacidad_vehiculo
         self.horizonte_tiempo   = horizonte_tiempo
         self.max_iter           = 200 * len(clientes) * horizonte_tiempo
