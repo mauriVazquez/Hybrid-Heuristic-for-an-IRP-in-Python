@@ -15,7 +15,7 @@ def compute_dist(xi, xj, yi, yj) -> float:
     Returns:
         float: Distancia euclidiana entre los dos puntos.
     """
-    return math.sqrt((xi - xj) ** 2 + (yi - yj) ** 2)
+    return int(math.dist((xi, yi), (xj, yj)))
 
 class Ruta:
     """

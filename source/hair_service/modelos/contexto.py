@@ -92,4 +92,4 @@ class Contexto:
         Returns:
             float: Distancia entre los dos puntos.
         """
-        return round(math.sqrt(math.pow(xi - xj, 2) + math.pow(yi - yj, 2)))
+        return int(math.dist((xi,yi),(xj,yj)))

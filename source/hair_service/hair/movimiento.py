@@ -32,7 +32,7 @@ def movimiento(solucion: Solucion, tabulists, iterador_principal: int) -> Soluci
         if mejor_solucion is not None:
             if mejor_solucion_no_permitida is not None: 
                 # Normalización del progreso dentro del ciclo de salto
-                multiplicador_tolerancia = 1.05 - 0.1 * (iterador_principal / (solucion.contexto.jump_iter - (iterador_principal % solucion.contexto.jump_iter))) 
+                multiplicador_tolerancia = 1 - 0.1 * (iterador_principal / (solucion.contexto.jump_iter - (iterador_principal % solucion.contexto.jump_iter))) 
                 umbral_costo = multiplicador_tolerancia * mejor_solucion.costo()
                 if (mejor_solucion_no_permitida.costo() < umbral_costo):
                     mejor_solucion = mejor_solucion_no_permitida
@@ -87,7 +87,7 @@ def _crear_vecindario(solucion: Solucion) -> list[Solucion]:
                         # **ML Policy: Reducir entrega pero asegurando que no haya stockout**
                         if contexto.politica_reabastecimiento == "ML":
                             xjt = solucion_prima.rutas[t].obtener_cantidad_entregada(cliente_j)
-                            y = min(xjt, min(solucion_prima.inventario_clientes[cliente_j.id][t+1:]))
+                            y = min(xjt, min(solucion_prima.inventario_clientes[cliente_j.id][t:]))
                             
                             if y >= xjt:  
                                 solucion_nueva = solucion_prima.eliminar_visita(cliente_j, t)
