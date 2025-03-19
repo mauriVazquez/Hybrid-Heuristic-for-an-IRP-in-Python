@@ -101,30 +101,7 @@ if __name__ == '__main__':
     #     'abs1n45.dat', 'abs2n45.dat', 'abs3n45.dat', 'abs4n45.dat', 'abs5n45.dat',
     #     # 'abs1n50.dat', 'abs2n50.dat', 'abs3n50.dat', 'abs4n50.dat', 'abs5n50.dat'
     # ]
-    
-    filenames = [
-        'abs5n45.dat',
-        'abs3n15.dat',
-        'abs1n20.dat',
-        'abs5n20.dat',
-        'abs3n25.dat',
-        'abs4n25.dat',
-        'abs2n35.dat',
-        'abs2n40.dat',
-        'abs1n50.dat',
-        'abs4n45.dat',
-        'abs3n45.dat',
-        'abs1n5.dat',
-    ]
-
-    for _ in range(1):            
-        for filename in filenames:
-            for rp in ['OU']:
-                horizonte_tiempo, proveedor, clientes, capacidad_vehiculo = read_input_irp(filename)
-                mejor_solucion, iterador, execution_time, admisibilidad = execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, rp)
-                escribir_resultado(rp, filename, mejor_solucion, iterador, execution_time, admisibilidad)
-            # procesar_datos(rp, filename)
-    
+       
     
     filenames = [
         'abs5n45.dat',
@@ -154,6 +131,22 @@ if __name__ == '__main__':
     for _ in range(1):            
         for filename in filenames:
             for rp in ['ML']:
+                horizonte_tiempo, proveedor, clientes, capacidad_vehiculo = read_input_irp(filename)
+                mejor_solucion, iterador, execution_time, admisibilidad = execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, rp)
+                escribir_resultado(rp, filename, mejor_solucion, iterador, execution_time, admisibilidad)
+            # procesar_datos(rp, filename)
+            
+    filenames = [
+        'abs5n20.dat',
+        'abs4n25.dat',
+        'abs1n50.dat',
+        'abs4n45.dat',
+        'abs3n45.dat',
+    ]
+
+    for _ in range(1):            
+        for filename in filenames:
+            for rp in ['OU']:
                 horizonte_tiempo, proveedor, clientes, capacidad_vehiculo = read_input_irp(filename)
                 mejor_solucion, iterador, execution_time, admisibilidad = execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, rp)
                 escribir_resultado(rp, filename, mejor_solucion, iterador, execution_time, admisibilidad)
