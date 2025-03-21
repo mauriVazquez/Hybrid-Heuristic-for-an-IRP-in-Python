@@ -102,22 +102,10 @@ if __name__ == '__main__':
         'abs1n50.dat', 'abs2n50.dat', 'abs3n50.dat', 'abs4n50.dat', 'abs5n50.dat'
     ]
 
-    filenames = ['abs5n30.dat', 'abs2n35.dat', 'abs1n40.dat', 'abs4n45.dat']
-    for _ in range(2):            
+    for _ in range(15):            
         for filename in filenames:
             for rp in ['ML']:
                 horizonte_tiempo, proveedor, clientes, capacidad_vehiculo = read_input_irp(filename)
                 mejor_solucion, iterador, execution_time, admisibilidad = execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, rp)
                 escribir_resultado(rp, filename, mejor_solucion, iterador, execution_time, admisibilidad)
-            # procesar_datos(rp, filename)
-    
-    filenames = ['abs3n45.dat', 'abs4n25.dat', 'abs1n40.dat', 'abs4n45.dat']
-    for _ in range(4):            
-        for filename in filenames:
-            for rp in ['OU']:
-                horizonte_tiempo, proveedor, clientes, capacidad_vehiculo = read_input_irp(filename)
-                mejor_solucion, iterador, execution_time, admisibilidad = execute(horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, rp)
-                escribir_resultado(rp, filename, mejor_solucion, iterador, execution_time, admisibilidad)
-            # procesar_datos(rp, filename)
-            
-   
+            procesar_datos(rp, filename)
