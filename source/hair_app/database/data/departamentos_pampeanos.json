@@ -1,0 +1,140 @@
+{
+    "cantidad":22,
+    "departamentos":[
+        {
+            "centroide":{"lat":-37.9792315730965,"lon":-63.9544864276514},
+            "id":"42077",
+            "nombre":"Hucal",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "centroide":{"lat":-38.6756398635536,"lon":-63.8968185406946},
+            "id":"42014",
+            "nombre":"Caleu Caleu",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "centroide":{"lat":-38.2616348854642,"lon":-65.0966893102146},
+            "id":"42084",
+            "nombre":"Lihuel Calel",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "centroide":{"lat":-38.1797329921075,"lon":-66.330067375997},
+            "id":"42042",
+            "nombre":"Curacó",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "centroide":{"lat":-36.4785080840981,"lon":-65.533063651288},
+            "id":"42098",
+            "nombre":"Loventué",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "centroide":{"lat":-37.2419021199685,"lon":-66.5552326917265},
+            "id":"42091",
+            "nombre":"Limay Mahuida",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "centroide":{"lat":-37.4345215375332,"lon":-67.6045329036613},
+            "id":"42112",
+            "nombre":"Puelén",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "centroide":{"lat":-36.395699692841,"lon":-66.5727424085761},
+            "id":"42049",
+            "nombre":"Chalileo",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "centroide":{"lat":-36.3969736431163,"lon":-67.6944669009179},
+            "id":"42063",
+            "nombre":"Chical Co",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "centroide":{"lat":-35.2298937893695,"lon":-63.6603750662124},
+            "id":"42056",
+            "nombre":"Chapaleufú",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "centroide":{"lat":-35.2306620563122,"lon":-64.2098498059179},
+            "id":"42133",
+            "nombre":"Realicó",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "centroide":{"lat":-35.6796161112326,"lon":-63.6624899647122},
+            "id":"42105",
+            "nombre":"Maracó",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "centroide":{"lat":-35.631875013139,"lon":-64.2143766255202},
+            "id":"42147",
+            "nombre":"Trenel",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "centroide":{"lat":-36.4980625982423,"lon":-64.198128304565},
+            "id":"42021",
+            "nombre":"Capital",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "centroide":{"lat":-36.581670209145,"lon":-63.6648685343036},
+            "id":"42028",
+            "nombre":"Catriló",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "centroide":{"lat":-35.408324405275,"lon":-64.7962057702449},
+            "id":"42126",
+            "nombre":"Rancul",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "centroide":{"lat":-37.0324944038817,"lon":-63.7788849526284},
+            "id":"42007",
+            "nombre":"Atreucó",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "centroide":{"lat":-37.4836471472851,"lon":-63.7813081297621},
+            "id":"42070",
+            "nombre":"Guatraché",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "centroide":{"lat":-36.0320043909386,"lon":-64.5086492198133},
+            "id":"42035",
+            "nombre":"Conhelo",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "centroide":{"lat":-36.662162152652,"lon":-64.6922110147401},
+            "id":"42140",
+            "nombre":"Toay",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "centroide":{"lat":-36.1306405658638,"lon":-63.6637300134466},
+            "id":"42119",
+            "nombre":"Quemú Quemú",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        },
+        {
+            "centroide":{"lat":-37.3338794806419,"lon":-65.082831667763},
+            "id":"42154",
+            "nombre":"Utracán",
+            "provincia":{"id":"42","nombre":"La Pampa"}
+        }
+    ],
+    "inicio":0,
+    "parametros":{"max":100,"provincia":["42"]},
+    "total":22
+}
