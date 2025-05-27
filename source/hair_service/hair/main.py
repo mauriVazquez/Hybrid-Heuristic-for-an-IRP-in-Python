@@ -115,7 +115,7 @@ def async_execute(plantilla_id, horizonte_tiempo, capacidad_vehiculo, proveedor,
     print(f"Iniciado procesamiento de la plantilla ID: {plantilla_id}")
 
     mejor_solucion, iterador_principal, execution_time, admisibilidad = execute(
-        horizonte_tiempo, capacidad_vehiculo, proveedor, clientes
+        horizonte_tiempo, capacidad_vehiculo, proveedor, clientes, "ML"
     )
 
     requests.post(
