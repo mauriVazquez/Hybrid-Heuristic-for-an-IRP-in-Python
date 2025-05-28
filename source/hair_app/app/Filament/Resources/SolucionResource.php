@@ -67,7 +67,7 @@ class SolucionResource extends Resource
                 ]),
             ])
             ->modifyQueryUsing(function (Builder $query) {
-                if (auth()->user()->hasRole('conductor')) {
+                if (!auth()->user()->hasRole('admin')) {
                     $query->where('conductor_id', auth()->id());
                 }
             });

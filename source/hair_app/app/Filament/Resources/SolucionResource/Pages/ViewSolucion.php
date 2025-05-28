@@ -3,83 +3,89 @@
 namespace App\Filament\Resources\SolucionResource\Pages;
 
 use App\Filament\Resources\SolucionResource;
+use App\Models\Visita;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Table;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Filters\SelectFilter;
-use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Database\Eloquent\Builder;
 
 class ViewSolucion extends ViewRecord implements HasTable
 {
     use InteractsWithTable;
+
     protected static string $resource = SolucionResource::class;
-
-
     protected static string $view = 'filament.resources.soluciones.pages.view-solucion';
 
-    public $currentRouteData = [];
+    public int|string|null $rutaId = null;
+    public $rutas = [];
+
+    public function getTitle(): string
+    {
+        return 'Ver Solución';
+    }
 
     protected function mutateFormDataBeforeFill(array $data): array
-    {   
+    {
         $this->record->refresh();
-        $this->setCurrentRouteData($this->record['rutas'][0]);
+        $this->rutaId ??= $this->record->rutas->first()?->id;
+        $this->rutas = $this->record->rutas->toArray(); // O ->all() si querés objetos
         return $data;
     }
 
-    public function setCurrentRouteData($ruta)
+    public function updatedRutaId(): void
     {
-        $this->currentRouteData = $this->getRouteData($ruta);
+        $this->resetTable();
     }
 
-    public function getRouteData($ruta): array
+    public function getCurrentRouteDataProperty(): array
     {
-        
-        $routeData = [];
+        $ruta = $this->record->rutas->firstWhere('id', $this->rutaId);
 
-        // get Proveedor coords 
-        $routeData[] = [
-            'x' => $this->record['proveedor']['coord_x'],
-            'y' => $this->record['proveedor']['coord_y'],
-        ];
-
-        foreach ($ruta['visitas'] ?? [] as $visita) {
-            $routeData[] = [
-                'name' => $visita['cliente']['nombre'],
-                'color' => $visita['realizada'] ? 'green' : 'blue',
-                'x' => $visita['cliente']['coord_x'],
-                'y' => $visita['cliente']['coord_y'],
+        if (!$ruta) {
+            return [
+                'orden' => '-',
+                'puntos' => [],
             ];
         }
 
-        $routeData[] = [
+        $proveedor = [
             'name' => 'Proveedor',
             'color' => 'red',
-            'x' => $this->record['proveedor']['coord_x'],
-            'y' => $this->record['proveedor']['coord_y'],
+            'x' => $this->record->proveedor['coord_x'],
+            'y' => $this->record->proveedor['coord_y'],
         ];
 
-        return $routeData;
+        $visitas = collect($ruta['visitas'] ?? [])->map(fn($visita) => [
+            'name'  => $visita['cliente']['nombre'],
+            'color' => $visita['realizada'] ? 'green' : 'blue',
+            'x'     => $visita['cliente']['coord_x'],
+            'y'     => $visita['cliente']['coord_y'],
+        ])->toArray();
+
+        return [
+            'orden'  => $ruta['orden'],
+            'puntos' => array_merge([$proveedor], $visitas, [$proveedor]),
+        ];
     }
 
     public function table(Table $table): Table
     {
         return $table
-            ->relationship(fn (): HasManyThrough => $this->record->visitas())
+            ->query(fn() => \App\Models\Visita::query()
+                ->where('ruta_id', $this->rutaId)
+                ->whereHas('ruta', fn($q) => $q->where('solucion_id', $this->record->id)))
             ->columns([
-                TextColumn::make('ruta.orden')->label('Ruta')
-                ->bulleted(),
+                TextColumn::make('ruta.orden')->label('Ruta')->bulleted(),
                 TextColumn::make('cliente.nombre')->label('Cliente'),
                 TextColumn::make('cantidad')->label('Cantidad'),
                 ToggleColumn::make('realizada')->label('Realizada'),
             ])
-            ->filters([
-                // filter by ruta
-                SelectFilter::make('ruta_id')
-                    ->options(fn () => $this->record->rutas->pluck('orden', 'id')->toArray())
-                    ->label('Ruta'),
-            ]);
+            ->emptyStateIcon('heroicon-o-check')
+            ->emptyStateHeading('No hay visitas en esta ruta')
+            ->emptyStateDescription('Seleccioná otra ruta para ver sus visitas.')
+        ;
     }
 }

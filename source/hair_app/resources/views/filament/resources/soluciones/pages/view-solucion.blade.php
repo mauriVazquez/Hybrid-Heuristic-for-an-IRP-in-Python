@@ -1,21 +1,32 @@
 <x-filament-panels::page>
+    <div class="flex flex-col gap-4">
+        {{-- Filtro fijo --}}
+        <select
+            class="rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white text-sm px-2 py-1"
+            wire:change="$set('rutaId', $event.target.value)">
+            @foreach ($rutas as $ruta)
+            <option value="{{ $ruta['id'] }}" {{ $rutaId == $ruta['id'] ? 'selected' : '' }}>
+                Ruta {{ $ruta['orden'] }}
+            </option>
+            @endforeach
+        </select>
 
-    <!-- {{$record->rutas}} -->
-    <div class="flex justify-beetwen">
-        <div>Seleccionar ruta:</div> 
-        @foreach($record->rutas as $ruta)
-            <button wire:click="setCurrentRouteData({{$ruta}})" class="fi-btn relative grid-flow-col items-center justify-center font-semibold outline-none transition duration-75 focus-visible:ring-2 rounded-lg  fi-btn-color-gray fi-color-gray fi-size-md fi-btn-size-md gap-1.5 px-3 py-2 text-sm inline-grid shadow-sm bg-white text-gray-950 hover:bg-gray-50 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 ring-1 ring-gray-950/10 dark:ring-white/20 fi-ac-action fi-ac-btn-action">
-                Ruta {{$loop->index + 1}}
-            </button>
-        @endforeach
-    </div>
-    @push('scripts')
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    @endpush
-    <livewire:vehicle-route :routeData="$currentRouteData" :key="time()" />
-    <div>
-        {{
-            $this->table
-        }}
+
+
+        {{-- Layout dividido: tabla + canvas --}}
+        <div class="flex flex-col lg:flex-row gap-4">
+            <div class="w-full lg:w-3/5">
+                {{ $this->table }}
+            </div>
+            <div class="w-full lg:w-2/5">
+                @push('scripts')
+                <script src="https://d3js.org/d3.v7.min.js"></script>
+                @endpush
+
+                <livewire:vehicle-route
+                    :routeData="$this->currentRouteData['puntos']"
+                    :key="'route-' . $this->rutaId" />
+            </div>
+        </div>
     </div>
 </x-filament-panels::page>
