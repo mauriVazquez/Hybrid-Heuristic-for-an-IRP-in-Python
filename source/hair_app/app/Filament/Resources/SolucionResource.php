@@ -45,7 +45,8 @@ class SolucionResource extends Resource
         return $table
             ->columns([
                 //
-                Tables\Columns\TextColumn::make('plantilla_id')->label('Plantilla'),
+                // Tables\Columns\TextColumn::make('plantilla_id')->label('Plantilla'),
+                Tables\Columns\TextColumn::make('plantilla.zona.nombre')->label('Zona'),
                 Tables\Columns\SelectColumn::make('conductor_id')->label('Conductor')->options(function(){
                     return \App\Models\User::all()->pluck('name', 'id');
                 })->afterStateUpdated(function($record, $column,){
