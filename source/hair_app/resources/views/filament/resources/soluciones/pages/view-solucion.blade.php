@@ -25,7 +25,8 @@
 
                 <livewire:vehicle-route
                     :routeData="$this->currentRouteData['puntos']"
-                    :key="'route-' . $this->rutaId" />
+                    :key="'route-' . $this->rutaId . $canvasRefreshKey" />
+
             </div>
         </div>
     </div>

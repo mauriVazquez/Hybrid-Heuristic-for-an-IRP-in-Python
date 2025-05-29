@@ -11,6 +11,7 @@ use Filament\Tables\Table;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Illuminate\Database\Eloquent\Builder;
+use Livewire\Livewire;
 
 class ViewSolucion extends ViewRecord implements HasTable
 {
@@ -21,6 +22,7 @@ class ViewSolucion extends ViewRecord implements HasTable
 
     public int|string|null $rutaId = null;
     public $rutas = [];
+    public string $canvasRefreshKey = '';
 
     public function getTitle(): string
     {
@@ -32,6 +34,7 @@ class ViewSolucion extends ViewRecord implements HasTable
         $this->record->refresh();
         $this->rutaId ??= $this->record->rutas->first()?->id;
         $this->rutas = $this->record->rutas->toArray(); // O ->all() si querés objetos
+        $this->canvasRefreshKey = now()->timestamp;
         return $data;
     }
 
@@ -81,7 +84,13 @@ class ViewSolucion extends ViewRecord implements HasTable
                 TextColumn::make('ruta.orden')->label('Ruta')->bulleted(),
                 TextColumn::make('cliente.nombre')->label('Cliente'),
                 TextColumn::make('cantidad')->label('Cantidad'),
-                ToggleColumn::make('realizada')->label('Realizada'),
+                ToggleColumn::make('realizada')
+                    ->label('Realizada')
+                    ->afterStateUpdated(function () {
+                        $this->record->refresh(); // Asegura tener el modelo actualizado
+                        $this->canvasRefreshKey = now()->timestamp;
+                    }),
+
             ])
             ->emptyStateIcon('heroicon-o-check')
             ->emptyStateHeading('No hay visitas en esta ruta')
