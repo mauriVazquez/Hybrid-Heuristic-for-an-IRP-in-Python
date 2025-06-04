@@ -31,23 +31,27 @@ class HairService
     }
 
     public function enviarSolicitudEjecucion($plantilla_id, Proveedor $proveedor, $clientes, Vehiculo $vehiculo, $horizonLength)
-    {
+    {   
+        // creo un array con los datos necesarios para enviar al servicio
         $data = [
             'plantilla_id' => $plantilla_id,
             'user_id' => auth()->id(), 
             'horizonte_tiempo' => $horizonLength,
             'capacidad_vehiculo' => $vehiculo->capacidad,
-            'proveedor' => ProveedorPythonResource::make($proveedor),
-            'clientes' => ClientePythonResource::collection(Cliente::whereIn('id', $clientes)->get()),
+            'proveedor' => ProveedorPythonResource::make($proveedor), //Formateo el proveedor
+            'clientes' => ClientePythonResource::collection(Cliente::whereIn('id', $clientes)->get()), //Formateo los clientes
         ];
 
+        // hago la petición al servicio
         $response = $this->getHttpClient()->post($this->url . '/optimizar_recorrido', [
             RequestOptions::BODY => json_encode($data),
         ]);
 
+        // Si la respuesta no es exitosa, lanzo una excepción
         if ($response->getStatusCode() > 201)
-            throw new Exception("Ocurrio un error al consultar al servicio python: {$response->getBody()}", $response->getStatusCode());
+            throw new Exception("Ocurrio un error al consultar al servicio: {$response->getBody()}", $response->getStatusCode());
 
+        // decodifico la respuesta y la retorno
         return json_decode($response->getBody());
     }
 }

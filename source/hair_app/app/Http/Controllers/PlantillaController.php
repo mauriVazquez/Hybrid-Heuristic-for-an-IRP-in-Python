@@ -17,9 +17,7 @@ class PlantillaController extends Controller
 {
     public function guardarSolucion(Request $request, Plantilla $plantilla)
     {
-        info("Vuelta");
-
-        // Validación de entrada
+        // Validación de datos de entrada
         $request->validate([
             'mejor_solucion' => 'required|array',
             'mejor_solucion.costo' => 'required|numeric',
@@ -31,7 +29,9 @@ class PlantillaController extends Controller
         $user_id  = $request->input('user_id');
 
         try {
+            //transacción de base de datos para asegurar la integridad de los datos
             DB::transaction(function () use ($solucion, $plantilla, $user_id) {
+                //crea una nueva solución asociada a la plantilla
                 $nuevaSolucion = Solucion::create([
                     'plantilla_id' => $plantilla->id,
                     'estado' => 0,
@@ -41,6 +41,7 @@ class PlantillaController extends Controller
                     'costo' => $solucion['costo'],
                 ]);
 
+                //por cada ruta en la solución, crea un modelo Ruta y le asocia las visitas
                 foreach ($solucion['rutas'] as $key => $ruta) {
                     $rutaModelo = Ruta::create([
                         'costo' => $ruta['costo'],
@@ -63,11 +64,12 @@ class PlantillaController extends Controller
                     }
                 }
 
+                // Actualizar el estado de la plantilla a Resuelto
                 $plantilla->update([
                     'estado' => EstadosEnum::Resuelto,
                 ]);
 
-                // Enviar notificación solo si el usuario existe
+                // Enviar notificación al usuario
                 $user = User::find($user_id);
                 if ($user) {
                     Notification::make()
