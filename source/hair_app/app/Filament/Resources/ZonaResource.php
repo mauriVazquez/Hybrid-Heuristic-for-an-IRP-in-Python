@@ -63,7 +63,7 @@ class ZonaResource extends Resource
         return [
             'index' => Pages\ListZonas::route('/'),
             'create' => Pages\CreateZona::route('/create'),
-            // 'edit' => Pages\EditZona::route('/{record}/edit'),
+            'edit' => Pages\EditZona::route('/{record}/edit'),
         ];
     }
 }

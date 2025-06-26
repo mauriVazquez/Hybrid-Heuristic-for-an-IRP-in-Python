@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Builder;
 class SolucionResource extends Resource
 {
     protected static ?string $model = Solucion::class;
-    protected static ?string $pluralModelLabel = 'Soluciones';
+    protected static ?string $pluralModelLabel = 'Soluciones - Recorridos';
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
    
     public static function getSlug(): string
@@ -71,6 +71,8 @@ class SolucionResource extends Resource
                 if (!auth()->user()->hasRole('admin')) {
                     $query->where('conductor_id', auth()->id());
                 }
+
+                $query->orderBy('created_at', 'desc');
             });
     }
 

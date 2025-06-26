@@ -27,7 +27,11 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
         ]);
 
-        $admin = User::where('name', 'Admin')->first();
+        $admin = User::where('name', 'Administrador')->first();
         $admin->assignRole('admin');
+
+        $conductor = User::where('name', 'Conductor')->first();
+        $conductor->assignRole('conductor');
     }
+    
 }

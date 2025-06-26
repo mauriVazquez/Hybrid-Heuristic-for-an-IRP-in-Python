@@ -11,13 +11,13 @@ use App\Models\Vehiculo;
 use App\Models\Zona;
 use App\Services\HairService;
 use Filament\Forms;
-use Filament\Forms\Components\Builder;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class PlantillaResource extends Resource
 {
@@ -63,7 +63,9 @@ class PlantillaResource extends Resource
                                 }
                             )
                             ->multiple()
-                            ->required(),
+                            ->required()
+                            ->preload()
+                            
                     ])
                     ->columns(1),
             ]);
@@ -108,7 +110,10 @@ class PlantillaResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
-            ]);
+            ])->poll('1s')
+            ->modifyQueryUsing(function (Builder $query) {
+                $query->orderBy('created_at', 'desc');
+            });
     }
 
     public static function getRelations(): array
@@ -127,4 +132,5 @@ class PlantillaResource extends Resource
             // 'edit' => Pages\EditPlantilla::route('/{record}/edit'),
         ];
     }
+
 }

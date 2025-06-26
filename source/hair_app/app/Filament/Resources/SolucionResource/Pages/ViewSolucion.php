@@ -67,7 +67,7 @@ class ViewSolucion extends ViewRecord implements HasTable
             'x'     => $visita['cliente']['coord_x'],
             'y'     => $visita['cliente']['coord_y'],
         ])->toArray();
-
+        
         return [
             'orden'  => $ruta['orden'],
             'puntos' => array_merge([$proveedor], $visitas, [$proveedor]),
@@ -79,9 +79,12 @@ class ViewSolucion extends ViewRecord implements HasTable
         return $table
             ->query(fn() => \App\Models\Visita::query()
                 ->where('ruta_id', $this->rutaId)
-                ->whereHas('ruta', fn($q) => $q->where('solucion_id', $this->record->id)))
-            ->columns([
-                TextColumn::make('ruta.orden')->label('Ruta')->bulleted(),
+                ->whereHas('ruta', fn($q) => $q->where('solucion_id', $this->record->id)))            ->columns([
+                TextColumn::make('index')
+                    ->label('Orden')
+                    ->state(function ($record, $rowLoop) {
+                        return $rowLoop->iteration;
+                    }),
                 TextColumn::make('cliente.nombre')->label('Cliente'),
                 TextColumn::make('cantidad')->label('Cantidad'),
                 ToggleColumn::make('realizada')

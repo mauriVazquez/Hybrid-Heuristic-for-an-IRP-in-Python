@@ -10,6 +10,7 @@ use App\Models\Vehiculo;
 use Exception;
 use GuzzleHttp\Client;
 use GuzzleHttp\RequestOptions;
+use App\enums\EstadosEnum;
 
 class HairService
 {
@@ -50,6 +51,11 @@ class HairService
         // Si la respuesta no es exitosa, lanzo una excepción
         if ($response->getStatusCode() > 201)
             throw new Exception("Ocurrio un error al consultar al servicio: {$response->getBody()}", $response->getStatusCode());
+
+        // actualizo el estado de la plantilla a procesando
+        $plantilla = \App\Models\Plantilla::find($plantilla_id);
+        $plantilla->estado = EstadosEnum::Procesando;
+        $plantilla->save();
 
         // decodifico la respuesta y la retorno
         return json_decode($response->getBody());
